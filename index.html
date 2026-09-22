@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>詞靈冒險．翡翠之卷</title>
+<link rel="stylesheet" href="css/style.css?v=11">
+</head>
+<body>
+<main id="console">
+  <div id="screen">
+    <canvas id="cv" width="240" height="160"></canvas>
+    <div id="ui"></div>
+    <div id="fx"></div>
+  </div>
+  <div id="pad">
+    <div class="dpad">
+      <button data-key="up" class="d up" aria-label="上">▲</button>
+      <button data-key="left" class="d left" aria-label="左">◀</button>
+      <button data-key="right" class="d right" aria-label="右">▶</button>
+      <button data-key="down" class="d down" aria-label="下">▼</button>
+    </div>
+    <div class="mid">
+      <button data-key="START" class="pill">START<small>選單</small></button>
+      <button id="muteBtn" class="pill">♪<small>音樂</small></button>
+    </div>
+    <div class="ab">
+      <button data-key="B" class="round b">B</button>
+      <button data-key="A" class="round a">A</button>
+    </div>
+  </div>
+  <p class="hint">方向鍵／WASD 移動　Z／空白鍵＝A 確認　X／Esc＝B 取消（按住可奔跑）　Enter／M＝選單</p>
+</main>
+<script src="js/engine.js?v=11"></script>
+<script src="js/gfx.js?v=11"></script>
+<script src="js/data_questions.js?v=11"></script>
+<script src="js/data_game.js?v=11"></script>
+<script src="js/data_worlds.js?v=11"></script>
+<script src="js/ui.js?v=11"></script>
+<script src="js/overworld.js?v=11"></script>
+<script src="js/battle.js?v=11"></script>
+<script src="js/menus.js?v=11"></script>
+<script src="js/main.js?v=11"></script>
+</body>
+</html>
