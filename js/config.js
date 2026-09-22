@@ -6,5 +6,5 @@
              留空＝只存在學生自己的電腦（瀏覽器）裡。
    ===================================================================== */
 const CONFIG = {
-  cloudUrl: '',
+  cloudUrl: 'https://script.google.com/macros/s/AKfycbzM0EyBzxe3eCZvvkq28rEsMZ1HvLePG6WLnmWtrpUT9hL8k722GWUkkXOEzwY4mwET/exec',
 };
