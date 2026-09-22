@@ -206,6 +206,7 @@ const GFX = (() => {
     seal: [{ t: 'e', v: [7, 7, 5, 5], c: 'a' }, { t: 'e', v: [7, 7, 3.2, 3.2], c: '#bfe4f8' }, { t: 'p', v: [[10, 10], [15, 14], [13, 16], [9, 12]], c: 'b' }, { t: 'd', v: [[5, 5]], c: '#ffffff' }],
     legend: [{ t: 'r', v: [7, 1, 3, 10], c: 'm' }, { t: 'r', v: [8, 1, 1, 10], c: '#ffffff' }, { t: 'r', v: [4, 10, 9, 2], c: 'c' }, { t: 'r', v: [7, 12, 3, 3], c: 'b' }],
   };
+  const GFX_STAR = star(8, 8, 7.5, 2.5, 4);
   const SWORD = [{ t: 'p', v: [[4, 11], [12, 3], [14, 2], [13, 4], [5, 12]], c: 'm' }, { t: 'p', v: [[2, 10], [6, 14], [7, 13], [3, 9]], c: 'c' }, { t: 'p', v: [[1, 14], [3, 12], [4, 13], [2, 15]], c: 'b' }];
   const WOVR = {
     'school.scroll': [{ t: 'r', v: [3, 2, 11, 12], c: '#3a8a58' }, { t: 'r', v: [5, 3, 8, 10], c: 'm' }, { t: 'r', v: [3, 2, 2, 12], c: '#2a6a40' }, { t: 'r', v: [7, 5, 4, 1], c: '#3a8a58' }, { t: 'r', v: [7, 8, 3, 1], c: '#3a8a58' }],
@@ -219,16 +220,43 @@ const GFX = (() => {
     'wuxia.seal': [{ t: 'p', v: [[2, 13], [11, 4], [12, 5], [3, 14]], c: 'b' }, { t: 'p', v: [[10, 3], [15, 1], [13, 6]], c: 'm' }, { t: 'p', v: [[1, 11], [4, 14], [2, 15], [0, 13]], c: '#c83838' }],
     'wuxia.legend': SWORD.map((q, i) => i === 1 ? Object.assign({}, q, { c: '#e0b040' }) : q),
   };
+  /* 通用造型：a＝武器主色、b＝深色、c＝點綴、m＝亮色 */
+  const SHAPES = {
+    pen: WPARTS.brush, book: WPARTS.tome, scroll: WPARTS.scroll, fan: WPARTS.fan, lens: WPARTS.seal, sword: SWORD,
+    flute: WOVR['literati.scroll'], zither: WOVR['wuxia.scroll'],
+    ruler: [{ t: 'p', v: [[1, 11], [11, 1], [15, 5], [5, 15]], c: 'a' }, { t: 'd', v: [[4, 10], [6, 8], [8, 6], [10, 4], [5, 11], [9, 7]], c: 'b' }],
+    block: [{ t: 'r', v: [2, 5, 12, 7], c: 'a' }, { t: 'r', v: [2, 5, 5, 7], c: 'c' }, { t: 'r', v: [3, 6, 3, 1], c: 'm' }],
+    card: [{ t: 'r', v: [3, 1, 10, 14], c: 'b' }, { t: 'r', v: [4, 2, 8, 12], c: 'a' }, { t: 'r', v: [5, 3, 6, 10], c: 'm' }, { t: 'd', v: [[7, 5], [8, 5], [8, 6], [7, 7], [8, 8], [7, 9], [8, 10], [7, 11]], c: 'b' }],
+    bell: [{ t: 'r', v: [7, 1, 2, 2], c: 'b' }, { t: 'p', v: [[5, 3], [11, 3], [13, 12], [3, 12]], c: 'a' }, { t: 'r', v: [2, 12, 12, 2], c: 'c' }, { t: 'e', v: [8, 14.5, 1.5, 1.5], c: 'b' }],
+    orb: [{ t: 'e', v: [8, 8, 6.5, 6.5], c: 'a' }, { t: 'e', v: [6, 6, 2, 2], c: 'm' }, { t: 'r', v: [7, 0, 2, 2], c: 'b' }],
+    ring: [{ t: 'e', v: [8, 8, 7, 7], c: 'a' }, { t: 'e', v: [8, 8, 4.2, 4.2], c: '_' }, { t: 'd', v: [[4, 4], [5, 3]], c: 'm' }],
+    lamp: [{ t: 'r', v: [4, 2, 8, 1], c: 'b' }, { t: 'e', v: [8, 8, 5, 5.5], c: 'a' }, { t: 'e', v: [8, 8, 2, 3], c: '#fff4b0' }, { t: 'r', v: [4, 13, 8, 1], c: 'b' }, { t: 'r', v: [7, 14, 2, 2], c: 'c' }],
+    dagger: [{ t: 'p', v: [[7, 1], [9, 1], [10, 9], [6, 9]], c: 'm' }, { t: 'r', v: [4, 9, 8, 2], c: 'c' }, { t: 'r', v: [7, 11, 2, 4], c: 'a' }],
+    star: [{ t: 'p', v: GFX_STAR, c: 'm' }, { t: 'e', v: [8, 8, 1.6, 1.6], c: 'b' }],
+    stick: [{ t: 'p', v: [[2, 13], [12, 3], [14, 5], [4, 15]], c: 'a' }, { t: 'p', v: [[10, 5], [12, 3], [14, 5], [12, 7]], c: 'c' }, { t: 'p', v: [[2, 13], [4, 11], [6, 13], [4, 15]], c: 'c' }],
+    pipa: [{ t: 'e', v: [8, 10.5, 5, 5], c: 'a' }, { t: 'r', v: [7, 1, 2, 7], c: 'b' }, { t: 'r', v: [6, 1, 4, 2], c: 'c' }, { t: 'r', v: [7, 8, 1, 7], c: 'm' }, { t: 'r', v: [9, 8, 1, 7], c: 'm' }],
+    tablet: [{ t: 'r', v: [3, 1, 10, 14], c: 'b' }, { t: 'r', v: [4, 2, 8, 11], c: 'a' }, { t: 'r', v: [5, 4, 6, 1], c: 'm' }, { t: 'r', v: [5, 7, 6, 1], c: 'm' }, { t: 'r', v: [7, 13, 2, 1], c: 'm' }],
+    cup: [{ t: 'p', v: [[3, 2], [13, 2], [11, 9], [5, 9]], c: 'a' }, { t: 'r', v: [7, 9, 2, 3], c: 'a' }, { t: 'r', v: [4, 12, 8, 3], c: 'b' }, { t: 'd', v: [[5, 3], [5, 4]], c: 'm' }, { t: 'r', v: [1, 3, 2, 4], c: 'a' }, { t: 'r', v: [13, 3, 2, 4], c: 'a' }],
+    abacus: [{ t: 'r', v: [1, 3, 14, 11], c: 'b' }, { t: 'r', v: [2, 4, 12, 9], c: 'm' }, { t: 'r', v: [2, 7, 12, 1], c: 'b' }, { t: 'd', v: [[3, 5], [6, 5], [9, 5], [12, 5], [4, 9], [7, 10], [10, 9], [12, 11], [5, 11], [8, 9]], c: 'a' }],
+    whistle: [{ t: 'e', v: [6, 10, 4.5, 4], c: 'a' }, { t: 'r', v: [8, 6, 7, 4], c: 'a' }, { t: 'e', v: [6, 10, 1.6, 1.6], c: 'b' }, { t: 'r', v: [13, 6, 2, 4], c: 'c' }],
+    compass: [{ t: 'p', v: [[7, 2], [9, 2], [4, 15], [3, 14]], c: 'm' }, { t: 'p', v: [[7, 2], [9, 2], [13, 14], [12, 15]], c: 'm' }, { t: 'e', v: [8, 3, 2, 2], c: 'a' }, { t: 'r', v: [3, 13, 2, 2], c: 'c' }],
+    globe: [{ t: 'e', v: [8, 7, 6, 6], c: '#58a8e0' }, { t: 'd', v: [[5, 5], [6, 5], [6, 6], [9, 8], [10, 8], [10, 9], [8, 4]], c: '#4ab04a' }, { t: 'r', v: [7, 13, 2, 1], c: 'b' }, { t: 'r', v: [4, 14, 8, 2], c: 'a' }],
+    glasses: [{ t: 'e', v: [4.5, 8, 3.5, 3], c: 'a' }, { t: 'e', v: [4.5, 8, 2.2, 1.8], c: '#c8e8f8' }, { t: 'e', v: [11.5, 8, 3.5, 3], c: 'a' }, { t: 'e', v: [11.5, 8, 2.2, 1.8], c: '#c8e8f8' }, { t: 'r', v: [7, 7, 2, 1], c: 'a' }],
+    mic: [{ t: 'e', v: [9, 5, 4, 4], c: 'b' }, { t: 'e', v: [9, 5, 2.6, 2.6], c: 'm' }, { t: 'p', v: [[6, 8], [8, 10], [3, 15], [1, 13]], c: 'a' }],
+    whip: [{ t: 'r', v: [2, 12, 3, 3], c: 'a' }, { t: 'r', v: [5, 9, 3, 3], c: 'm' }, { t: 'r', v: [8, 6, 3, 3], c: 'a' }, { t: 'r', v: [11, 3, 3, 3], c: 'm' }, { t: 'r', v: [13, 1, 2, 2], c: 'c' }],
+  };
   function weapon(arch, theme) {
     const key = 'w:' + arch + theme; if (cache.has(key)) return cache.get(key);
-    const cv = toCanvas(16, 16, raster(16, 16, WOVR[theme + '.' + arch] || WPARTS[arch], WPAL[theme] || WPAL.school));
+    const A = ARCH[arch]; const special = !A.guardian && WOVR[theme + '.' + arch];
+    const pal = Object.assign({}, WPAL[theme] || WPAL.school, special ? {} : { a: A.col });
+    const cv = toCanvas(16, 16, raster(16, 16, special || SHAPES[A.shapes[theme]] || SHAPES.pen, pal));
     cache.set(key, cv); return cv;
   }
   /* 武器妖：把武器圖示放大成 32×32，加上眼睛、腳、腮紅 */
   function weaponMon(arch, theme) {
     const key = 'm:' + arch + theme; if (cache.has(key)) return cache.get(key);
     const k = 1.6, ox = 16 - 8 * k, oy = 0;
-    const src = WOVR[theme + '.' + arch] || WPARTS[arch]; const P = [];
+    const A = ARCH[arch]; const src = (!A.guardian && WOVR[theme + '.' + arch]) || SHAPES[A.shapes[theme]] || SHAPES.pen; const P = [];
     for (const q of src) {
       if (q.t === 'e') P.push({ t: 'e', v: [q.v[0] * k + ox, q.v[1] * k + oy, q.v[2] * k, q.v[3] * k], c: q.c });
       else if (q.t === 'r') P.push({ t: 'r', v: [Math.round(q.v[0] * k + ox), Math.round(q.v[1] * k + oy), Math.round(q.v[2] * k), Math.round(q.v[3] * k)], c: q.c });
@@ -239,7 +267,7 @@ const GFX = (() => {
     P.push({ t: 'e', v: [12.5, 14, 3, 3.3], c: '#ffffff' }, { t: 'e', v: [19.5, 14, 3, 3.3], c: '#ffffff' });
     P.push({ t: 'r', v: [12, 14, 2, 3], c: OUT }, { t: 'r', v: [19, 14, 2, 3], c: OUT }, { t: 'd', v: [[12, 14], [19, 14]], c: '#ffffff' });
     P.push({ t: 'r', v: [9, 18, 2, 1], c: '#f08080' }, { t: 'r', v: [21, 18, 2, 1], c: '#f08080' }, { t: 'r', v: [15, 19, 2, 1], c: OUT });
-    const cv = toCanvas(32, 32, raster(32, 32, P, WPAL[theme] || WPAL.school));
+    const cv = toCanvas(32, 32, raster(32, 32, P, Object.assign({}, WPAL[theme] || WPAL.school, WOVR[theme + '.' + arch] ? {} : { a: A.col })));
     cache.set(key, cv); return cv;
   }
   function chest(open) {

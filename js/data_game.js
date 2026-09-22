@@ -11,24 +11,86 @@ const ALL_CATS = Object.keys(CATS);
 const catColor = c => (CATS[c] || { color: '#707888' }).color;
 const chip = c => `<span class="chip" style="background:${catColor(c)}">${esc(c)}</span>`;
 
-/* ============ 武器系統 ============
-   六種武器「原型」，三個世界各有不同名稱與外觀。轉生時依原型自動轉換。
-   武器等級由「熟練度」決定：用該武器答對題目就會增加。 */
-const ARCH = {
-  brush: { cats: ['字形', '字音'], skills: [['點畫', ['字形'], 40], ['聲韻', ['字音'], 40], ['筆走龍蛇', ['字形', '字音'], 60], ['一字千金', ['字形', '字音'], 85]], ult: '力透紙背' },
-  tome: { cats: ['成語', '詞義'], skills: [['引經', ['成語'], 40], ['據典', ['詞義'], 40], ['妙語連珠', ['成語', '詞義'], 60], ['字字珠璣', ['成語', '詞義'], 85]], ult: '出口成章' },
-  scroll: { cats: ['文言', '詩詞'], skills: [['吟詠', ['詩詞'], 40], ['誦古', ['文言'], 40], ['詩情畫意', ['詩詞', '文言'], 60], ['千古絕唱', ['詩詞', '文言'], 85]], ult: '氣壯山河' },
-  fan: { cats: ['修辭'], skills: [['譬喻', ['修辭'], 45], ['轉化', ['修辭'], 50], ['誇飾', ['修辭'], 65], ['排比連擊', ['修辭'], 85]], ult: '妙筆生花' },
-  seal: { cats: ['常識', '閱讀'], skills: [['博聞', ['常識'], 45], ['細讀', ['閱讀'], 45], ['融會貫通', ['常識', '閱讀'], 65], ['學富五車', ['常識', '閱讀'], 85]], ult: '洞若觀火' },
-  legend: { cats: ALL_CATS, skills: [['文心', ALL_CATS, 55], ['雕龍', ALL_CATS, 65], ['萬卷', ALL_CATS, 80], ['天章', ALL_CATS, 100]], ult: '文曲天降' },
+/* ============ 武器系統（30 種 × 3 世界名稱）============
+   同一列是同一種武器在三個世界的名稱，轉生時依此轉換。
+   欄位：代號、擅長題型、最早出現章節、必殺技、[國中, 圖示]、[文人, 圖示]、[俠客, 圖示]、主色 */
+const CAT_SKILLS = {
+  '字音': ['辨音', '聲韻', '四聲迴旋', '正音天籟'], '字形': ['點畫', '辨形', '筆走龍蛇', '一字千金'],
+  '詞義': ['釋詞', '據典', '字字珠璣', '詞鋒如刃'], '成語': ['引經', '典故', '妙語連珠', '成語連環'],
+  '修辭': ['譬喻', '轉化', '誇飾', '排比連擊'], '文言': ['誦古', '解經', '之乎者也', '文以載道'],
+  '詩詞': ['吟詠', '對仗', '詩情畫意', '千古絕唱'], '常識': ['博聞', '強記', '融會貫通', '學富五車'],
+  '閱讀': ['細讀', '精讀', '一目十行', '洞若觀火'],
 };
-const ARCH_ORDER = ['brush', 'tome', 'scroll', 'fan', 'seal', 'legend'];
+const WEAPON_TABLE = [
+  ['brush', ['字形', '字音'], 1, '力透紙背', ['自動鉛筆', 'pen'], ['狼毫筆', 'pen'], ['判官筆', 'pen'], '#f0c040'],
+  ['tome', ['成語', '詞義'], 1, '出口成章', ['成語字典', 'book'], ['竹簡', 'book'], ['青鋒劍', 'sword'], '#5a88c8'],
+  ['scroll', ['文言', '詩詞'], 1, '氣壯山河', ['國文課本', 'book'], ['玉笛', 'flute'], ['七弦琴', 'zither'], '#3a8a58'],
+  ['fan', ['修辭'], 1, '妙筆生花', ['彩色螢光筆', 'pen'], ['宣紙扇', 'fan'], ['鐵骨扇', 'fan'], '#f070b0'],
+  ['seal', ['常識', '閱讀'], 1, '真知灼見', ['放大鏡', 'lens'], ['端硯', 'block'], ['袖裡箭', 'dagger'], '#d8a030'],
+  ['ruler', ['字形'], 1, '規矩方圓', ['直尺', 'ruler'], ['鎮紙', 'block'], ['鐵尺', 'ruler'], '#e8c070'],
+  ['eraser', ['字形'], 1, '去蕪存菁', ['橡皮擦', 'block'], ['刮刀', 'dagger'], ['飛刀', 'dagger'], '#f0a0a0'],
+  ['zhuyin', ['字音'], 1, '字正腔圓', ['注音卡', 'card'], ['韻書', 'book'], ['銅鈴', 'bell'], '#e87a50'],
+  ['bell', ['字音'], 2, '餘音繞樑', ['上課鐘', 'bell'], ['編鐘', 'bell'], ['鐃鈸', 'orb'], '#c89a30'],
+  ['dict', ['詞義'], 2, '一字一珠', ['國語辭典', 'book'], ['爾雅', 'book'], ['鐵棍', 'stick'], '#b83a3a'],
+  ['notebook', ['詞義'], 2, '言簡意賅', ['筆記本', 'book'], ['手札', 'card'], ['峨眉刺', 'dagger'], '#58b0a0'],
+  ['idiom', ['成語'], 2, '引經據典', ['成語卡', 'card'], ['酒令籌', 'stick'], ['梅花鏢', 'star'], '#4ea838'],
+  ['chess', ['成語'], 2, '運籌帷幄', ['跳棋', 'orb'], ['圍棋', 'orb'], ['流星錘', 'orb'], '#303848'],
+  ['marker', ['修辭'], 3, '繪聲繪影', ['麥克筆', 'pen'], ['丹青筆', 'pen'], ['雙鉤', 'dagger'], '#8a58c8'],
+  ['mic', ['修辭'], 3, '擲地有聲', ['麥克風', 'mic'], ['洞簫', 'flute'], ['鐵笛', 'flute'], '#5a6a80'],
+  ['compass', ['常識'], 3, '規行矩步', ['圓規', 'compass'], ['羅盤', 'orb'], ['九節鞭', 'whip'], '#a0a8b8'],
+  ['globe', ['常識'], 3, '包羅萬象', ['地球儀', 'globe'], ['渾天儀', 'ring'], ['乾坤圈', 'ring'], '#3a90d0'],
+  ['glasses', ['閱讀'], 3, '明察秋毫', ['眼鏡', 'glasses'], ['燈籠', 'lamp'], ['夜明珠', 'orb'], '#6a5a4a'],
+  ['bookmark', ['閱讀'], 3, '手不釋卷', ['書籤', 'card'], ['玉書籤', 'card'], ['令牌', 'tablet'], '#48b878'],
+  ['poemcard', ['詩詞'], 4, '字字珠璣', ['詩詞卡', 'card'], ['詩箋', 'scroll'], ['琵琶', 'pipa'], '#c85a8a'],
+  ['lamp', ['詩詞'], 4, '秉燭夜遊', ['檯燈', 'lamp'], ['宮燈', 'lamp'], ['火摺子', 'stick'], '#e85a3a'],
+  ['classic', ['文言'], 4, '溫故知新', ['古文觀止', 'book'], ['四書', 'book'], ['武學秘笈', 'book'], '#7a5a3a'],
+  ['maobi', ['文言'], 4, '文以載道', ['毛筆', 'pen'], ['紫毫筆', 'pen'], ['太極劍', 'sword'], '#2a2a34'],
+  ['chalk', ['字形', '詞義'], 4, '板上釘釘', ['粉筆', 'pen'], ['硃砂筆', 'pen'], ['鐵筆', 'pen'], '#f0f0e8'],
+  ['whistle', ['字音', '修辭'], 4, '一鳴驚人', ['哨子', 'whistle'], ['竹哨', 'whistle'], ['鐵哨', 'whistle'], '#e0b040'],
+  ['abacus', ['常識', '成語'], 5, '神機妙算', ['計算機', 'tablet'], ['算盤', 'abacus'], ['鐵算盤', 'abacus'], '#8a5a2a'],
+  ['palette', ['詩詞', '修辭'], 5, '詩中有畫', ['水彩盤', 'orb'], ['畫軸', 'scroll'], ['方天畫戟', 'stick'], '#e89040'],
+  ['tablet', ['閱讀', '文言'], 5, '博古通今', ['平板電腦', 'tablet'], ['石碑拓本', 'tablet'], ['鐵碑', 'tablet'], '#4a5a70'],
+  ['trophy', ['閱讀', '常識', '文言'], 5, '獨占鰲頭', ['獎盃', 'cup'], ['金榜', 'card'], ['盟主令', 'tablet'], '#e0b030'],
+  ['legend', ALL_CATS, 5, '文曲天降', ['金牌鋼筆', 'pen'], ['松煙古墨', 'block'], ['龍泉劍', 'sword'], '#e8c040'],
+];
+/* 守護神器（彩色，只能由劇情取得）：每個世界兩件，依劇情選擇而不同，各有特殊能力 */
+const GUARDIANS = {
+  g_school_a: { world: 'school', name: '傳承之筆', shape: 'pen', col: '#f8d040', ult: '薪火相傳', passive: 'shield' },
+  g_school_b: { world: 'school', name: '榮耀獎盃', shape: 'cup', col: '#f0c030', ult: '金榜題名', passive: 'spring' },
+  g_literati_a: { world: 'literati', name: '知音琴', shape: 'zither', col: '#c8905a', ult: '高山流水', passive: 'eye' },
+  g_literati_b: { world: 'literati', name: '春秋筆', shape: 'pen', col: '#b8322a', ult: '微言大義', passive: 'bane' },
+  g_wuxia_a: { world: 'wuxia', name: '俠義令', shape: 'tablet', col: '#d8a030', ult: '俠之大者', passive: 'regen' },
+  g_wuxia_b: { world: 'wuxia', name: '孤鴻劍', shape: 'sword', col: '#c8d8f0', ult: '孤鴻影落', passive: 'retry' },
+};
+const PASSIVES = {
+  shield: { name: '護心', desc: '每場戰鬥第一次被擊中時，傷害歸零。' },
+  spring: { name: '文思泉湧', desc: '每場戰鬥開始時，文氣直接 +2。' },
+  eye: { name: '慧眼', desc: '選擇題自動刪去一個錯誤選項。' },
+  bane: { name: '破妄', desc: '對關主與魔王的傷害 ×1.5。' },
+  regen: { name: '回春', desc: '每回合結束時恢復 8% 氣血。' },
+  retry: { name: '再思', desc: '每場戰鬥第一次答錯時，可以重答一次。' },
+};
+const ARCH = {};
+function skillsFor(cats) {
+  if (cats.length >= ALL_CATS.length) return [['文心', cats, 55], ['雕龍', cats, 65], ['萬卷', cats, 80], ['天章', cats, 100]];
+  const a = cats[0], b = cats[1] || cats[0], both = cats.slice(0, 3);
+  return cats.length === 1
+    ? [[CAT_SKILLS[a][0], [a], 40], [CAT_SKILLS[a][1], [a], 45], [CAT_SKILLS[a][2], [a], 60], [CAT_SKILLS[a][3], [a], 85]]
+    : [[CAT_SKILLS[a][0], [a], 40], [CAT_SKILLS[b][0], [b], 40], [CAT_SKILLS[a][2], both, 60], [CAT_SKILLS[b][3], both, 85]];
+}
+for (const [key, cats, ch, ult, sc, li, wu, col] of WEAPON_TABLE)
+  ARCH[key] = { cats, ch, ult, col, names: { school: sc[0], literati: li[0], wuxia: wu[0] }, shapes: { school: sc[1], literati: li[1], wuxia: wu[1] }, skills: skillsFor(cats) };
+for (const [key, g] of Object.entries(GUARDIANS))
+  ARCH[key] = { cats: ALL_CATS, ch: 9, ult: g.ult, col: g.col, guardian: true, passive: g.passive, names: { school: g.name, literati: g.name, wuxia: g.name }, shapes: { school: g.shape, literati: g.shape, wuxia: g.shape },
+    skills: [['守護', ALL_CATS, 70], ['神威', ALL_CATS, 80], ['天啟', ALL_CATS, 95], ['永恆', ALL_CATS, 110]] };
+const ARCH_ORDER = WEAPON_TABLE.map(r => r[0]);
 const STARTER_ARCHS = ['brush', 'tome', 'scroll'];
+const weaponDesc = a => (W.weapons && W.weapons[a] && W.weapons[a][1]) || (ARCH[a].guardian ? `守護神器．特殊能力「${PASSIVES[ARCH[a].passive].name}」：${PASSIVES[ARCH[a].passive].desc}` : `擅長「${ARCH[a].cats.join('」「')}」題型的武器。`);
 const MASTERY_STEPS = [0, 10, 25, 45];            // 熟練度門檻 → 武器 Lv1~4
 const weaponLv = w => MASTERY_STEPS.filter(s => w.mastery >= s).length;
 const weaponSkills = (arch, lv) => ARCH[arch].skills.slice(0, Math.min(4, lv + 1));
 const archOf = x => typeof x === 'string' ? x : x.arch;
-const weaponName = x => W.weapons[archOf(x)][0];
+const weaponName = x => ARCH[archOf(x)].names[W.id];
 const ULT_COST = 5;
 
 /* ============ 稀有度 ============
@@ -48,14 +110,10 @@ const rarChip = r => `<span class="rchip r${r}">${RARITY[r].n}</span>`;
 /* ============ 野生怪物：武器幻化的「武器妖」 ============
    詞靈附在武器上幻化成Ｑ版小妖。打倒後有機率掉落碎片，集滿可合成該武器。
    出招時會用自己武器擅長的題型出「防禦題」。 */
-const MON = {
-  brush: { base: { hp: 40, atk: 46, def: 38 }, weak: ['成語'], resist: ['字形'] },
-  tome: { base: { hp: 48, atk: 44, def: 44 }, weak: ['詩詞'], resist: ['成語'] },
-  scroll: { base: { hp: 44, atk: 50, def: 40 }, weak: ['修辭'], resist: ['文言'] },
-  fan: { base: { hp: 42, atk: 52, def: 40 }, weak: ['閱讀'], resist: ['修辭'] },
-  seal: { base: { hp: 46, atk: 48, def: 46 }, weak: ['字音'], resist: ['常識'] },
-  legend: { base: { hp: 70, atk: 64, def: 60 }, weak: [], resist: [] },
-};
+function monInfo(arch) {   // 弱點＝題型循環中往後數第 3 種；抗性＝自己擅長的第一種
+  const c0 = ARCH[arch].cats[0], i = ALL_CATS.indexOf(c0);
+  return { weak: [ALL_CATS[(i + 3) % ALL_CATS.length]], resist: [c0], base: { hp: 42 + (i % 3) * 3, atk: 46 + (i % 4) * 2, def: 40 + (i % 3) * 2 } };
+}
 
 /* ============ 道具（名稱依世界觀而不同，見 WORLDS.items） ============ */
 const ITEMS = {
@@ -74,9 +132,9 @@ function playerStats() {
   if (G.hp == null || G.hp > G.maxhp) G.hp = G.maxhp;
 }
 const expNeed = lv => lv * 10 + 10;
-const monName = arch => W.monsters[arch];
+const monName = arch => (W.monsters && W.monsters[arch]) || ARCH[arch].names[W.id] + W.monSuffix;
 function makeFoe(arch, lv) {
-  const M = MON[arch], b = M.base;
+  const M = monInfo(arch), b = M.base;
   const f = { kind: 'mon', sp: arch, lv, name: monName(arch), weak: M.weak, resist: M.resist,
     moves: ARCH[arch].skills.slice(0, 2).map(([n, cats], i) => ({ name: n, cats, pow: i ? 45 : 35 })),
     maxhp: Math.floor(b.hp * lv / 25) + lv + 12, atk: Math.floor(b.atk * lv / 25) + 6, def: Math.floor(b.def * lv / 25) + 6, exp: lv * 6 };
@@ -152,7 +210,7 @@ const LAYOUTS = {
     npcs: [{ role: 'trainerA', x: 5, y: 7, dir: 'right', sight: 4 }, { role: 'trainerB', x: 14, y: 19, dir: 'left', sight: 6 }, { role: 'questGiver', x: 12, y: 13, dir: 'down' },
       { role: 'rival', x: 10, y: 5, dir: 'left', sight: 2 }, { role: 'trainerC', x: 3, y: 13, dir: 'right', sight: 5 }],
     chests: [{ id: 'r1a', x: 17, y: 2, weapon: 'fan', r: 1 }, { id: 'r1b', x: 2, y: 17, items: { heal: 3, hint: 2 }, frags: { tome: 2, scroll: 2 } }],
-    foes: { n: 10, lv: [3, 6], list: [{ sp: 'brush', w: 3 }, { sp: 'tome', w: 3 }, { sp: 'scroll', w: 3 }, { sp: 'fan', w: 1 }] } },
+    foes: { n: 11, lv: [3, 6], list: [{ sp: 'brush', w: 3 }, { sp: 'tome', w: 3 }, { sp: 'scroll', w: 3 }, { sp: 'ruler', w: 2 }, { sp: 'eraser', w: 2 }, { sp: 'zhuyin', w: 2 }, { sp: 'fan', w: 1 }] } },
   town2: { music: 'town', qlv: 2, chapter: 1,
     rows: [
       'TTTTTTTTTTT,,TTTTTTTTTTT',
@@ -179,7 +237,8 @@ const LAYOUTS = {
     doorWarps: { '4,4': { to: 'gym1', tx: 5, ty: 8, dir: 'up' } },
     signs: { '8,11': 'sign_town2' },
     npcs: [{ role: 'gymguide', x: 5, y: 5, dir: 'down' }, { role: 'locked2', x: 19, y: 5, dir: 'down' }, { role: 'guard', x: 13, y: 1, dir: 'left' },
-      { role: 'tip4', x: 8, y: 8, dir: 'down', wander: 1 }, { role: 'tip5', x: 16, y: 15, dir: 'up', wander: 1 }, { role: 'smith', x: 15, y: 8, dir: 'down' }],
+      { role: 'tip4', x: 8, y: 8, dir: 'down', wander: 1 }, { role: 'tip5', x: 16, y: 15, dir: 'up', wander: 1 }, { role: 'smith', x: 15, y: 8, dir: 'down' },
+      { role: 'rivalA', x: 9, y: 12, dir: 'down', route: 'a' }],
     shop: ['heal', 'heal2', 'wenqi', 'hint'] },
   gym1: { music: 'hall', qlv: 2, chapter: 1, indoor: 1,
     rows: [
@@ -194,5 +253,5 @@ const LAYOUTS = {
       '#,,,,,,,,,,#',
       '#####,,#####'],
     warps: [{ x: 5, y: 9, to: 'town2', tx: 4, ty: 5, dir: 'down' }, { x: 6, y: 9, to: 'town2', tx: 4, ty: 5, dir: 'down' }],
-    npcs: [{ role: 'gym1', x: 5, y: 2, dir: 'down' }] },
+    npcs: [{ role: 'gym1', x: 5, y: 2, dir: 'down' }, { role: 'rivalB', x: 8, y: 7, dir: 'left', route: 'b' }] },
 };

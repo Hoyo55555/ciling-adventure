@@ -148,19 +148,21 @@ UI.question = function (q, opt = {}) {
     const box = UI.el('box qp');
     const modeTxt = { attack: '⚔ 答對才能命中！', defend: '🛡 答對就能閃避！', review: '📖 錯題複習', practice: '✏️ 練習' }[opt.mode] || '';
     const typeTxt = { choice: '選擇題', tf: '是非題', fill: '填空題', order: '排序題' }[q.type];
-    box.innerHTML = `<div class="qhead">${chip(q.cat)}<span>${typeTxt}${q.lesson ? '．' + esc(q.lesson) : ''}${opt.move ? '．招式「' + esc(opt.move) + '」' : ''}</span><span class="mode ${opt.mode === 'defend' ? 'def' : ''}">${modeTxt}</span></div>
+    box.innerHTML = `<div class="qhead">${chip(q.cat)}${opt.again ? '<span class="again">🔁 錯題重現</span>' : ''}<span>${typeTxt}${q.lesson ? '．' + esc(q.lesson) : ''}${opt.move ? '．招式「' + esc(opt.move) + '」' : ''}</span><span class="mode ${opt.mode === 'defend' ? 'def' : ''}">${modeTxt}</span></div>
       <div class="qtext ${q.q.length > 48 ? 'long' : ''}">${esc(q.q)}</div><div class="qbody"></div><div class="qafter"></div>`;
     const body = $('.qbody', box), after = $('.qafter', box);
     let answered = false, result = false, m;
     const finish = (ok, detail) => {
       if (answered) return; answered = true; result = ok; box.classList.add('answered');
+      const cleared = ok && G && G.wrong.some(x => x.id === q.id);
       Sound.sfx(ok ? 'correct' : 'wrong');
       const ansTxt = q.type === 'choice' ? q.opts[q.ans] : q.type === 'tf' ? (q.ans ? '○ 正確' : '✕ 錯誤') : q.type === 'fill' ? q.ans[0] : q.parts.join('');
-      after.innerHTML = `<div class="qres ${ok ? 'ok' : 'ng'}">${ok ? '◎ 答對了！' : '✕ 答錯了！'}${ok ? '' : `<span class="small" style="font-weight:700;color:#404850;margin-left:.6em">正確答案：${esc(ansTxt)}</span>`}</div>
+      after.innerHTML = `<div class="qres ${ok ? 'ok' : 'ng'}">${ok ? '◎ 答對了！' : '✕ 答錯了！'}${cleared ? '<span class="small" style="color:#b8322a;margin-left:.6em">✨ 錯題克服！已從錯題本移除</span>' : ''}${ok ? '' : `<span class="small" style="font-weight:700;color:#404850;margin-left:.6em">正確答案：${esc(ansTxt)}</span>`}</div>
         ${q.exp ? `<div class="qexp">💡 ${esc(q.exp)}</div>` : ''}<div class="qnext">按 A 繼續 ▶</div>`;
       box.style.cursor = 'pointer';
       setTimeout(() => box.addEventListener('pointerdown', () => { if (m.closing) return; m.closing = true; close(); }), 250);
       Stats.record(q, ok, detail);
+      if (cleared) G.wrong = G.wrong.filter(x => x.id !== q.id);
     };
     const close = () => { UI.pop(m); res({ correct: result }); };
     let navUpdate = () => { };
@@ -191,6 +193,7 @@ UI.question = function (q, opt = {}) {
         const wrong = shuffle(btns.filter(b => +b.dataset.oi !== correctIdx)).slice(0, Math.max(0, btns.length - 2)); wrong.forEach(b => b.classList.add('gone'));
         hintBtn.remove(); all.splice(all.indexOf(hintBtn), 1); hintBtn = null; sel = btns.indexOf(btns.find(b => !b.classList.contains('gone'))); paint(); };
       all.forEach((b, i) => b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); sel = i; paint(); choose(i); }));
+      if (opt.autoHint && q.type === 'choice' && btns.length > 2) { const w = shuffle(btns.filter(b => +b.dataset.oi !== correctIdx))[0]; w.classList.add('gone'); w.insertAdjacentHTML('beforeend', ' <span class="small muted">（慧眼刪去）</span>'); if (btns[sel] === w) sel = btns.findIndex(b => b !== w); }
       navUpdate = () => {
         const d = Input.dir(); const nb = btns.length;
         if (d) { let s = sel;

@@ -2,10 +2,10 @@
 /* ============ 存檔欄位與永久紀錄 ============ */
 const SLOT_N = 3;
 const Slots = {
-  key: n => 'ciling_slot_' + n,
+  key: n => Cloud.user ? `ciling_u_${Cloud.user.cls}_${Cloud.user.no}_slot_${n}` : 'ciling_slot_' + n,
   read(n) { return Store.get(this.key(n), null); },
-  write(n, g) { g.savedAt = Date.now(); return Store.set(this.key(n), g); },
-  del(n) { Store.del(this.key(n)); },
+  write(n, g) { g.savedAt = Date.now(); const ok = Store.set(this.key(n), g); Cloud.queue(n); return ok; },
+  del(n) { Store.del(this.key(n)); Cloud.queue(n); },
   any() { for (let i = 1; i <= SLOT_N; i++) if (this.read(i)) return true; return false; },
   cleared() { const r = []; for (let i = 1; i <= SLOT_N; i++) { const g = this.read(i); if (g && g.flags && g.flags.cleared) r.push(i); } return r; },
 };
@@ -24,7 +24,7 @@ const inkBar = (v, max, low) => { const r = clamp(v / max, 0, 1); return `<div c
 function totals(g) { let r = 0, t = 0; for (const c in g.stats) { r += g.stats[c].r; t += g.stats[c].t; } return { r, t, pct: t ? Math.round(r / t * 100) : 0 }; }
 function download(name, blobOrText, type) { const blob = blobOrText instanceof Blob ? blobOrText : new Blob([blobOrText], { type }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800); }
 function pickFile(accept) { return new Promise(res => { const f = document.createElement('input'); f.type = 'file'; f.accept = accept; f.onchange = () => { const file = f.files[0]; if (!file) return res(null); const rd = new FileReader(); rd.onload = () => res({ name: file.name, text: String(rd.result) }); rd.readAsText(file, 'utf-8'); }; f.click(); }); }
-const catChips = a => ARCH[a].cats.length >= ALL_CATS.length ? '<span class="chip" style="background:#2e261e">全題型</span>' : catChips(a);
+const catChips = a => ARCH[a].cats.length >= ALL_CATS.length ? '<span class="chip" style="background:#2e261e">全題型</span>' : ARCH[a].cats.map(chip).join('');
 /* 帶稀有度外框的武器圖示 */
 function wIcon(arch, r, scale = 1.2) { const b = h('span', 'wbox r' + r); b.appendChild(GFX.el(GFX.weapon(arch, W.theme), scale)); return b; }
 const closeOnAB = ctl => { ctl.update = () => { if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } }; };
@@ -124,7 +124,7 @@ const WeaponMenu = {
         const rows = list.map(w => { const lv = weaponLv(w), next = MASTERY_STEPS[lv], slot = G.equip.indexOf(w.id); const r = h('div', 'row');
           r.appendChild(wIcon(w.arch, w.r));
           r.insertAdjacentHTML('beforeend', `<div class="grow"><b class="rtxt r${w.r}">${esc(weaponName(w))}</b> ${rarChip(w.r)} <span class="small">Lv.${lv}</span> ${catChips(w.arch)}
-            <div class="small muted">熟練度 ${w.mastery}${next != null ? ' / ' + next : '（已滿級）'}</div></div>
+            <div class="small muted">熟練度 ${w.mastery}${next != null ? ' / ' + next : '（已滿級）'}${ARCH[w.arch].passive ? `．<b style="color:#b8322a">能力「${PASSIVES[ARCH[w.arch].passive].name}」</b>` : ''}</div></div>
             <span class="small">${slot === G.cur ? '<b class="good">★ 使用中</b>' : slot >= 0 ? `攜帶 ${slot + 1}` : '<span class="muted">收納中</span>'}</span>`);
           sc.appendChild(r); return r; });
         listNav(ctl, rows, { onBack: () => ctl.done(), onPick: async i => {
@@ -145,7 +145,7 @@ const WeaponMenu = {
     return UI.panel(ctl => {
       const a = w.arch, lv = weaponLv(w), mul = RAR_POW[w.r];
       ctl.box.innerHTML = `<h2><span class="rtxt r${w.r}">${esc(weaponName(w))}</span>　${rarChip(w.r)} <span class="small muted">Lv.${lv}</span></h2><div style="display:flex;gap:${U(6)};flex:1;min-height:0"><div class="pv"></div><div class="grow scroll small">
-        <div>${esc(W.weapons[a][1])}</div><div style="margin:${U(2)} 0">擅長 ${catChips(a)}　<span class="muted">稀有度加成：攻擊 +${RAR_ATK[w.r]}、招式威力 ×${mul}</span></div>
+        <div>${esc(weaponDesc(a))}</div><div style="margin:${U(2)} 0">擅長 ${catChips(a)}　<span class="muted">稀有度加成：攻擊 +${RAR_ATK[w.r]}、招式威力 ×${mul}</span></div>
         ${ARCH[a].skills.map(([n, c, p], i) => { const open = i < lv + 1; return `<div class="row" style="padding:${U(1)} ${U(2)}"><b class="grow">${open ? esc(n) : '？？？'}</b>${open ? c.slice(0, 3).map(chip).join('') + `　威力 ${Math.round(p * mul)}` : `<span class="muted">武器 Lv.${i} 解鎖（熟練度 ${MASTERY_STEPS[i - 1]}）</span>`}</div>`; }).join('')}
         <div class="row" style="padding:${U(1)} ${U(2)}"><b class="grow">★ ${esc(ARCH[a].ult)}</b><span class="muted">必殺技．文氣 5 格</span></div>
         <div class="muted" style="margin-top:${U(2)}">用這件武器答對題目，熟練度 +1；打中弱點 +2。</div></div></div>` + footKeys('B 返回');
@@ -169,7 +169,7 @@ const Forge = {
           r.insertAdjacentHTML('beforeend', `<div class="grow"><b>${esc(weaponName(a))}碎片</b>　${n} / ${FRAG_N}<div class="small muted">${ok ? '可以合成一件凡品「' + esc(weaponName(a)) + '」' : '還差 ' + (FRAG_N - n) + ' 片'}</div></div>`);
           sc.appendChild(r); acts.push({ r, ok, run: () => { G.frags[a] -= FRAG_N; const w = giveWeapon(a, 0); return `合成成功！得到了「${weaponName(w)}」（凡品）！`; } }); }
         sc.insertAdjacentHTML('beforeend', '<div class="qsec">升階合成</div>');
-        const groups = {}; for (const w of G.weapons) if (w.r < 5) (groups[w.arch + ':' + w.r] || (groups[w.arch + ':' + w.r] = [])).push(w);
+        const groups = {}; for (const w of G.weapons) if (w.r < 5 && !ARCH[w.arch].guardian) (groups[w.arch + ':' + w.r] || (groups[w.arch + ':' + w.r] = [])).push(w);
         const keys = Object.keys(groups).sort((x, y) => ARCH_ORDER.indexOf(x.split(':')[0]) - ARCH_ORDER.indexOf(y.split(':')[0]) || +x.split(':')[1] - +y.split(':')[1]);
         if (!keys.length) sc.insertAdjacentHTML('beforeend', '<div class="small muted">沒有可以升階的武器。</div>');
         for (const k of keys) { const g = groups[k], a = g[0].arch, rr = g[0].r, need = MERGE_N[rr], ok = g.length >= need; const r = h('div', 'row' + (ok ? '' : ' dis'));
@@ -197,7 +197,7 @@ const WeaponPick = {
       ctl.box.innerHTML = `<h2>選擇你的第一件武器</h2><div class="cards"></div>` + footKeys('←→ 選擇　A 決定');
       const wrap = $('.cards', ctl.box);
       const cards = STARTER_ARCHS.map(a => { const c = h('div', 'card'); const hold = h('div', 'cardpic'); hold.appendChild(GFX.el(GFX.weapon(a, W.theme), 3)); c.appendChild(hold);
-        c.insertAdjacentHTML('beforeend', `<h3>${esc(weaponName(a))}</h3><div class="desc">${esc(W.weapons[a][1])}</div><div class="desc"><b>擅長：</b>${catChips(a)}</div><div class="desc"><b>招式：</b>${ARCH[a].skills.slice(0, 2).map(s => esc(s[0])).join('、')}…</div>`); wrap.appendChild(c); return c; });
+        c.insertAdjacentHTML('beforeend', `<h3>${esc(weaponName(a))}</h3><div class="desc">${esc(weaponDesc(a))}</div><div class="desc"><b>擅長：</b>${catChips(a)}</div><div class="desc"><b>招式：</b>${ARCH[a].skills.slice(0, 2).map(s => esc(s[0])).join('、')}…</div>`); wrap.appendChild(c); return c; });
       let sel = 0; const paint = () => cards.forEach((c, i) => c.classList.toggle('sel', i === sel));
       const choose = async () => { Sound.sfx('ok'); if (await UI.yesno(`確定要選擇「${weaponName(STARTER_ARCHS[sel])}」嗎？\n（之後還能取得其他武器）`)) ctl.done(STARTER_ARCHS[sel]); };
       cards.forEach((c, i) => c.addEventListener('pointerdown', e => { e.preventDefault(); if (sel === i) choose(); else { sel = i; Sound.sfx('cursor'); paint(); } }));
@@ -209,13 +209,16 @@ const WeaponPick = {
 const Armory = {
   open() {
     return UI.panel(ctl => {
-      const got = ARCH_ORDER.filter(a => Meta.d.armory[G.world + ':' + a]).length; const all = Object.keys(Meta.d.armory).length;
-      ctl.box.innerHTML = `<h2>兵器譜．${esc(W.name)}　<span class="small muted">${got} / ${ARCH_ORDER.length}　（三世界合計 ${all} / ${ARCH_ORDER.length * 3}）</span></h2><div class="armory"></div>` + footKeys('B 返回');
-      const wrap = $('.armory', ctl.box);
-      for (const a of ARCH_ORDER) { const seen = Meta.d.armory[G.world + ':' + a]; const c = h('div', 'arm' + (seen ? '' : ' unk'));
-        const pic = wIcon(a, seen ? seen - 1 : 0, 1.6); if (!seen) pic.style.filter = 'brightness(0) opacity(.35)'; c.appendChild(pic);
-        c.insertAdjacentHTML('beforeend', `<div><b>${seen ? esc(weaponName(a)) : '？？？'}</b><div class="small muted">${seen ? '最高：' + RARITY[seen - 1].n : '尚未取得'}</div></div>`); wrap.appendChild(c); }
-      closeOnAB(ctl);
+      const got = ARCH_ORDER.filter(a => Meta.d.armory[G.world + ':' + a]).length; const all = Object.keys(Meta.d.armory).filter(k => !ARCH[k.split(':')[1]].guardian).length;
+      ctl.box.innerHTML = `<h2>兵器譜．${esc(W.name)}　<span class="small muted">${got} / ${ARCH_ORDER.length}（三世界合計 ${all} / ${ARCH_ORDER.length * 3}）</span></h2><div class="scroll"><div class="armory"></div><div class="qsec">守護神器（依劇情選擇取得）</div><div class="armory g"></div></div>` + footKeys('↑↓ 捲動　B 返回');
+      const wrap = $('.armory', ctl.box), gw = $('.armory.g', ctl.box);
+      const card = (a, box) => { const seen = Meta.d.armory[G.world + ':' + a]; const c = h('div', 'arm' + (seen ? '' : ' unk'));
+        const pic = wIcon(a, seen ? seen - 1 : (ARCH[a].guardian ? 6 : 0), 1.3); if (!seen) pic.style.filter = 'brightness(0) opacity(.35)'; c.appendChild(pic);
+        const info = ARCH[a].guardian ? (seen ? '能力：' + PASSIVES[ARCH[a].passive].name : '劇情取得') : (seen ? '最高：' + RARITY[seen - 1].n : `第 ${ARCH[a].ch} 章出現`);
+        c.insertAdjacentHTML('beforeend', `<div><b>${seen ? esc(weaponName(a)) : '？？？'}</b><div class="small muted">${info}</div></div>`); box.appendChild(c); };
+      ARCH_ORDER.forEach(a => card(a, wrap)); Object.values(W.guardians).forEach(a => card(a, gw));
+      const sc = $('.scroll', ctl.box);
+      ctl.update = () => { const d = Input.dir(); if (d === 'down') sc.scrollTop += 40; if (d === 'up') sc.scrollTop -= 40; if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } };
     });
   },
 };
@@ -414,15 +417,31 @@ const ChapterEnd = {
       closeOnAB(ctl);
     });
     autosave();
+    await Guardian.grant();
     await say('（試玩版的內容到這裡結束，接下來會播放通關畫面。）');
     await Ending.play();
   },
 };
+/* 守護神器：正式版在主線結局取得；試玩版於第一章結尾示範 */
+const Guardian = {
+  async grant() {
+    const route = G.route || 'a'; const a = W.guardians[route];
+    if (G.weapons.some(w => w.arch === a)) return;
+    await say(`（試玩版示範：正式版中，守護神器會在主線結局、打倒最終魔王後取得。你選擇了「${W.routeNames[route]}」，所以會得到這一件。）`);
+    Sound.sfx('badge'); s_flash();
+    const w = newWeapon(a, 6); G.weapons.push(w); Meta.seeWeapon(G.world, a, 6);
+    await say(`${G.player.name} 得到了守護神器「${weaponName(a)}」！`);
+    await say(`特殊能力「${PASSIVES[ARCH[a].passive].name}」：${PASSIVES[ARCH[a].passive].desc}\n（放進攜帶欄就會生效）`);
+    if (G.equip.length < 3) G.equip.push(w.id); autosave();
+  },
+};
+function s_flash() { const fx = $('#fx'); fx.classList.add('white'); fx.style.opacity = 0.9; Anim.run(0.6, k => fx.style.opacity = 0.9 * (1 - k)).then(() => fx.classList.remove('white')); }
 function rankTitle(p) { return p >= 90 ? '文曲下凡' : p >= 80 ? '博學鴻儒' : p >= 65 ? '飽讀詩書' : p >= 50 ? '勤學書生' : '初出茅廬'; }
 const Ending = {
   async play() {
     Sound.play('ending');
     for (const t of W.ending) await say(t);
+    if (G.route) await say(W.routeEnd[G.route]);
     await Credits.play();
     const first = !G.flags.cleared; G.flags.cleared = true;
     const T = totals(G);
@@ -509,6 +528,8 @@ const Teacher = {
             <div class="btns"><button class="btn" data-a="imp">📥 匯入（取代）</button><button class="btn alt" data-a="add">➕ 匯入（附加）</button></div>
             <div class="btns"><button class="btn alt" data-a="tpl">📄 下載 CSV 範本</button><button class="btn alt" data-a="exp">📤 匯出目前題庫</button></div>
             <div class="btns"><button class="btn warn" data-a="reset">還原示範題庫</button></div>
+            <div><b>雲端存檔網址</b>　<span class="small ${Cloud.enabled ? 'good' : 'muted'}">${Cloud.enabled ? '已設定' : '未設定（只存在本機）'}</span></div>
+            <div class="btns"><button class="btn alt" data-a="cloud">設定網址（本機）</button><button class="btn alt" data-a="cloudtest">測試連線</button></div>
             <div class="muted small msg"></div></div>
           <div class="col"><div><b>課次篩選</b>（取消勾選即不出該課題目）</div><div class="scroll">${lessons.map(([l, n], i) => `<label class="chk"><input type="checkbox" data-l="${i}" ${QB.off.has(l) ? '' : 'checked'}>${esc(l)}<span class="muted">（${n}）</span></label>`).join('')}</div>
             <div class="small muted">支援 CSV（Excel／Google 試算表另存 CSV）與 JSON。</div></div></div>` + footKeys('B 返回標題（本頁請用滑鼠操作）');
@@ -526,6 +547,8 @@ const Teacher = {
         if (a === 'tpl') download('詞靈冒險_題庫範本.csv', questionsToCSV(QUESTIONS_SAMPLE.slice(0, 6).map(normalizeQ).concat(QUESTIONS_SAMPLE.filter(q => q.type && q.type !== 'choice').map(normalizeQ))), 'text/csv;charset=utf-8');
         if (a === 'exp') download('詞靈冒險_目前題庫.csv', questionsToCSV(QB.all), 'text/csv;charset=utf-8');
         if (a === 'reset' && confirm('確定要還原成示範題庫嗎？自訂題庫會被清除。')) { QB.reset(); render(); note('已還原示範題庫。'); }
+        if (a === 'cloud') { const u = prompt('貼上 Apps Script 部署網址（留空＝取消本機設定，改用 config.js）：', Store.get('ciling_cloud_url', '') || ''); if (u !== null) { if (u.trim()) Store.set('ciling_cloud_url', u.trim()); else Store.del('ciling_cloud_url'); render(); note('已更新。要讓全班都使用，請把網址寫進 js/config.js。'); } }
+        if (a === 'cloudtest') { if (!Cloud.enabled) { note('尚未設定雲端網址。'); return; } note('連線中……'); try { const r = await fetch(Cloud.url()); const j = await r.json(); note(j.ok ? '✅ 連線成功：' + (j.msg || '') : '❌ ' + j.error); } catch (e) { note('❌ 連線失敗：' + e.message); } }
       };
       render(); ctl.update = () => { if (Input.p('B')) { Sound.sfx('back'); ctl.done(); } };
     });

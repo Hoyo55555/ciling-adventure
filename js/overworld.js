@@ -12,11 +12,13 @@ const OW = {
     Object.assign(this.p, { x, y, dir: dir || this.p.dir, moving: false, t: 0 });
     this.npcs = (this.L.npcs || []).map(s => {
       const role = W.roles[s.role]; if (!role) return null;
+      if (s.route && G.route !== s.route) return null;                 // 依劇情路線出現的 NPC
+      if (s.role === 'rival' && G.flags.rivalGone) return null;        // 勁敵離開步道
       return { key: id + ':' + s.role, role, x: s.x, y: s.y, dir: s.dir, home: s.dir, sight: s.sight || 0, wander: s.wander, ox: 0, oy: 0, fr: 0, look: role.look };
     }).filter(Boolean);
     this.spawnFoes();
     G.map = id; G.x = x; G.y = y;
-    Sound.play(W.music[this.L.music] || this.L.music);
+    Sound.play(W.music[this.L.music] || this.L.music); Cloud.paint();
     showBanner(W.mapNames[id]);
   },
   spawnFoes() {
@@ -209,12 +211,20 @@ async function spotted(n) {
 }
 async function trainerTalk(n) {
   const R = n.role;
-  if (G.defeated[n.key]) { await say(R.after, R.name); return; }
+  if (G.defeated[n.key]) { await say(G.route && R.afterA ? (G.route === 'a' ? R.afterA : R.afterB) : R.after, R.name); return; }
   if (!G.equip.length) { await say('……你手上沒有武器？先去找導師吧。', R.name); return; }
   await say(R.intro, R.name);
   const res = await Battle.start({ kind: R.kind, foe: makePersonFoe(R), role: R, cats: R.foe.cats });
   if (res !== 'win') return;
   G.defeated[n.key] = true;
+  if (R.choice && !G.route) {   // 劇情分支：兩個回答，走向不同
+    const k = await UI.ask(R.choice.q, R.choice.opts, { name: R.name, cancel: false });
+    G.route = k === 1 ? 'b' : 'a'; Sound.sfx('ok');
+    await say(R.choice.replies[k === 1 ? 1 : 0], R.name);
+    await say(G.route === 'a' ? R.afterA : R.afterB, R.name);
+    await say(`（你選擇了「${W.routeNames[G.route]}」，之後的劇情會跟著改變。）`);
+    G.flags.rivalGone = true; await Anim.run(0.4, k2 => n.oy = -6 * k2); OW.npcs = OW.npcs.filter(x => x !== n);
+  }
   if (R.kind === 'gym') {
     G.badges.push(R.badge); Sound.play('victory'); Sound.sfx('badge');
     await say(`${G.player.name} 得到了「${R.badge}」！`);
