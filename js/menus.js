@@ -78,7 +78,7 @@ const BookMenu = {
   async open() {
     let sel = 0;
     while (true) {
-      const opts = ['角色', '武器', '鍛造', '道具', '兵器譜', '任務', '錯題本', '學習紀錄', '存檔', '設定', '回到主畫面', '關閉'];
+      const opts = ['角色', '武器', '鍛造', '道具', '兵器譜', '任務', '錯題本', '學習紀錄', '存檔', '設定'].concat(Cloud.user ? ['登出'] : [], ['回到主畫面', '關閉']);
       const i = await UI.choose(opts, { pos: {}, cls: 'bookmenu', start: sel });
       const L = opts[i]; if (i < 0 || L === '關閉') return; sel = i;
       if (L === '角色') await CharPanel.open();
@@ -91,6 +91,7 @@ const BookMenu = {
       if (L === '學習紀錄') await Records.open();
       if (L === '存檔') { autosave(); Sound.sfx('badge'); await say(`已儲存到欄位 ${G.slot}！（${fmtDate(G.savedAt)}）`); }
       if (L === '設定') await SettingsPanel.open();
+      if (L === '登出') { if (await Cloud.logoutFlow()) { await fade(1, 0.3); titleScreen(); await fade(0, 0.3); return; } }
       if (L === '回到主畫面') { await goHome(); if (Game.scene === 'title') return; }
     }
   },

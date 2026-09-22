@@ -19,6 +19,22 @@ const Cloud = {
     this.setStatus('ok'); return j;
   },
   logout() { this.user = null; Store.del('ciling_cloud_user'); this.setStatus('idle'); },
+  /* 登出流程：先把進度上傳，確認成功才登出；失敗時提醒 */
+  async logoutFlow() {
+    if (!this.user) return true;
+    if (!(await UI.yesno(`要登出「${this.label()}」嗎？\n（登出前會先把進度存到雲端）`))) return false;
+    if (G && G.slot) { G.savedAt = Date.now(); Store.set(Slots.key(G.slot), G); this.pending.add(G.slot); }
+    clearTimeout(this.timer);
+    const box = UI.el('box moneybox', '☁ 正在上傳進度……');
+    await this.flush(); box.remove();
+    if (this.pending.size) {
+      Sound.sfx('bump');
+      if (!(await UI.ask('⚠️ 進度還沒上傳成功（可能是網路問題）。\n現在登出，這次的進度可能會遺失。', ['先不要登出', '還是要登出'], {})) ) return false;
+    }
+    const who = this.label(); this.logout(); this.pending.clear(); this.skipped = false;
+    Sound.sfx('ok'); await say(`「${who}」已登出。下一位同學可以登入了！`);
+    return true;
+  },
   queue(n) { if (!this.user || !this.enabled) return; this.pending.add(n); clearTimeout(this.timer); this.timer = setTimeout(() => this.flush(), 1200); },
   async flush() {
     if (!this.user) return;

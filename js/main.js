@@ -136,14 +136,16 @@ async function titleScreen() {
   if (Cloud.enabled && !Cloud.user && !Cloud.skipped) { logo.style.display = 'none'; const r = await LoginPanel.open(); if (r === 'skip' || r === null) Cloud.skipped = true; if (r === 'created') await say('帳號建立完成！之後請用同一組班級、座號和密碼登入。'); logo.style.display = ''; Cloud.paint(); }
   while (true) {
     // 只有「新的冒險」與「設定」一定出現；其他選項要有理由才出現
-    const labels = [].concat(Slots.any() ? ['繼續冒險'] : [], ['新的冒險'], Slots.cleared().length ? ['轉生'] : [], Meta.hasAny() ? ['紀錄館'] : [], ['設定'], Cloud.enabled ? [Cloud.user ? '切換帳號' : '登入帳號'] : []);
+    const labels = [].concat(Slots.any() ? ['繼續冒險'] : [], ['新的冒險'], Slots.cleared().length ? ['轉生'] : [], Meta.hasAny() ? ['紀錄館'] : [], ['設定'], Cloud.enabled ? [Cloud.user ? '登出' : '登入帳號'] : []);
     const i = await UI.choose(labels, { pos: { left: '50%', bottom: U(6), transform: 'translateX(-50%)' }, cancel: false, start: Math.min(sel, labels.length - 1), cls: 'titlemenu', cols: labels.length > 3 ? 2 : 1 });
     sel = i; const L = labels[i];
     logo.style.display = 'none';
     if (L === '繼續冒險') { const n = await SlotScreen.open('load'); if (n) { logo.remove(); tlink.remove(); return Flow.load(n); } }
     if (L === '新的冒險') { const n = await SlotScreen.open('new'); if (n) { logo.remove(); const ok = await Flow.newGame(n); if (ok) return; return titleScreen(); } }
     if (L === '轉生') { const n = await SlotScreen.open('rebirth'); if (n) { logo.remove(); const ok = await Flow.rebirth(n); if (ok) return; return titleScreen(); } }
-    if (L === '切換帳號' || L === '登入帳號') { if (Cloud.user && !(await UI.yesno(`目前登入：${Cloud.label()}\n要登出並換成其他帳號嗎？`))) { logo.style.display = ''; continue; } await Cloud.flush(); Cloud.logout(); Cloud.skipped = false; const r = await LoginPanel.open(); if (r === 'skip' || r === null) Cloud.skipped = true; Cloud.paint(); }
+    if (L === '登出' || L === '登入帳號') {
+      if (L === '登出' && !(await Cloud.logoutFlow())) { logo.style.display = ''; continue; }
+      const r = await LoginPanel.open(); if (r === 'skip' || r === null) Cloud.skipped = true; if (r === 'created') await say('帳號建立完成！之後請用同一組班級、座號和密碼登入。'); Cloud.paint(); }
     if (L === '紀錄館') await RecordHall.open();
     if (L === '設定') await SettingsPanel.open();
     logo.style.display = '';
