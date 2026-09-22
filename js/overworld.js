@@ -64,7 +64,7 @@ const OW = {
     const gate = this.L.gates && this.L.gates[nx + ',' + ny];
     if (gate && !gateOpen(gate)) { p.cont = false; this.run(() => say(W.gates[gate])); return; }
     const dw = this.L.doorWarps && this.L.doorWarps[nx + ',' + ny];
-    if (dw) { p.cont = false; this.run(() => warpTo(dw.to, dw.tx, dw.ty, dw.dir)); return; }
+    if (dw) { p.cont = false; this.run(() => enterDoor(dw)); return; }
     const f = this.foeAt(nx, ny);
     if (f && f.cool <= 0) { p.cont = false; this.run(() => foeBattle(f)); return; }
     if (this.solid(nx, ny) || f) { if (this.bumpCd <= 0) { Sound.sfx('bump'); this.bumpCd = 0.35; } p.cont = false; return; }
@@ -74,7 +74,7 @@ const OW = {
   onStep() {
     const p = this.p;
     const w = (this.L.warps || []).find(w => w.x === p.x && w.y === p.y);
-    if (w) { this.run(() => warpTo(w.to, w.tx, w.ty, w.dir)); return true; }
+    if (w) { this.run(() => w.to === '@ret' ? warpTo(G.ret.map, G.ret.x, G.ret.y, 'down') : warpTo(w.to, w.tx, w.ty, w.dir)); return true; }
     for (const n of this.npcs) if (n.sight && !G.defeated[n.key] && this.sees(n)) { p.cont = false; this.run(() => spotted(n)); return true; }
     if (this.tile(p.x, p.y) === 'g') Sound.sfx('grass');
     return false;
@@ -108,12 +108,12 @@ const OW = {
   },
   interact() {
     const p = this.p, [dx, dy] = DIRS[p.dir], tx = p.x + dx, ty = p.y + dy, key = tx + ',' + ty;
-    const n = this.npcAt(tx, ty); if (n) { this.run(() => talkTo(n)); return; }
+    const n = this.npcAt(tx, ty) || (this.tile(tx, ty) === 't' && this.npcAt(tx + dx, ty + dy)); if (n) { this.run(() => talkTo(n)); return; }
     const c = this.chestAt(tx, ty); if (c) { this.run(() => openChest(c)); return; }
     const f = this.foeAt(tx, ty); if (f && f.cool <= 0) { this.run(() => foeBattle(f)); return; }
     if (this.L.signs && this.L.signs[key]) { this.run(() => say(W.signs[this.L.signs[key]])); return; }
     const dw = this.L.doorWarps && this.L.doorWarps[key];
-    if (dw) { this.run(() => warpTo(dw.to, dw.tx, dw.ty, dw.dir)); return; }
+    if (dw) { this.run(() => enterDoor(dw)); return; }
     if (this.L.doors && this.L.doors[key]) { this.run(() => doorAct(this.L.doors[key], tx, ty)); return; }
     if (this.tile(tx, ty) === '~') this.run(() => say('水面波光粼粼，倒映著天空。'));
   },
@@ -190,6 +190,10 @@ async function warpTo(map, x, y, dir) {
     await Battle.start({ kind: 'wild', foe: makeFoe('brush', 2), tutorial: true, mentor: M });
   }
 }
+async function enterDoor(dw) {
+  if (dw.ret) G.ret = { map: OW.id, x: dw.ret.x, y: dw.ret.y };
+  await warpTo(dw.to, dw.tx, dw.ty, dw.dir);
+}
 async function goHome() {
   if (!(await UI.yesno('要回到主畫面嗎？\n（目前進度會自動儲存）'))) return;
   autosave(); await fade(1, 0.3); titleScreen(); await fade(0, 0.3);
@@ -200,6 +204,11 @@ async function talkTo(n) {
     case 'mentor': return mentorTalk(n);
     case 'trainer': case 'rival': case 'gym': return trainerTalk(n);
     case 'quest': return questTalk(n);
+    case 'healer': {
+      Sound.sfx('door'); await say(R.text); G.hp = G.maxhp;
+      if (G.ret) G.lastHeal = { map: G.ret.map, x: G.ret.x, y: G.ret.y };
+      Sound.sfx('heal'); await say('（氣血全滿了！）'); autosave(); n.dir = n.home; return; }
+    case 'shop': await say(R.text); await Shop.open((G.ret && LAYOUTS[G.ret.map].shop) || ['heal', 'hint']); n.dir = n.home; return;
     case 'smith': await say(R.lines.join('\n\n'), R.name); await Forge.open(); n.dir = n.home; return;
     default: await say(R.lines.join('\n\n'), R.name); n.dir = n.home;
   }

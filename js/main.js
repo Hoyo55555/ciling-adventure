@@ -162,7 +162,7 @@ async function titleScreen() {
 function freshState(world, player, slot) {
   return { v: 2, slot, world, player, map: 'town1', x: 6, y: 5, lv: 3, exp: 0, hp: null, weapons: [], equip: [], cur: 0, wenqi: 0,
     bag: { heal: 0, heal2: 0, wenqi: 0, hint: 0 }, frags: {}, money: 300, chapter: 1, badges: [], flags: {}, defeated: {}, chests: {}, quests: {},
-    stats: {}, chStats: {}, wrong: [], seen: {}, weakKnown: {}, lastHeal: { map: 'town1', x: 6, y: 5 }, time: 0, streak: 0, bestStreak: 0, answered: 0, ng: 0 };
+    stats: {}, chStats: {}, wrong: [], seen: {}, weakKnown: {}, lastHeal: { map: 'town1', x: 6, y: 5 }, ret: { map: 'town1', x: 6, y: 5 }, time: 0, streak: 0, bestStreak: 0, answered: 0, ng: 0 };
 }
 const Flow = {
   async load(n) {

@@ -124,7 +124,7 @@ const WeaponMenu = {
         const sc = $('.scroll', ctl.box);
         const rows = list.map(w => { const lv = weaponLv(w), next = MASTERY_STEPS[lv], slot = G.equip.indexOf(w.id); const r = h('div', 'row');
           r.appendChild(wIcon(w.arch, w.r));
-          r.insertAdjacentHTML('beforeend', `<div class="grow"><b class="rtxt r${w.r}">${esc(weaponName(w))}</b> ${rarChip(w.r)} <span class="small">Lv.${lv}</span> ${catChips(w.arch)}
+          r.insertAdjacentHTML('beforeend', `<div class="grow"><b class="rtxt r${w.r}">${esc(weaponName(w))}</b> ${rarChip(w.r)} <span class="small">Lv.${lv}</span> ${elChip(elOfCats(ARCH[w.arch].cats))}${catChips(w.arch)}
             <div class="small muted">熟練度 ${w.mastery}${next != null ? ' / ' + next : '（已滿級）'}${ARCH[w.arch].passive ? `．<b style="color:#b8322a">能力「${PASSIVES[ARCH[w.arch].passive].name}」</b>` : ''}</div></div>
             <span class="small">${slot === G.cur ? '<b class="good">★ 使用中</b>' : slot >= 0 ? `攜帶 ${slot + 1}` : '<span class="muted">收納中</span>'}</span>`);
           sc.appendChild(r); return r; });
@@ -147,9 +147,10 @@ const WeaponMenu = {
       const a = w.arch, lv = weaponLv(w), mul = RAR_POW[w.r];
       ctl.box.innerHTML = `<h2><span class="rtxt r${w.r}">${esc(weaponName(w))}</span>　${rarChip(w.r)} <span class="small muted">Lv.${lv}</span></h2><div style="display:flex;gap:${U(6)};flex:1;min-height:0"><div class="pv"></div><div class="grow scroll small">
         <div>${esc(weaponDesc(a))}</div><div style="margin:${U(2)} 0">擅長 ${catChips(a)}　<span class="muted">稀有度加成：攻擊 +${RAR_ATK[w.r]}、招式威力 ×${mul}</span></div>
-        ${ARCH[a].skills.map(([n, c, p], i) => { const open = i < lv + 1; return `<div class="row" style="padding:${U(1)} ${U(2)}"><b class="grow">${open ? esc(n) : '？？？'}</b>${open ? c.slice(0, 3).map(chip).join('') + `　威力 ${Math.round(p * mul)}` : `<span class="muted">武器 Lv.${i} 解鎖（熟練度 ${MASTERY_STEPS[i - 1]}）</span>`}</div>`; }).join('')}
+        ${w.r ? `<div class="bonus">✦ 附加效果：${bonusList(w.r).join('；')}${ARCH[a].passive ? `；守護能力「${PASSIVES[ARCH[a].passive].name}」` : ''}</div>` : '<div class="small muted">凡品武器沒有附加效果，升階後會獲得。</div>'}
+        ${ARCH[a].skills.map(([n, c, p], i) => { const open = i < lv + 1, el = elOfCats(c); return `<div class="row" style="padding:${U(1)} ${U(2)}"><b class="grow">${open ? esc(n) : '？？？'}</b>${open ? elChip(el) + (el ? `<span class="small muted">剋${KE[el]}</span>` : '') + c.slice(0, 2).map(chip).join('') + `　威力 ${Math.round(p * mul)}` : `<span class="muted">武器 Lv.${i} 解鎖（熟練度 ${MASTERY_STEPS[i - 1]}）</span>`}</div>`; }).join('')}
         <div class="row" style="padding:${U(1)} ${U(2)}"><b class="grow">★ ${esc(ARCH[a].ult)}</b><span class="muted">必殺技．文氣 5 格</span></div>
-        <div class="muted" style="margin-top:${U(2)}">用這件武器答對題目，熟練度 +1；打中弱點 +2。</div></div></div>` + footKeys('B 返回');
+        <div class="muted" style="margin-top:${U(2)}">用這件武器答對題目，熟練度 +1；屬性剋制 +2。　五行：金剋木、木剋土、土剋水、水剋火、火剋金</div></div></div>` + footKeys('B 返回');
       $('.pv', ctl.box).appendChild(wIcon(a, w.r, 4)); closeOnAB(ctl);
     });
   },
@@ -198,7 +199,7 @@ const WeaponPick = {
       ctl.box.innerHTML = `<h2>選擇你的第一件武器</h2><div class="cards"></div>` + footKeys('←→ 選擇　A 決定');
       const wrap = $('.cards', ctl.box);
       const cards = STARTER_ARCHS.map(a => { const c = h('div', 'card'); const hold = h('div', 'cardpic'); hold.appendChild(GFX.el(GFX.weapon(a, W.theme), 3)); c.appendChild(hold);
-        c.insertAdjacentHTML('beforeend', `<h3>${esc(weaponName(a))}</h3><div class="desc">${esc(weaponDesc(a))}</div><div class="desc"><b>擅長：</b>${catChips(a)}</div><div class="desc"><b>招式：</b>${ARCH[a].skills.slice(0, 2).map(s => esc(s[0])).join('、')}…</div>`); wrap.appendChild(c); return c; });
+        c.insertAdjacentHTML('beforeend', `<h3>${esc(weaponName(a))}</h3><div class="desc">${esc(weaponDesc(a))}</div><div class="desc"><b>擅長：</b>${catChips(a)} ${elChip(elOfCats(ARCH[a].cats))}</div><div class="desc"><b>招式：</b>${ARCH[a].skills.slice(0, 2).map(s => esc(s[0])).join('、')}…</div>`); wrap.appendChild(c); return c; });
       let sel = 0; const paint = () => cards.forEach((c, i) => c.classList.toggle('sel', i === sel));
       const choose = async () => { Sound.sfx('ok'); if (await UI.yesno(`確定要選擇「${weaponName(STARTER_ARCHS[sel])}」嗎？\n（之後還能取得其他武器）`)) ctl.done(STARTER_ARCHS[sel]); };
       cards.forEach((c, i) => c.addEventListener('pointerdown', e => { e.preventDefault(); if (sel === i) choose(); else { sel = i; Sound.sfx('cursor'); paint(); } }));
@@ -215,7 +216,7 @@ const Armory = {
       const wrap = $('.armory', ctl.box), gw = $('.armory.g', ctl.box);
       const card = (a, box) => { const seen = Meta.d.armory[G.world + ':' + a]; const c = h('div', 'arm' + (seen ? '' : ' unk'));
         const pic = wIcon(a, seen ? seen - 1 : (ARCH[a].guardian ? 6 : 0), 1.3); if (!seen) pic.style.filter = 'brightness(0) opacity(.35)'; c.appendChild(pic);
-        const info = ARCH[a].guardian ? (seen ? '能力：' + PASSIVES[ARCH[a].passive].name : '劇情取得') : (seen ? '最高：' + RARITY[seen - 1].n : `第 ${ARCH[a].ch} 章出現`);
+        const info = ARCH[a].guardian ? (seen ? '能力：' + PASSIVES[ARCH[a].passive].name : '劇情取得') : (seen ? '最高：' + RARITY[seen - 1].n : '尚未取得');
         c.insertAdjacentHTML('beforeend', `<div><b>${seen ? esc(weaponName(a)) : '？？？'}</b><div class="small muted">${info}</div></div>`); box.appendChild(c); };
       ARCH_ORDER.forEach(a => card(a, wrap)); Object.values(W.guardians).forEach(a => card(a, gw));
       const sc = $('.scroll', ctl.box);
@@ -605,11 +606,11 @@ const Help = {
         <b>🎮 操作</b>：方向鍵／WASD 移動，Z 或空白鍵＝確認，X 或 Esc＝取消（按住可奔跑），Enter 或 M＝開啟選單。手機可用下方按鍵，也能直接點選畫面。<br>
         <b>⚔ 戰鬥＝答題</b>：武器的每個招式都對應一種國文題型，<b>答對才能命中</b>。<br>
         <b>🛡 防禦題</b>：敵人出招時有機會「出題」，答對就能完全閃避。<br>
-        <b>🎯 弱點</b>：每個敵人都有弱點題型，打中弱點傷害兩倍。換上擅長該題型的武器吧！<br>
+        <b>☯ 五行相剋</b>：金剋木、木剋土、土剋水、水剋火、火剋金。題型屬性：字音字形＝金、詞義成語＝木、修辭閱讀＝水、詩詞＝火、文言常識＝土。剋制對手威力 ×1.5，被剋制 ×0.7。<br>
         <b>✨ 文氣與必殺技</b>：每答對一題累積 1 格文氣，集滿 5 格就能施展必殺技（必定命中）。<br>
         <b>🗡 武器熟練度</b>：用武器答對題目會提升熟練度，升級後學會新招式。最多攜帶 3 件武器。<br>
         <b>⚒ 碎片與鍛造</b>：野生怪物是武器幻化的「武器妖」，打倒後有機會掉落該武器的碎片，集滿 5 片可合成武器；同名同階武器可以升階。<br>
-        <b>💎 稀有度</b>：凡品（白）→ 良品（綠）→ 精品（藍）→ 珍品（紫）→ 絕品（金）→ 神品（紅）→ 守護神器（彩，只能由劇情取得）。<br>
+        <b>💎 稀有度</b>：凡品（白）→ 良品（綠）→ 精品（藍）→ 珍品（紫）→ 絕品（金）→ 神品（紅）→ 守護神器（彩，只能由劇情取得）。階級越高，附加效果越多：良品熟練度 +1、精品剋制威力 +15%、珍品答對回血 3%、絕品剋制文氣 +1、神品被剋制不減威力。<br>
         <b>👀 看得見的敵人</b>：敵人在地圖上走動，靠近會追過來；不想打可以繞路。<br>
         <b>💾 存檔</b>：共 3 個欄位，切換地圖、戰鬥後會自動存檔；也能匯出存檔檔案帶到其他電腦。<br>
         <b>📖 錯題本</b>：答錯的題目會自動收錄，隨時可以複習。</div>` + footKeys('B 返回');

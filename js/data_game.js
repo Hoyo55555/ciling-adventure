@@ -11,6 +11,16 @@ const ALL_CATS = Object.keys(CATS);
 const catColor = c => (CATS[c] || { color: '#707888' }).color;
 const chip = c => `<span class="chip" style="background:${catColor(c)}">${esc(c)}</span>`;
 
+/* ============ 五行屬性：金剋木、木剋土、土剋水、水剋火、火剋金 ============ */
+const ELEM = { 金: '#c8a020', 木: '#3e9830', 水: '#2a78c8', 火: '#d8403a', 土: '#9a6a3a' };
+const CAT_EL = { '字音': '金', '字形': '金', '詞義': '木', '成語': '木', '修辭': '水', '閱讀': '水', '詩詞': '火', '文言': '土', '常識': '土' };
+const KE = { 金: '木', 木: '土', 土: '水', 水: '火', 火: '金' };            // A 剋 KE[A]
+const KE_BY = Object.fromEntries(Object.entries(KE).map(([a, b]) => [b, a])); // 被誰剋
+const elOfCats = cats => cats.length >= ALL_CATS.length ? null : CAT_EL[cats[0]];
+const elChip = e => e ? `<span class="chip el" style="background:${ELEM[e]}">${e}</span>` : '<span class="chip el" style="background:#707888">無</span>';
+const catsOfEl = e => ALL_CATS.filter(c => CAT_EL[c] === e);
+function elEffect(a, d) { if (!a || !d) return 1; if (KE[a] === d) return 1.5; if (KE[d] === a) return 0.7; return 1; }
+
 /* ============ 武器系統（30 種 × 3 世界名稱）============
    同一列是同一種武器在三個世界的名稱，轉生時依此轉換。
    欄位：代號、擅長題型、最早出現章節、必殺技、[國中, 圖示]、[文人, 圖示]、[俠客, 圖示]、主色 */
@@ -102,6 +112,8 @@ const MERGE_N = [3, 3, 4, 4, 5];   // 升階所需同名同階武器數：白→
 const FRAG_N = 5;                   // 碎片合成一件凡品武器所需數量
 const FRAG_RATE = 0.45;             // 打倒武器怪掉落碎片的機率
 const RAR_ATK = [0, 2, 4, 7, 10, 14, 20], RAR_POW = [1, 1.1, 1.2, 1.35, 1.5, 1.7, 2];
+const RAR_BONUS = ['', '答對時熟練度額外 +1', '剋制屬性時威力 +15%', '答對時恢復 3% 氣血', '剋制屬性時文氣額外 +1', '被剋制時威力不降低'];
+const bonusList = r => RAR_BONUS.slice(1, Math.min(r, 5) + 1);
 const newWeapon = (arch, r = 0) => ({ id: 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), arch, r, mastery: 0 });
 const wById = id => G.weapons.find(w => w.id === id);
 const curW = () => wById(G.equip[G.cur]);
@@ -110,9 +122,9 @@ const rarChip = r => `<span class="rchip r${r}">${RARITY[r].n}</span>`;
 /* ============ 野生怪物：武器幻化的「武器妖」 ============
    詞靈附在武器上幻化成Ｑ版小妖。打倒後有機率掉落碎片，集滿可合成該武器。
    出招時會用自己武器擅長的題型出「防禦題」。 */
-function monInfo(arch) {   // 弱點＝題型循環中往後數第 3 種；抗性＝自己擅長的第一種
-  const c0 = ARCH[arch].cats[0], i = ALL_CATS.indexOf(c0);
-  return { weak: [ALL_CATS[(i + 3) % ALL_CATS.length]], resist: [c0], base: { hp: 42 + (i % 3) * 3, atk: 46 + (i % 4) * 2, def: 40 + (i % 3) * 2 } };
+function monInfo(arch) {   // 怪物屬性＝其武器擅長題型的五行；弱點＝剋它的屬性
+  const c0 = ARCH[arch].cats[0], i = ALL_CATS.indexOf(c0), el = elOfCats(ARCH[arch].cats) || '金';
+  return { el, weak: catsOfEl(KE_BY[el]), resist: catsOfEl(KE[el]), base: { hp: 42 + (i % 3) * 3, atk: 46 + (i % 4) * 2, def: 40 + (i % 3) * 2 } };
 }
 
 /* ============ 道具（名稱依世界觀而不同，見 WORLDS.items） ============ */
@@ -135,14 +147,15 @@ const expNeed = lv => lv * 10 + 10;
 const monName = arch => (W.monsters && W.monsters[arch]) || ARCH[arch].names[W.id] + W.monSuffix;
 function makeFoe(arch, lv) {
   const M = monInfo(arch), b = M.base;
-  const f = { kind: 'mon', sp: arch, lv, name: monName(arch), weak: M.weak, resist: M.resist,
+  const f = { kind: 'mon', sp: arch, lv, name: monName(arch), el: M.el, weak: M.weak, resist: M.resist,
     moves: ARCH[arch].skills.slice(0, 2).map(([n, cats], i) => ({ name: n, cats, pow: i ? 45 : 35 })),
     maxhp: Math.floor(b.hp * lv / 25) + lv + 12, atk: Math.floor(b.atk * lv / 25) + 6, def: Math.floor(b.def * lv / 25) + 6, exp: lv * 6 };
   f.hp = f.maxhp; return f;
 }
 function makePersonFoe(R) {
   const F = R.foe, lv = F.lv + (G.ng || 0) * 4;
-  const f = { kind: 'person', look: R.look, name: R.name, lv, weak: F.weak || [], resist: F.resist || [],
+  const el = F.el || (F.weak && F.weak.length ? KE[CAT_EL[F.weak[0]]] : '土');   // 人物的屬性：由弱點題型推回
+  const f = { kind: 'person', look: R.look, name: R.name, lv, el, weak: catsOfEl(KE_BY[el]), resist: catsOfEl(KE[el]),
     moves: F.moves.map(([name, cats, pow]) => ({ name, cats, pow })),
     maxhp: Math.floor((12 + lv * 3.5) * (F.hpMul || 1)), atk: Math.floor(5 + lv * 1.6), def: Math.floor(4 + lv * 1.5), exp: Math.floor(lv * 9 * (F.hpMul || 1)) };
   f.hp = f.maxhp; return f;
@@ -150,7 +163,7 @@ function makePersonFoe(R) {
 
 /* ============ 地圖版型（三個世界共用；外觀由世界主題決定） ============
    . 草地  , 道路  g 草叢  T 樹  ~ 水  # 牆  W 窗  D 門  R 屋頂  = 柵欄  S 告示牌  F 花  L 燈  ^ 岩石 */
-const SOLID = new Set(['T', '#', 'W', 'D', 'R', '~', '=', 'S', 'L', '^', 'X']);
+const SOLID = new Set(['T', '#', 'W', 'D', 'R', '~', '=', 'S', 'L', '^', 'X', 'w', 'b', 't', 'k', 'p']);
 const LAYOUTS = {
   town1: { music: 'town', qlv: 1, chapter: 1,
     rows: [
@@ -174,7 +187,8 @@ const LAYOUTS = {
       'TTTTTTTTTTTTTTTTTTTTTTTT'],
     warps: [{ x: 11, y: 0, to: 'route1', tx: 8, ty: 22, dir: 'up' }, { x: 12, y: 0, to: 'route1', tx: 9, ty: 22, dir: 'up' }],
     gates: { '11,0': 'needWeapon', '12,0': 'needWeapon' },
-    doors: { '6,4': 'home', '19,4': 'hall1', '3,11': 'heal', '20,11': 'shop' },
+    doors: { '19,4': 'hall1' },
+    doorWarps: { '6,4': { to: 'home', tx: 4, ty: 5, dir: 'up', ret: { x: 6, y: 5 } }, '3,11': { to: 'clinic', tx: 4, ty: 5, dir: 'up', ret: { x: 3, y: 12 } }, '20,11': { to: 'store', tx: 4, ty: 5, dir: 'up', ret: { x: 20, y: 12 } } },
     signs: { '10,11': 'sign_town1' },
     npcs: [{ role: 'mentor', x: 13, y: 8, dir: 'down' }, { role: 'tip1', x: 7, y: 14, dir: 'down', wander: 1 }, { role: 'tip2', x: 16, y: 7, dir: 'left', wander: 1 }, { role: 'tip6', x: 19, y: 5, dir: 'down' }],
     shop: ['heal', 'heal2', 'wenqi', 'hint'] },
@@ -233,13 +247,26 @@ const LAYOUTS = {
       'TTTTTTTTTTT,,TTTTTTTTTTT'],
     warps: [{ x: 11, y: 17, to: 'route1', tx: 8, ty: 1, dir: 'down' }, { x: 12, y: 17, to: 'route1', tx: 9, ty: 1, dir: 'down' }],
     gates: { '11,0': 'trialEnd', '12,0': 'trialEnd' },
-    doors: { '19,4': 'hall2', '3,11': 'heal', '20,11': 'shop' },
-    doorWarps: { '4,4': { to: 'gym1', tx: 5, ty: 8, dir: 'up' } },
+    doors: { '19,4': 'hall2' },
+    doorWarps: { '4,4': { to: 'gym1', tx: 5, ty: 8, dir: 'up' }, '3,11': { to: 'clinic', tx: 4, ty: 5, dir: 'up', ret: { x: 3, y: 12 } }, '20,11': { to: 'store', tx: 4, ty: 5, dir: 'up', ret: { x: 20, y: 12 } } },
     signs: { '8,11': 'sign_town2' },
     npcs: [{ role: 'gymguide', x: 5, y: 5, dir: 'down' }, { role: 'locked2', x: 19, y: 5, dir: 'down' }, { role: 'guard', x: 13, y: 1, dir: 'left' },
       { role: 'tip4', x: 8, y: 8, dir: 'down', wander: 1 }, { role: 'tip5', x: 16, y: 15, dir: 'up', wander: 1 }, { role: 'smith', x: 15, y: 8, dir: 'down' },
       { role: 'rivalA', x: 9, y: 12, dir: 'down', route: 'a' }],
     shop: ['heal', 'heal2', 'wenqi', 'hint'] },
+  /* 室內：_ 地板  w 牆  b 床  t 桌子／櫃檯  k 書櫃  p 盆栽  r 地毯；出口回到進來的地方 */
+  home: { music: 'town', qlv: 1, chapter: 1, indoor: 1,
+    rows: ['wwwwwwwwww', 'wkk____pbw', 'w_______bw', 'w__tt____w', 'w__tt__r_w', 'wp_______w', 'wwww__wwww'],
+    warps: [{ x: 4, y: 6, to: '@ret' }, { x: 5, y: 6, to: '@ret' }],
+    npcs: [{ role: 'homeNpc', x: 6, y: 3, dir: 'down' }] },
+  clinic: { music: 'town', qlv: 1, chapter: 1, indoor: 1,
+    rows: ['wwwwwwwwww', 'wb_kkk__bw', 'w________w', 'wtttt____w', 'w________w', 'wp______pw', 'wwww__wwww'],
+    warps: [{ x: 4, y: 6, to: '@ret' }, { x: 5, y: 6, to: '@ret' }],
+    npcs: [{ role: 'healer', x: 2, y: 2, dir: 'down' }] },
+  store: { music: 'town', qlv: 1, chapter: 1, indoor: 1,
+    rows: ['wwwwwwwwww', 'wkkkk_kkkw', 'w________w', 'w__ttt___w', 'w________w', 'wp__rr__pw', 'wwww__wwww'],
+    warps: [{ x: 4, y: 6, to: '@ret' }, { x: 5, y: 6, to: '@ret' }],
+    npcs: [{ role: 'clerk', x: 4, y: 2, dir: 'down' }] },
   gym1: { music: 'hall', qlv: 2, chapter: 1, indoor: 1,
     rows: [
       '##WW####WW##',

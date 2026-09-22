@@ -88,7 +88,7 @@ function hudFoe(s, hp) {
   const f = s.foe, v = hp == null ? f.hp : hp, r = v / f.maxhp, known = G.weakKnown[foeKey(f)];
   s.hf.innerHTML = `<div class="bh-top"><b>${esc(f.name)}</b><span>Lv.${f.lv}</span></div>
     <div class="bh-row"><span class="lab">氣血</span><div class="inkbar foe"><i style="width:${r * 100}%"></i></div></div>
-    <div class="bh-row small">${known ? '弱點 ' + f.weak.map(chip).join('') : '<span class="muted">弱點：？？？</span>'}</div>`;
+    <div class="bh-row small">屬性 ${elChip(f.el)}<span class="muted">怕</span>${elChip(KE_BY[f.el])}</div>`;
 }
 async function tweenHP(s, isFoe, from, to) {
   const d = Math.max(0.25, Math.min(0.7, Math.abs(from - to) / 40));
@@ -103,7 +103,9 @@ async function faint(sp) { Sound.sfx('faint'); await Anim.run(0.4, k => { sp.dy 
 async function inkBurst(s, x, y, col) { s.burst = { x, y, col, k: 0, dots: Array.from({ length: 22 }, () => ({ dx: Math.random() * 2 - 1, dy: Math.random() * 2 - 1, r: 2 + Math.random() * 5 })) }; await Anim.run(0.35, k => s.burst.k = k); s.burst = null; }
 
 /* ---------- 數值 ---------- */
-function effect(cats, f) { if (cats.some(c => f.weak.includes(c))) return 2; if (cats.some(c => f.resist.includes(c))) return 0.5; return 1; }
+/* 五行相剋：招式屬性＝招式第一個題型的五行 */
+function effect(cats, f) { return elEffect(elOfCats(cats), f.el); }
+const effText = (e, a, d) => e > 1 ? `<b class="good">◎ ${a}剋${d}：威力 ×1.5</b>` : e < 1 ? `<span class="bad">△ ${d}剋${a}：威力 ×0.7</span>` : `○ ${a || '無'}對${d}：普通`;
 function calcDmg(a, d, pow, eff) { return Math.max(1, Math.floor(((2 * a.lv / 5 + 2) * pow * a.atk / d.def / 25 + 2) * eff * (0.9 + Math.random() * 0.15))); }
 const qLv = () => [OW.L ? OW.L.qlv + (G.ng ? 1 : 0) : 3, G.ng ? 2 : 1];
 /* 錯題強化：35% 機率從錯題本中挑同類題目再出一次 */
@@ -128,7 +130,8 @@ async function battleLoop(s) {
   slideIn(s.me, -90); await slideIn(s.fo, 90);
   if (f.kind === 'mon') { G.seen[f.sp] = 1; await msg(tut ? `（練習戰）${f.name} 跳了出來！` : `${f.name} 擋住了去路！`); }
   else await msg(`${f.name} 向你發起了挑戰！`);
-  if (tut) await msg('選「出招」，再選一個招式。\n每個招式都對應一種國文題型——答對才打得中！', { name: C.mentor });
+  if (tut) { await msg('選「出招」，再選一個招式。\n每個招式都對應一種國文題型——答對才打得中！', { name: C.mentor });
+    await msg('招式和敵人都有「五行」屬性：金剋木、木剋土、土剋水、水剋火、火剋金。\n用剋制對手的屬性攻擊，威力 ×1.5！', { name: C.mentor }); }
   if (s.pas.has('spring')) { G.wenqi = Math.min(ULT_COST, G.wenqi + 2); hudMe(s); await amsg('守護神器「文思泉湧」發動！文氣 +2', 800); }
   let turn = 0;
   while (true) {
@@ -183,9 +186,8 @@ function skillMenu(s) {
       items.forEach((d, i) => d.classList.toggle('sel', i === sel));
       const sk = list[sel];
       if (sk.ult) { info.innerHTML = `<b>必殺技</b>．消耗 5 格文氣<br>不必答題，必定命中，威力 120！`; return; }
-      const known = G.weakKnown[foeKey(s.foe)], eff = effect(sk.cats, s.foe);
-      const effTxt = known ? (eff > 1 ? '<b class="good">◎ 打中弱點！</b>' : eff < 1 ? '<span class="muted">△ 效果不好</span>' : '○ 普通') : '<span class="muted">？ 效果未知</span>';
-      info.innerHTML = `${sk.cats.map(chip).join('')}　威力 ${sk.pow}<br>${effTxt}${!QB.has(sk.cats) ? '<br><span class="muted small">（題庫無此類，隨機出題）</span>' : ''}`;
+      const el = elOfCats(sk.cats), eff = effect(sk.cats, s.foe);
+      info.innerHTML = `${sk.cats.slice(0, 3).map(chip).join('')}　威力 ${sk.pow}<br>屬性 ${elChip(el)}　${effText(eff, el, s.foe.el)}${!QB.has(sk.cats) ? '<br><span class="muted small">（題庫無此類，隨機出題）</span>' : ''}`;
     };
     const pickIt = () => { Sound.sfx('ok'); done(list[sel].ult ? { type: 'ult' } : { type: 'skill', skill: list[sel] }); };
     const done = v => { UI.pop(m); info.remove(); res(v); };
@@ -204,14 +206,19 @@ async function playerAttack(s, sk) {
   if (!r.correct && s.pas.has('retry') && !s.retryUsed) { s.retryUsed = true; await msg('守護神器「再思」發動！再給你一次機會！'); r = await askQ(s, sk.cats, 'attack', sk.name); }
   s.lastCorrect = r.correct;
   if (!r.correct) { await amsg('答錯了……攻擊落空！', 700); return; }
-  const eff = effect(sk.cats, f); const dmg = Math.floor(calcDmg(G, f, sk.pow, eff) * (s.pas.has('bane') && s.kind === 'gym' ? 1.5 : 1));
-  G.wenqi = Math.min(ULT_COST, G.wenqi + 1);
+  let eff = effect(sk.cats, f);
+  if (eff < 1 && w.r >= 5) eff = 1;                  // 神品：被剋制時威力不降低
+  const bonus = eff > 1 && w.r >= 2 ? 1.15 : 1;      // 精品以上：剋制時威力 +15%
+  const dmg = Math.floor(calcDmg(G, f, sk.pow, eff) * bonus * (s.pas.has('bane') && s.kind === 'gym' ? 1.5 : 1));
+  G.wenqi = Math.min(ULT_COST, G.wenqi + 1 + (eff > 1 && w.r >= 4 ? 1 : 0));   // 絕品以上：剋制時文氣 +1
+  if (w.r >= 3 && G.hp < G.maxhp) G.hp = Math.min(G.maxhp, G.hp + Math.ceil(G.maxhp * 0.03));   // 珍品以上：答對恢復 3% 氣血
   await lunge(s.me, 1); Sound.sfx('hit'); inkBurst(s, 178, 72, '#2a2018'); await blink(s.fo);
   const from = f.hp; f.hp = Math.max(0, f.hp - dmg); await tweenHP(s, true, from, f.hp); hudMe(s);
-  if (eff > 1) { const first = !G.weakKnown[foeKey(f)]; G.weakKnown[foeKey(f)] = 1; hudFoe(s); await amsg(first ? `打中弱點！${f.name} 的弱點是「${f.weak.join('、')}」！` : '打中弱點！', 800); }
-  else if (eff < 1) await amsg('效果不太好……', 600);
+  const el = elOfCats(sk.cats);
+  if (eff > 1) { G.weakKnown[foeKey(f)] = 1; await amsg(`${el}剋${f.el}！效果絕佳！${bonus > 1 ? '（武器附加效果：威力 +15%）' : ''}`, 800); }
+  else if (eff < 1) await amsg(`${f.el}剋${el}……效果不太好。`, 650);
   // 武器熟練度
-  const before = weaponLv(w); w.mastery += eff > 1 ? 2 : 1; const after = weaponLv(w);
+  const before = weaponLv(w); w.mastery += (eff > 1 ? 2 : 1) + (w.r >= 1 ? 1 : 0); const after = weaponLv(w);
   if (after > before) {
     Sound.sfx('level'); playerStats(); hudMe(s);
     const sks = weaponSkills(arch, after), nw = sks.length > weaponSkills(arch, before).length ? sks[sks.length - 1][0] : null;
@@ -235,11 +242,14 @@ async function foeTurn(s, forceQ) {
     const r = await askQ(s, s.cfg.cats || mv.cats, 'defend', mv.name);
     if (r.correct) { G.wenqi = Math.min(ULT_COST, G.wenqi + 1); hudMe(s); await amsg('你看穿了招式，漂亮地閃開了！', 750); return; }
   }
-  const eff = 1; const mul = s.kind === 'wild' ? 0.8 : 0.9;
+  const myEl = elOfCats(ARCH[curW().arch].cats), mvEl = elOfCats(mv.cats);
+  const eff = elEffect(mvEl, myEl) > 1 ? 1.25 : elEffect(mvEl, myEl) < 1 ? 0.8 : 1;   // 敵人屬性對你手上武器的屬性
+  const mul = s.kind === 'wild' ? 0.8 : 0.9;
   let dmg = Math.max(1, Math.floor(calcDmg(f, G, mv.pow, eff) * mul));
   if (s.pas.has('shield') && !s.shieldUsed) { s.shieldUsed = true; await lunge(s.fo, -1); s.flash = 0.8; await Anim.run(0.3, k => s.flash = 0.8 * (1 - k)); await amsg('守護神器「護心」發動！這次攻擊完全擋下了！', 800); return; }
   await lunge(s.fo, -1); Sound.sfx('hit'); await blink(s.me);
   const from = G.hp; G.hp = Math.max(0, G.hp - dmg); await tweenHP(s, false, from, G.hp);
+  if (eff > 1) await amsg(`${mvEl}剋${myEl}！你受到較重的傷害！`, 650); else if (eff < 1) await amsg(`${myEl}剋${mvEl}，你擋下了部分傷害。`, 650);
 }
 async function victory(s) {
   const f = s.foe, C = s.cfg;

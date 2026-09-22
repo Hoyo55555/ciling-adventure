@@ -348,3 +348,6 @@ body{ background:#16120e radial-gradient(ellipse at top,#3a3026 0%,#16120e 70%);
 .login .btn{ font-size:calc(var(--u)*8); padding:calc(var(--u)*2) calc(var(--u)*8); }
 #screen:has(.panel) .cloudbadge, #screen:has(.tb) .cloudbadge{ display:none; }
 .cloudbadge.teacher{ background:rgba(46,138,62,.9); }
+.bad{ color:#b8322a; }
+.chip.el{ border-radius:50%; min-width:1.6em; text-align:center; padding:0 calc(var(--u)*1); }
+.bonus{ margin:calc(var(--u)*1.5) 0; padding:calc(var(--u)*1.5) calc(var(--u)*3); background:#fff4d8; border:calc(var(--u)*.6) solid #e0b040; border-radius:calc(var(--u)*2); font-size:calc(var(--u)*6.5); }
