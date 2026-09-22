@@ -60,15 +60,18 @@ const GFX = (() => {
   function personParts(L, dir, fr) {
     const P = [], R = (x, y, w, hh, c, m) => P.push({ t: 'r', v: [x, y, w, hh], c, m }), D = (v, c, m) => P.push({ t: 'd', v, c, m }), E = (v, c, m) => P.push({ t: 'e', v, c, m });
     const sk = L.skin || '#f8d0a8', hr = L.hair || '#3a3040', cl = L.cloth || '#4868b8', c2 = L.cloth2 || adj(cl, -.35), pt = L.pants || '#34344a';
-    const girl = L.gender === 'f', robe = L.style === 'literati' || L.robe;
-    const side = dir === 'left';
+    const girl = L.gender === 'f', side = dir === 'left';
+    const outfit = L.outfit || 'pants', robe = L.style === 'literati' || L.robe || outfit === 'suit';
+    const legC = outfit === 'skirt' ? (L.sock || '#f4f4f4') : pt;
     // 腿
-    if (side) { if (fr === 0) R(6, 12, 4, 3, pt); else if (fr === 1) { R(5, 12, 2, 3, pt); R(9, 12, 2, 2, pt); } else { R(6, 12, 2, 2, pt); R(8, 12, 2, 3, pt); } }
-    else { R(5, 12, 2, fr === 1 ? 2 : 3, pt); R(9, 12, 2, fr === 2 ? 2 : 3, pt); }
+    if (side) { if (fr === 0) R(6, 12, 4, 3, legC); else if (fr === 1) { R(5, 12, 2, 3, legC); R(9, 12, 2, 2, legC); } else { R(6, 12, 2, 2, legC); R(8, 12, 2, 3, legC); } }
+    else { R(5, 12, 2, fr === 1 ? 2 : 3, legC); R(9, 12, 2, fr === 2 ? 2 : 3, legC); }
     // 身體
     if (side) { R(5, 8, 6, robe ? 6 : 5, cl); }
     else { R(4, 8, 8, robe ? 6 : 5, cl); R(3, 8, 1, 4, cl, 1); D([[3, 12]], sk, 1); }
+    if (outfit === 'skirt') { if (side) R(4, 11, 7, 3, pt); else R(3, 11, 10, 3, pt); }
     if (robe) { R(side ? 5 : 4, 10, side ? 6 : 8, 1, c2); }
+    if (outfit === 'suit' && dir === 'down') { D([[7, 8], [8, 8], [7, 9], [8, 9]], '#ffffff'); D([[6, 8], [6, 9], [9, 8], [9, 9]], c2); D([[7, 10], [8, 10], [7, 11]], L.tie || '#c83838'); }
     if (L.style === 'wuxia') { R(side ? 5 : 4, 11, side ? 6 : 8, 1, c2); }
     if (L.style === 'school' && dir === 'down') { D([[7, 8], [8, 8]], '#ffffff'); D([[7, 9], [8, 9], [7, 10]], c2); }
     if (L.style === 'school' && dir === 'up') { R(5, 8, 6, 4, L.bag || '#c8504a'); }
@@ -82,8 +85,25 @@ const GFX = (() => {
     else { E([8, 3, 4.9, 2.7], hr); R(3, 3, 1, 3, hr, 1); if (girl) R(3, 3, 2, 7, hr, 1); }
     if (L.bun) { E([8, 0.8, 2, 1.4], hr); }
     // 眼睛與臉部
-    if (dir === 'down') { D([[6, 6], [6, 7]], OUT, 1); if (L.glasses) { D([[5, 6], [7, 6]], '#8090a8', 1); } if (L.beard) { R(5, 8, 6, 2, '#f0f0f0'); D([[7, 10], [8, 10]], '#f0f0f0'); } }
-    if (side) { D([[4, 6], [4, 7]], OUT); if (L.glasses) D([[3, 6], [5, 6]], '#8090a8'); if (L.beard) { R(4, 8, 4, 2, '#f0f0f0'); D([[5, 10]], '#f0f0f0'); } }
+    const face = L.face || 'normal', mouth = '#c0504a', eyes = [[6, 6], [6, 7]];
+    if (dir === 'down') {
+      if (face === 'happy') { D([[5, 7], [6, 6]], OUT, 1); D([[7, 8], [8, 8]], mouth); }
+      else if (face === 'sleepy') D([[5, 7], [6, 7]], OUT, 1);
+      else if (face === 'cool') { R(4, 6, 3, 2, OUT, 1); D([[7, 6], [8, 6]], OUT); D([[5, 6]], '#8090a8', 1); }
+      else if (face === 'wink') { D(eyes, OUT); D([[9, 7], [10, 7]], OUT); D([[7, 8], [8, 8]], mouth); }
+      else { D(eyes, OUT, 1);
+        if (face === 'smile') D([[7, 8], [8, 8]], mouth);
+        if (face === 'surprise') D([[7, 8], [8, 8], [7, 9], [8, 9]], '#602828');
+        if (face === 'blush') D([[5, 8]], '#f08a8a', 1);
+        if (face === 'serious') { D([[7, 8], [8, 8]], '#7a4a3a'); D([[5, 5], [6, 5]], OUT, 1); } }
+      if (L.glasses) { D([[5, 6], [7, 6]], '#8090a8', 1); } if (L.beard) { R(5, 8, 6, 2, '#f0f0f0'); D([[7, 10], [8, 10]], '#f0f0f0'); }
+    }
+    if (side) {
+      if (face === 'happy' || face === 'sleepy') D([[3, 7], [4, 7]], OUT);
+      else if (face === 'cool') { R(2, 6, 4, 2, OUT); }
+      else { D([[4, 6], [4, 7]], OUT); if (face === 'blush') D([[5, 8]], '#f08a8a'); if (face === 'smile' || face === 'happy' || face === 'wink') D([[3, 8]], mouth); if (face === 'surprise') D([[3, 8]], '#602828'); }
+      if (L.glasses) D([[3, 6], [5, 6]], '#8090a8'); if (L.beard) { R(4, 8, 4, 2, '#f0f0f0'); D([[5, 10]], '#f0f0f0'); }
+    }
     // 配件
     if (L.style === 'literati' || L.cap) { const cc = L.cap || '#26262e'; R(4, 0, 8, 2, cc); if (side) D([[12, 2], [13, 3], [13, 4]], cc); else if (dir === 'up') D([[4, 2], [11, 2]], cc); }
     if (L.style === 'wuxia') { const bc = L.band || '#d03838'; if (dir !== 'up') R(3, 3, 10, 1, bc); else R(3, 4, 10, 1, bc);

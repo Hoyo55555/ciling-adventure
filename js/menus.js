@@ -349,50 +349,93 @@ const SettingsPanel = {
 };
 
 /* ============ 世界觀選擇、角色生成 ============ */
-const HAIRS = ['#2a2228', '#5a3a24', '#a86a38', '#d8b060', '#7a3a58', '#3a4a7a'];
-const CLOTHES = { school: ['#f8f8f8', '#e8f0ff', '#fff4e0', '#f0f0f0'], literati: ['#88a0c8', '#a8c8a0', '#d8a8b8', '#e8e0c8', '#8a7ab0'], wuxia: ['#a84040', '#3a5a8a', '#3a7a4a', '#303038', '#e8e0d0'] };
-const CLOTH2 = { school: ['#3a58a0', '#2e6a4a', '#8a3040', '#404048'], literati: ['#384870', '#4a6a40', '#8a4058', '#8a7040', '#4a3a6a'], wuxia: ['#e0c050', '#c8c8d8', '#d8a040', '#c83838', '#6a4a2a'] };
+const SKINS = ['#fde2c8', '#f8d0a8', '#eebc90', '#d8a070', '#b47a4e', '#8a5a38'];
+const HAIRS = ['#1e1a20', '#3a2a24', '#5a3a24', '#8a5a34', '#c08a48', '#e0c070', '#b8b8c0', '#f0f0f0', '#8a2a3a', '#d8603a', '#2a3a7a', '#3a6a4a', '#7a4a98', '#e890b0'];
+const TOPS = ['#f8f8f8', '#d8dce4', '#2a3a6a', '#88b8e8', '#c83838', '#f0a0b8', '#f09040', '#f0d050', '#4a9a4a', '#3aa0a0', '#8a5ac8', '#303038', '#8a5a3a', '#e8dcc0'];
+const ACCENTS = ['#3a58a0', '#c83838', '#2e6a4a', '#d8b030', '#8a3040', '#404048', '#f0f0f0', '#e07a30', '#6a4a98', '#3aa0c8', '#8a6a4a', '#f08ab0', '#1e1e28', '#a0c040'];
+const BOTTOMS = ['#2a2e48', '#303038', '#6a6a78', '#b8a47a', '#6a4a30', '#2e5a3a', '#7a2a38', '#f0f0f0', '#4a6aa0', '#8a3a3a'];
+const FACES = [['normal', '一般'], ['smile', '微笑'], ['happy', '開心'], ['cool', '酷（墨鏡）'], ['surprise', '驚訝'], ['wink', '眨眼'], ['blush', '害羞'], ['serious', '認真'], ['sleepy', '想睡']];
+const OUTFITS = [['pants', '褲裝'], ['skirt', '裙裝'], ['suit', '套裝']];
+/* 自訂文字輸入（含禁用字檢查） */
+const TextInput = {
+  open({ title, value = '', max = 12, placeholder = '' }) {
+    return UI.panel(ctl => {
+      ctl.box.classList.add('login');
+      ctl.box.innerHTML = `<h2>${esc(title)}</h2><div class="small muted">最多 ${max} 個字。請使用適當的文字，不雅或不當的字詞無法使用。</div>
+        <div class="lg-form" style="grid-template-columns:1fr"><input maxlength="${max}" placeholder="${esc(placeholder)}"></div><div class="lg-msg small"></div>
+        <div class="btns"><button class="btn go">確定</button><button class="btn alt no">取消</button></div>` + footKeys('Enter 確定　Esc 取消');
+      const inp = $('input', ctl.box), m = $('.lg-msg', ctl.box); inp.value = value;
+      const ok = () => { const v = inp.value.trim(); if (!v) { m.textContent = '請輸入文字。'; return; } if (!WordFilter.ok(v)) { Sound.sfx('bump'); m.textContent = '這段文字含有不適當的字詞，請重新輸入。'; return; } ctl.done(v); };
+      $('.go', ctl.box).addEventListener('click', ok); $('.no', ctl.box).addEventListener('click', () => ctl.done(null));
+      inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); ok(); } if (e.key === 'Escape') ctl.done(null); });
+      setTimeout(() => { inp.focus(); inp.select(); }, 50);
+      ctl.update = () => { if (Input.p('B')) ctl.done(null); };
+    });
+  },
+};
 const CharCreate = {
   open(wid, preset) {
     const Wd = WORLDS[wid];
     const genName = () => pick(Wd.surnames) + pick(Wd.given);
-    const st = { name: preset ? preset.name : genName(), gender: preset ? (preset.look.gender || 'm') : pick(['m', 'f']), hair: rnd(0, HAIRS.length - 1), cloth: 0, cloth2: 0, title: Wd.genTitle() };
-    if (preset) { const hi = HAIRS.indexOf(preset.look.hair); if (hi >= 0) st.hair = hi; }
-    const look = () => ({ style: Wd.style, gender: st.gender, hair: HAIRS[st.hair], cloth: CLOTHES[Wd.style][st.cloth], cloth2: CLOTH2[Wd.style][st.cloth2], skin: '#f8d0a8' });
+    const P = preset && preset.look || {};
+    const idx = (arr, v, d) => { const i = arr.indexOf(v); return i >= 0 ? i : d; };
+    const st = { name: preset ? preset.name : genName(), gender: P.gender || pick(['m', 'f']), skin: idx(SKINS, P.skin, 1), hair: idx(HAIRS, P.hair, rnd(0, 5)),
+      face: Math.max(0, FACES.findIndex(f => f[0] === P.face)), outfit: Math.max(0, OUTFITS.findIndex(o => o[0] === P.outfit)),
+      top: idx(TOPS, P.cloth, wid === 'school' ? 0 : wid === 'literati' ? 3 : 4), acc: idx(ACCENTS, P.cloth2, 0), bottom: idx(BOTTOMS, P.pants, 0), title: Wd.genTitle(), customTitle: false };
+    if (!preset && st.gender === 'f' && Math.random() < 0.5) st.outfit = 1;
+    const look = () => ({ style: Wd.style, gender: st.gender, skin: SKINS[st.skin], hair: HAIRS[st.hair], face: FACES[st.face][0], outfit: OUTFITS[st.outfit][0], cloth: TOPS[st.top], cloth2: ACCENTS[st.acc], pants: BOTTOMS[st.bottom] });
+    const F = [{ k: 'name', label: '名字' }, { k: 'gender', label: '性別' }, { k: 'skin', label: '膚色', list: SKINS }, { k: 'hair', label: '髮色', list: HAIRS }, { k: 'face', label: '表情', list: FACES },
+      { k: 'outfit', label: '服裝款式', list: OUTFITS }, { k: 'top', label: '上衣顏色', list: TOPS }, { k: 'acc', label: '配色', list: ACCENTS }, { k: 'bottom', label: '下身顏色', list: BOTTOMS },
+      { k: 'title', label: Wd.titleLabel }, { k: 'rand' }, { k: 'go' }];
     return UI.panel(ctl => {
-      ctl.box.innerHTML = `<h2>${preset ? '轉生．' : '建立角色．'}${Wd.icon} ${esc(Wd.name)}</h2><div class="cc"><div class="preview"></div><div class="fields"></div></div>` + footKeys('↑↓ 選項目　←→ 變更（名號可重新生成）　A 確認　B 返回');
+      ctl.box.innerHTML = `<h2>${preset ? '轉生．' : '建立角色．'}${Wd.icon} ${esc(Wd.name)}</h2><div class="cc"><div class="preview"></div><div class="fields"></div></div>` + footKeys('↑↓ 選項目　←→ 變更　A 確認（名號可選擇自訂）　B 返回');
       const pv = $('.preview', ctl.box), fields = $('.fields', ctl.box);
-      const F = [{ k: 'name', label: '名字' }, { k: 'gender', label: '性別' }, { k: 'hair', label: '髮色' }, { k: 'cloth', label: '衣服' }, { k: 'cloth2', label: '配色' }, { k: 'title', label: Wd.titleLabel }, { k: 'rand' }, { k: 'go' }];
       const els = F.map(() => { const d = h('div', 'field'); fields.appendChild(d); return d; });
-      let sel = 0, spin = 0, inp;
+      let sel = 0, spin = 0, inp, busy = false;
       const renderPreview = () => { pv.innerHTML = ''; pv.appendChild(GFX.el(GFX.person(look(), ['down', 'left', 'up', 'right'][spin % 4], 0), 4)); };
       const sw = c => `<span class="swatch" style="background:${c}"></span>`;
       const renderFields = () => F.forEach((f, i) => {
-        const d = els[i]; d.classList.toggle('sel', i === sel);
+        const d = els[i]; d.classList.toggle('sel', i === sel); if (i === sel) d.scrollIntoView({ block: 'nearest' });
         if (f.k === 'name') { if (!inp) { d.innerHTML = `<label>名字</label><div class="val"></div>`; inp = h('input'); inp.maxLength = 8; inp.value = st.name; $('.val', d).appendChild(inp);
           inp.addEventListener('input', () => st.name = inp.value); inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); inp.blur(); } if (e.key === 'Escape') inp.blur(); e.stopPropagation(); }); }
           else if (document.activeElement !== inp) inp.value = st.name; return; }
         if (f.k === 'rand') { d.innerHTML = `<span class="btn alt">🎲 隨機生成角色</span>`; return; }
         if (f.k === 'go') { d.innerHTML = `<span class="btn">▶ ${preset ? '轉生！' : '開始冒險！'}</span>`; return; }
-        let v = f.k === 'gender' ? (st.gender === 'm' ? '男生' : '女生') : f.k === 'hair' ? sw(HAIRS[st.hair]) : f.k === 'cloth' ? sw(CLOTHES[Wd.style][st.cloth]) : f.k === 'cloth2' ? sw(CLOTH2[Wd.style][st.cloth2]) : `<span class="small">${esc(st.title)}</span>`;
+        let v;
+        if (f.k === 'gender') v = st.gender === 'm' ? '男生' : '女生';
+        else if (f.k === 'face') v = FACES[st.face][1];
+        else if (f.k === 'outfit') v = OUTFITS[st.outfit][1];
+        else if (f.k === 'title') v = `<span class="small">${esc(st.title)}</span>${st.customTitle ? '<span class="small muted">（自訂）</span>' : ''}`;
+        else v = sw(f.list[st[f.k]]) + `<span class="small muted">${st[f.k] + 1}/${f.list.length}</span>`;
         d.innerHTML = `<label>${esc(f.label)}</label><div class="val"><span class="arrow">◀</span>${v}<span class="arrow">▶</span></div>`;
       });
       const change = (k, dl) => {
+        const f = F.find(x => x.k === k);
         if (k === 'gender') st.gender = st.gender === 'm' ? 'f' : 'm';
-        if (k === 'hair') st.hair = (st.hair + dl + HAIRS.length) % HAIRS.length;
-        if (k === 'cloth') st.cloth = (st.cloth + dl + CLOTHES[Wd.style].length) % CLOTHES[Wd.style].length;
-        if (k === 'cloth2') st.cloth2 = (st.cloth2 + dl + CLOTH2[Wd.style].length) % CLOTH2[Wd.style].length;
-        if (k === 'title') st.title = Wd.genTitle();
+        else if (k === 'title') { st.title = Wd.genTitle(); st.customTitle = false; }
+        else if (f.list) st[k] = (st[k] + dl + f.list.length) % f.list.length;
         Sound.sfx('cursor'); renderFields(); renderPreview();
       };
-      const randomize = () => { if (!preset) st.name = genName(); st.gender = pick(['m', 'f']); st.hair = rnd(0, HAIRS.length - 1); st.cloth = rnd(0, CLOTHES[Wd.style].length - 1); st.cloth2 = rnd(0, CLOTH2[Wd.style].length - 1); st.title = Wd.genTitle(); Sound.sfx('ok'); renderFields(); renderPreview(); };
-      const go = async () => { st.name = (st.name || '').trim(); if (!st.name) { Sound.sfx('bump'); sel = 0; renderFields(); inp.focus(); return; }
+      const randomize = () => { if (!preset) st.name = genName(); st.gender = pick(['m', 'f']);
+        for (const f of F) if (f.list) st[f.k] = rnd(0, f.list.length - 1);
+        st.skin = rnd(0, 3); st.face = rnd(0, FACES.length - 1); st.title = Wd.genTitle(); st.customTitle = false; Sound.sfx('ok'); renderFields(); renderPreview(); };
+      const titleMenu = async () => {
+        busy = true;
+        const k = await UI.choose(['隨機產生', '自訂名號', '取消'], { pos: { right: U(8), bottom: U(14) } });
+        if (k === 0) change('title', 1);
+        if (k === 1) { const v = await TextInput.open({ title: `自訂${Wd.titleLabel}`, value: st.customTitle ? st.title : '', max: 12, placeholder: `例如：${Wd.genTitle()}` }); if (v) { st.title = v; st.customTitle = true; Sound.sfx('ok'); renderFields(); } }
+        busy = false;
+      };
+      const go = async () => { st.name = (st.name || '').trim();
+        if (!st.name) { Sound.sfx('bump'); sel = 0; renderFields(); inp.focus(); return; }
+        if (!WordFilter.ok(st.name)) { Sound.sfx('bump'); await say('名字含有不適當的字詞，請換一個名字。'); sel = 0; renderFields(); inp.focus(); inp.select(); return; }
+        if (!WordFilter.ok(st.title)) { Sound.sfx('bump'); await say(`${Wd.titleLabel}含有不適當的字詞，請重新設定。`); return; }
         if (await UI.yesno(`「${st.name}」，${st.title}。\n確定用這個角色${preset ? '轉生' : '展開冒險'}嗎？`)) ctl.done({ name: st.name, title: st.title, look: look() }); };
-      const act = i => { const k = F[i].k; if (k === 'name') inp.focus(); else if (k === 'rand') randomize(); else if (k === 'go') { Sound.sfx('ok'); go(); } else change(k, 1); };
-      els.forEach((d, i) => d.addEventListener('pointerdown', e => { if (e.target === inp) { sel = 0; renderFields(); return; } e.preventDefault(); sel = i;
+      const act = i => { const k = F[i].k; if (k === 'name') inp.focus(); else if (k === 'rand') randomize(); else if (k === 'go') { Sound.sfx('ok'); go(); } else if (k === 'title') titleMenu(); else change(k, 1); };
+      els.forEach((d, i) => d.addEventListener('pointerdown', e => { if (e.target === inp) { sel = 0; renderFields(); return; } e.preventDefault(); if (busy) return; sel = i;
         if (e.target.classList.contains('arrow')) change(F[i].k, e.target === d.querySelector('.arrow') ? -1 : 1); else act(i); renderFields(); }));
       ctl.update = () => {
-        if (document.activeElement === inp) return;
+        if (document.activeElement === inp || busy) return;
         const d = Input.dir();
         if (d === 'up' && sel > 0) { sel--; Sound.sfx('cursor'); renderFields(); }
         if (d === 'down' && sel < F.length - 1) { sel++; Sound.sfx('cursor'); renderFields(); }

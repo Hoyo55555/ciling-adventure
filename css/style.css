@@ -346,3 +346,4 @@ body{ background:#16120e radial-gradient(ellipse at top,#3a3026 0%,#16120e 70%);
 .login .lg-msg{ min-height:calc(var(--u)*10); color:#b8322a; }
 .login .btns{ display:flex; gap:calc(var(--u)*4); }
 .login .btn{ font-size:calc(var(--u)*8); padding:calc(var(--u)*2) calc(var(--u)*8); }
+#screen:has(.panel) .cloudbadge, #screen:has(.tb) .cloudbadge{ display:none; }
