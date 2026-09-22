@@ -14,6 +14,7 @@ const OW = {
       const role = W.roles[s.role]; if (!role) return null;
       if (s.route && G.route !== s.route) return null;                 // 依劇情路線出現的 NPC
       if (s.role === 'rival' && G.flags.rivalGone) return null;        // 勁敵離開步道
+      if (G.flags['gone:' + id + ':' + s.role]) return null;             // 劇情中離開的人物
       return { key: id + ':' + s.role, role, x: s.x, y: s.y, dir: s.dir, home: s.dir, sight: s.sight || 0, wander: s.wander, ox: 0, oy: 0, fr: 0, look: role.look };
     }).filter(Boolean);
     this.spawnFoes();
@@ -27,8 +28,8 @@ const OW = {
     const used = new Set();
     for (let i = 0; i < F.n && spots.length; i++) {
       let s, tries = 0; do { s = pick(spots); tries++; } while ((used.has(s + '') || Math.abs(s[0] - this.p.x) + Math.abs(s[1] - this.p.y) < 4) && tries < 30);
-      used.add(s + ''); const e = weighted(F.list);
-      this.foes.push({ sp: e.sp, lv: rnd(F.lv[0], F.lv[1]) + (G.ng || 0) * 4, x: s[0], y: s[1], hx: s[0], hy: s[1], ox: 0, oy: 0, t: Math.random() * 1.5, cool: 0, moving: false });
+      used.add(s + ''); const st = G.badges.length; const e = weighted(F.list.filter(x => (x.stage || 0) <= st));
+      this.foes.push({ sp: e.sp, lv: rnd(F.lv[0], F.lv[1]) + (F.scale || 0) * st + (G.ng || 0) * 4, x: s[0], y: s[1], hx: s[0], hy: s[1], ox: 0, oy: 0, t: Math.random() * 1.5, cool: 0, moving: false });
     }
   },
   tile(x, y) { const r = this.L.rows; if (y < 0 || y >= r.length || x < 0 || x >= r[0].length) return this.L.indoor ? 'X' : 'T'; return r[y][x]; },
@@ -137,7 +138,9 @@ const OW = {
     const x0 = Math.floor(cx / 16) - 1, y0 = Math.floor(cy / 16) - 1;
     for (let ty = y0; ty < y0 + 12; ty++) for (let tx = x0; tx < x0 + 17; tx++) { const c = this.tile(tx, ty); g.drawImage(GFX.tile(theme, c, c === '~' ? wf : 0), tx * 16 - cx, ty * 16 - cy); }
     for (const c of L.chests || []) g.drawImage(GFX.chest(!!G.chests[c.id]), c.x * 16 - cx, c.y * 16 - cy);
-    const actors = this.npcs.map(n => ({ y: n.y * 16 + n.oy, draw: () => g.drawImage(GFX.person(n.look, n.dir, n.fr), n.x * 16 + n.ox - cx, n.y * 16 + n.oy - cy - 3) }));
+    const actors = this.npcs.map(n => ({ y: n.y * 16 + n.oy, draw: () => {
+      if (n.look.sprite) { const bob = Math.round(Math.sin(now / 300) * 1.5); const big = n.look.sprite === 'boss'; g.drawImage(GFX.special(n.look.sprite), n.x * 16 + n.ox - cx - (big ? 8 : 0), n.y * 16 + n.oy - cy - (big ? 16 : 3) + bob, big ? 32 : 16, big ? 32 : 16); }
+      else g.drawImage(GFX.person(n.look, n.dir, n.fr), n.x * 16 + n.ox - cx, n.y * 16 + n.oy - cy - 3); } }));
     for (const f of this.foes) actors.push({ y: f.y * 16 + f.oy, draw: () => {
       const bob = Math.round(Math.abs(Math.sin(now / 220 + f.hx)) * 2); const fx = f.x * 16 + f.ox - cx, fy = f.y * 16 + f.oy - cy;
       g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(fx + 3, fy + 13, 10, 2);
@@ -152,14 +155,25 @@ const OW = {
     actors.sort((a, b) => a.y - b.y).forEach(a => a.draw());
     // 任務提示：該對話的對象頭上閃爍
     const marks = questMarks();
-    for (const n of this.npcs) { const m = marks[n.role === W.roles.questGiver ? 'questGiver' : n.key.split(':')[1]]; if (m) drawMark(g, n.x * 16 + n.ox - cx + 3, n.y * 16 + n.oy - cy - 17, m, now); }
+    for (const n of this.npcs) { const m = marks[n.role === W.roles.questGiver ? 'questGiver' : n.key.split(':')[1]]; if (m) drawMark(g, n.x * 16 + n.ox - cx + 3, n.y * 16 + n.oy - cy - (n.look.sprite === 'boss' ? 30 : 17), m, now); }
+    for (const [mp, tx, ty] of storyTiles()) if (mp === this.id) drawMark(g, tx * 16 - cx + 3, ty * 16 - cy - 12, 'main', now);
     if (this.bubble) { const n = this.bubble; const bx = n.x * 16 + n.ox - cx + 3, by = n.y * 16 + n.oy - cy - 16;
       g.fillStyle = '#2a2018'; g.fillRect(bx - 1, by - 1, 12, 13); g.fillStyle = '#fbf3dc'; g.fillRect(bx, by, 10, 11); g.fillStyle = '#b8322a'; g.fillRect(bx + 4, by + 2, 2, 5); g.fillRect(bx + 4, by + 8, 2, 2); }
   },
 };
 /* 目前該找誰：main 主線（黃 !）、side 可接支線（藍 !）、report 可回報（黃 ?） */
+function storyStage() { return G.badges.length; }
+function storyTiles() { if (!W.story || !G.flags.prologue) return []; const st = W.stages[storyStage()]; return st && st.roles.some(r => !isDone(r)) ? st.tiles : []; }
+const roleKey = r => { for (const [k, L] of Object.entries(LAYOUTS)) if ((L.npcs || []).some(s => s.role === r)) return k + ':' + r; return r; };
+const isDone = r => !!G.defeated[roleKey(r)];
+const roleReady = r => { const R = W.roles[r]; return !R.needDefeated || R.needDefeated.every(k => G.defeated[k]); };
 function questMarks() {
   const m = {};
+  if (W.story) {
+    if (!G.flags.prologue) return m;
+    const st = W.stages[storyStage()]; if (st) for (const r of st.roles) if (!isDone(r) && roleReady(r)) m[r] = 'main';
+    return m;
+  }
   if (!G.equip.length) m.mentor = 'main';
   else if (!G.defeated['route1:rival'] && !G.flags.rivalGone) m.rival = 'main';
   else if (!G.badges.length) { m.gymguide = 'main'; m.gym1 = 'main'; m.rivalA = 'main'; m.rivalB = 'main'; }
@@ -179,7 +193,7 @@ function drawMark(g, x, y, type, now) {
   g.globalAlpha = 1;
 }
 const wenqiDots = () => `<span class="wq">${Array.from({ length: ULT_COST }, (_, i) => `<i class="${i < G.wenqi ? 'on' : ''}"></i>`).join('')}</span>`;
-function gateOpen(gate) { if (gate === 'needWeapon') return G.equip.length > 0; return false; }
+function gateOpen(gate) { if (gate === 'needWeapon') return G.equip.length > 0; const m = /^need(\d)$/.exec(gate); if (m) return G.badges.length >= +m[1]; return false; }
 
 /* ---------- 腳本 ---------- */
 async function warpTo(map, x, y, dir) {
@@ -191,6 +205,7 @@ async function warpTo(map, x, y, dir) {
   }
 }
 async function enterDoor(dw) {
+  if (dw.need && G.badges.length < dw.need) { Sound.sfx('bump'); await say(W.gates[dw.gate]); return; }
   if (dw.ret) G.ret = { map: OW.id, x: dw.ret.x, y: dw.ret.y };
   await warpTo(dw.to, dw.tx, dw.ty, dw.dir);
 }
@@ -204,6 +219,7 @@ async function talkTo(n) {
     case 'mentor': return mentorTalk(n);
     case 'trainer': case 'rival': case 'gym': return trainerTalk(n);
     case 'quest': return questTalk(n);
+    case 'guide': { const L = R.lines[Math.min(storyStage(), R.lines.length - 1)]; await say(L.join('\n\n'), R.name); return; }
     case 'healer': {
       Sound.sfx('door'); await say(R.text); G.hp = G.maxhp;
       if (G.ret) G.lastHeal = { map: G.ret.map, x: G.ret.x, y: G.ret.y };
@@ -245,7 +261,8 @@ async function spotted(n) {
 async function trainerTalk(n) {
   const R = n.role;
   if (G.defeated[n.key]) { await say(G.route && R.afterA ? (G.route === 'a' ? R.afterA : R.afterB) : R.after, R.name); return; }
-  if (!G.equip.length) { await say('……你手上沒有武器？先去找導師吧。', R.name); return; }
+  if (!G.equip.length) { await say('……你手上沒有武器？', R.name); return; }
+  if (R.needDefeated && !R.needDefeated.every(k => G.defeated[k])) { await say(R.gateText || '……', R.gateText && R.gateText.startsWith('（') ? undefined : R.name); return; }
   await say(R.intro, R.name);
   const res = await Battle.start({ kind: R.kind, foe: makePersonFoe(R), role: R, cats: R.foe.cats });
   if (res !== 'win') return;
@@ -254,18 +271,38 @@ async function trainerTalk(n) {
     const k = await UI.ask(R.choice.q, R.choice.opts, { name: R.name, cancel: false });
     G.route = k === 1 ? 'b' : 'a'; Sound.sfx('ok');
     await say(R.choice.replies[k === 1 ? 1 : 0], R.name);
+    if (W.story) await Guardian.grant(true);
     await say(G.route === 'a' ? R.afterA : R.afterB, R.name);
-    await say(`（你選擇了「${W.routeNames[G.route]}」，之後的劇情會跟著改變。）`);
-    G.flags.rivalGone = true; await Anim.run(0.4, k2 => n.oy = -6 * k2); OW.npcs = OW.npcs.filter(x => x !== n);
+    if (!W.story) { await say(`（你選擇了「${W.routeNames[G.route]}」，之後的劇情會跟著改變。）`); G.flags.rivalGone = true; await Anim.run(0.4, k2 => n.oy = -6 * k2); OW.npcs = OW.npcs.filter(x => x !== n); }
   }
+  if (R.afterWin && R.afterWin.length) for (const t of R.afterWin) await say(t, t.startsWith('（') ? undefined : R.name);
+  if (R.kind === 'rival' && W.story && !R.choice) { G.flags['gone:' + n.key] = true; await Anim.run(0.4, k2 => n.oy = -8 * k2); OW.npcs = OW.npcs.filter(x => x !== n); }
   if (R.kind === 'gym') {
     G.badges.push(R.badge); Sound.play('victory'); Sound.sfx('badge');
-    await say(`${G.player.name} 得到了「${R.badge}」！`);
-    if (R.rewardWeapon) { const w = giveWeapon(R.rewardWeapon, R.rewardRarity || 2); await say(`${R.name} 還給了你新武器「${weaponName(w)}」（${RARITY[w.r].n}）！`); }
-    await say(R.after, R.name);
-    await ChapterEnd.play();
+    await say(`${G.player.name} 拿回了「${R.badge}」！（${G.badges.length} / ${W.story ? 5 : 3}）`);
+    if (R.rewardWeapon) { const w = giveWeapon(R.rewardWeapon, R.rewardRarity == null ? 2 : R.rewardRarity); await say(`${R.name} 還給了你武器「${weaponName(w)}」（${RARITY[w.r].n}）！`); }
+    if (!W.story) { await say(R.after, R.name); await ChapterEnd.play(); }
+    else if (R.final) { G.chapter = 6; await StoryEnding.play(); }
+    else { G.chapter = G.badges.length + 1; Sound.play(W.music[OW.L.music] || OW.L.music); await sleep(200); showBanner(W.chapterName); await say(`【${W.chapterName}】\n${W.stages[storyStage()].text}`); }
   }
   autosave();
+}
+/* 序幕：八年級教室 */
+async function storyPrologue() {
+  const M = '小墨';
+  for (const t of W.prologue) await say(t);
+  OW.npcs.push({ key: 'c8:xiaomo', role: W.roles.xiaomo, x: 3, y: 1, dir: 'down', home: 'down', sight: 0, ox: 0, oy: 0, fr: 0, look: W.roles.xiaomo.look });
+  Sound.sfx('badge'); await sleep(300);
+  for (const t of W.xiaomoIntro) await say(t, M);
+  giveWeapon('brush', 0); G.cur = 0; playerStats(); G.hp = G.maxhp;
+  await Battle.start({ kind: 'wild', foe: makeFoe('eraser', 2), tutorial: true, mentor: M });
+  await say(W.xiaomoAfter[0], M);
+  const w = G.weapons[0]; w.r = 1; G.frags.eraser = Math.max(0, (G.frags.eraser || 0) - 1); Meta.seeWeapon(G.world, 'brush', 1); playerStats();
+  Sound.sfx('badge'); s_flash(); await say(`2B 鉛筆吸收了碎片，化成了「良品．${weaponName(w)}」！`);
+  G.bag.heal += 3; G.bag.hint += 2; await say(`小墨還給了你「${itemName('heal')}」×3、「${itemName('hint')}」×2！`);
+  for (const t of W.xiaomoAfter.slice(1)) await say(t, M);
+  OW.npcs = OW.npcs.filter(n => n.key !== 'c8:xiaomo');
+  G.flags.prologue = true; G.chapter = 1; showBanner(W.chapterName); autosave();
 }
 async function questTalk(n) {
   const R = Object.assign({}, n.role), q = G.quests.bugs || (G.quests.bugs = { state: 'none', n: 0 });

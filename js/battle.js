@@ -38,6 +38,7 @@ const Battle = {
     if (s.fo.vis && !s.fo.blink) {
       g.globalAlpha = s.fo.a; const f = s.foe;
       if (f.kind === 'mon') g.drawImage(GFX.weaponMon(f.sp, W.theme), 146 + s.fo.x, 40 + s.fo.dy, 64, 64);
+      else if (f.look.sprite) g.drawImage(GFX.special(f.look.sprite), 138 + s.fo.x, 22 + s.fo.dy + Math.round(Math.sin(performance.now() / 300) * 2), 80, 80);
       else g.drawImage(GFX.person(f.look, 'left', 0), 154 + s.fo.x, 56 + s.fo.dy, 48, 48);
       g.globalAlpha = 1;
     }
@@ -88,7 +89,7 @@ function hudFoe(s, hp) {
   const f = s.foe, v = hp == null ? f.hp : hp, r = v / f.maxhp, known = G.weakKnown[foeKey(f)];
   s.hf.innerHTML = `<div class="bh-top"><b>${esc(f.name)}</b><span>Lv.${f.lv}</span></div>
     <div class="bh-row"><span class="lab">氣血</span><div class="inkbar foe"><i style="width:${r * 100}%"></i></div></div>
-    <div class="bh-row small">屬性 ${elChip(f.el)}<span class="muted">怕</span>${elChip(KE_BY[f.el])}</div>`;
+    <div class="bh-row small">屬性 ${elChip(f.el)}${f.el ? `<span class="muted">怕</span>${elChip(KE_BY[f.el])}` : '<span class="muted">不受相剋影響</span>'}</div>`;
 }
 async function tweenHP(s, isFoe, from, to) {
   const d = Math.max(0.25, Math.min(0.7, Math.abs(from - to) / 40));
@@ -110,17 +111,18 @@ function calcDmg(a, d, pow, eff) { return Math.max(1, Math.floor(((2 * a.lv / 5 
 const qLv = () => [OW.L ? OW.L.qlv + (G.ng ? 1 : 0) : 3, G.ng ? 2 : 1];
 /* 錯題強化：35% 機率從錯題本中挑同類題目再出一次 */
 const AGAIN_RATE = 0.35;
-function drawQ(cats) {
+function drawQ(cats, qtype) {
   const [maxLv, minLv] = qLv();
+  if (qtype) { const pool = QB.active().filter(q => q.type === qtype); if (pool.length) { const fresh = pool.filter(q => !QB.recent.includes(q.id)); const q = pick(fresh.length ? fresh : pool); QB.recent.push(q.id); return { q, again: false }; } }
   const pool = G.wrong.map(w => QB.byId(w.id)).filter(q => q && cats.includes(q.cat) && !QB.off.has(QB.lessonOf(q)) && !QB.recent.includes(q.id));
   if (pool.length && Math.random() < AGAIN_RATE) { const q = pick(pool); QB.recent.push(q.id); if (QB.recent.length > 20) QB.recent.shift(); return { q, again: true }; }
   return { q: QB.draw(cats, maxLv, minLv), again: false };
 }
 /* 攜帶中的守護神器能力 */
 const passives = () => new Set(G.equip.map(id => wById(id)).filter(w => w && ARCH[w.arch].passive).map(w => ARCH[w.arch].passive));
-async function askQ(s, cats, mode, move) {
-  const d = drawQ(cats); if (!d.q) return { correct: true };
-  return UI.question(d.q, { mode, move, again: d.again, autoHint: s.pas.has('eye') });
+async function askQ(s, cats, mode, move, qtype) {
+  const d = drawQ(cats, qtype); if (!d.q) return { correct: true };
+  return UI.question(d.q, { mode, move, again: d.again, autoHint: s.pas.has('eye') || s.pas.has('po') });
 }
 
 /* ---------- 主迴圈 ---------- */
@@ -237,15 +239,17 @@ async function foeTurn(s, forceQ) {
   const f = s.foe, mv = pick(f.moves);
   await amsg(`${f.name} 使出了「${mv.name}」！`, 450);
   const chance = { wild: 0.3, trainer: 0.45, rival: 0.5, gym: 0.55 }[s.kind];
-  if (forceQ || Math.random() < chance) {
+  if (forceQ || mv.qtype || Math.random() < chance) {
+    if (mv.qtype === 'order') await amsg('文章的段落被打亂了！把它排回正確的順序！', 800);
     if (forceQ) await msg('敵人出招時有時會「出題」——答對就能完全閃避！', { name: s.cfg.mentor });
-    const r = await askQ(s, s.cfg.cats || mv.cats, 'defend', mv.name);
+    const r = await askQ(s, mv.qtype ? mv.cats : (s.cfg.cats || mv.cats), 'defend', mv.name, mv.qtype);
     if (r.correct) { G.wenqi = Math.min(ULT_COST, G.wenqi + 1); hudMe(s); await amsg('你看穿了招式，漂亮地閃開了！', 750); return; }
   }
   const myEl = elOfCats(ARCH[curW().arch].cats), mvEl = elOfCats(mv.cats);
   const eff = elEffect(mvEl, myEl) > 1 ? 1.25 : elEffect(mvEl, myEl) < 1 ? 0.8 : 1;   // 敵人屬性對你手上武器的屬性
   const mul = s.kind === 'wild' ? 0.8 : 0.9;
   let dmg = Math.max(1, Math.floor(calcDmg(f, G, mv.pow, eff) * mul));
+  if (s.pas.has('guard')) { dmg = Math.max(1, Math.floor(dmg * 0.6)); if (!s.guardMsg) { s.guardMsg = true; await amsg('守護神器「護心」守護著你，傷害減輕了！', 700); } }
   if (s.pas.has('shield') && !s.shieldUsed) { s.shieldUsed = true; await lunge(s.fo, -1); s.flash = 0.8; await Anim.run(0.3, k => s.flash = 0.8 * (1 - k)); await amsg('守護神器「護心」發動！這次攻擊完全擋下了！', 800); return; }
   await lunge(s.fo, -1); Sound.sfx('hit'); await blink(s.me);
   const from = G.hp; G.hp = Math.max(0, G.hp - dmg); await tweenHP(s, false, from, G.hp);

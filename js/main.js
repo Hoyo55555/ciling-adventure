@@ -1,6 +1,8 @@
 'use strict';
 /* ============ 主程式：開場、標題、流程 ============ */
 const Game = { scene: 'title' };
+/* 目前只開放「國中生涯」獨立劇情；要恢復世界觀選擇，把這裡改成 null */
+const STORY_WORLD = 'school';
 const HEROES = [
   { style: 'school', hair: '#2a2228', cloth: '#f8f8f8', cloth2: '#3a58a0' },
   { style: 'literati', hair: '#2a2228', cloth: '#88a0c8', cloth2: '#384870', gender: 'f' },
@@ -140,7 +142,7 @@ async function titleScreen() {
   if (Cloud.enabled && !Cloud.user && !Cloud.skipped && !TeacherAuth.on) { logo.style.display = 'none'; const r = await LoginPanel.open(); if (r === 'skip' || r === null) Cloud.skipped = true; if (r === 'created') await say('帳號建立完成！之後請用同一組班級、座號和密碼登入。'); if (r === 'teacher') await say('教師登入成功！標題選單已出現「教師設定」。'); logo.style.display = ''; paintLink(); Cloud.paint(); }
   while (true) {
     // 只有「新的冒險」與「設定」一定出現；其他選項要有理由才出現
-    const labels = [].concat(Slots.any() ? ['繼續冒險'] : [], ['新的冒險'], Slots.cleared().length ? ['轉生'] : [], Meta.hasAny() ? ['紀錄館'] : [], ['設定'], TeacherAuth.on ? ['教師設定', '教師登出'] : Cloud.enabled ? [Cloud.user ? '登出' : '登入帳號'] : []);
+    const labels = [].concat(Slots.any() ? ['繼續冒險'] : [], ['新的冒險'], !STORY_WORLD && Slots.cleared().length ? ['轉生'] : [], Meta.hasAny() ? ['紀錄館'] : [], ['設定'], TeacherAuth.on ? ['教師設定', '教師登出'] : Cloud.enabled ? [Cloud.user ? '登出' : '登入帳號'] : []);
     const i = await UI.choose(labels, { pos: { left: '50%', bottom: U(6), transform: 'translateX(-50%)' }, cancel: false, start: Math.min(sel, labels.length - 1), cls: 'titlemenu', cols: labels.length > 3 ? 2 : 1 });
     sel = i; const L = labels[i];
     logo.style.display = 'none';
@@ -175,14 +177,16 @@ const Flow = {
     }
     if (G.map === 'town2' && !LAYOUTS.town2.rows[G.y]) { G.x = 11; G.y = 12; }
     playerStats();
+    if (W.story && !G.flags.prologue) { const S0 = W.start; G.map = S0.map; G.x = S0.x; G.y = S0.y; G.weapons = []; G.equip = []; }
     await fade(1, 0.3); UI.clear(); Game.scene = 'overworld'; OW.load(G.map, G.x, G.y, 'down'); await fade(0, 0.3);
+    if (W.story && !G.flags.prologue) OW.run(() => storyPrologue());
   },
   async newGame(slot, preset) {
     while (true) {
       UI.clear(); setWorldClass(null); Game.scene = 'title';
-      const wid = await WorldPick.open(); if (!wid) return false;
+      const wid = STORY_WORLD || await WorldPick.open(); if (!wid) return false;
       W = WORLDS[wid]; setWorldClass(wid); Game.scene = 'title'; G = freshState(wid, { name: '', title: '', look: {} }, slot);
-      const pl = await CharCreate.open(wid, preset); if (!pl) { G = null; W = null; continue; }
+      const pl = await CharCreate.open(wid, preset); if (!pl) { G = null; W = null; if (STORY_WORLD) return false; continue; }
       G.player = pl; playerStats();
       await Flow.start(); return true;
     }
@@ -207,8 +211,12 @@ const Flow = {
     }
   },
   async start() {
-    await fade(1, 0.4); UI.clear(); Game.scene = 'overworld'; OW.load('town1', 6, 5, 'down'); autosave(); await fade(0, 0.4);
-    await sleep(200); showBanner(W.chapterName); await say(W.start);
+    const S0 = W.story ? W.start : { map: 'town1', x: 6, y: 5, dir: 'down' };
+    G.map = S0.map; G.lastHeal = W.story ? { map: 'campus', x: 3, y: 16 } : G.lastHeal;
+    await fade(1, 0.4); UI.clear(); Game.scene = 'overworld'; OW.load(S0.map, S0.x, S0.y, S0.dir); autosave(); await fade(0, 0.4);
+    await sleep(200); showBanner(W.chapterName);
+    if (W.story) { if (!G.flags.prologue) OW.run(() => storyPrologue()); }
+    else await say(W.start);
   },
 };
 

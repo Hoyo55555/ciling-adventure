@@ -32,7 +32,7 @@ const CAT_SKILLS = {
   '閱讀': ['細讀', '精讀', '一目十行', '洞若觀火'],
 };
 const WEAPON_TABLE = [
-  ['brush', ['字形', '字音'], 1, '力透紙背', ['自動鉛筆', 'pen'], ['狼毫筆', 'pen'], ['判官筆', 'pen'], '#f0c040'],
+  ['brush', ['字形', '字音'], 1, '力透紙背', ['2B鉛筆劍', 'pen'], ['狼毫筆', 'pen'], ['判官筆', 'pen'], '#f0c040'],
   ['tome', ['成語', '詞義'], 1, '出口成章', ['成語字典', 'book'], ['竹簡', 'book'], ['青鋒劍', 'sword'], '#5a88c8'],
   ['scroll', ['文言', '詩詞'], 1, '氣壯山河', ['國文課本', 'book'], ['玉笛', 'flute'], ['七弦琴', 'zither'], '#3a8a58'],
   ['fan', ['修辭'], 1, '妙筆生花', ['彩色螢光筆', 'pen'], ['宣紙扇', 'fan'], ['鐵骨扇', 'fan'], '#f070b0'],
@@ -65,8 +65,8 @@ const WEAPON_TABLE = [
 ];
 /* 守護神器（彩色，只能由劇情取得）：每個世界兩件，依劇情選擇而不同，各有特殊能力 */
 const GUARDIANS = {
-  g_school_a: { world: 'school', name: '傳承之筆', shape: 'pen', col: '#f8d040', ult: '薪火相傳', passive: 'shield' },
-  g_school_b: { world: 'school', name: '榮耀獎盃', shape: 'cup', col: '#f0c030', ult: '金榜題名', passive: 'spring' },
+  g_school_a: { world: 'school', name: '破妄筆', shape: 'pen', col: '#f8d040', ult: '當頭棒喝', passive: 'po' },
+  g_school_b: { world: 'school', name: '護心玉', shape: 'orb', col: '#78d0b0', ult: '將心比心', passive: 'guard' },
   g_literati_a: { world: 'literati', name: '知音琴', shape: 'zither', col: '#c8905a', ult: '高山流水', passive: 'eye' },
   g_literati_b: { world: 'literati', name: '春秋筆', shape: 'pen', col: '#b8322a', ult: '微言大義', passive: 'bane' },
   g_wuxia_a: { world: 'wuxia', name: '俠義令', shape: 'tablet', col: '#d8a030', ult: '俠之大者', passive: 'regen' },
@@ -79,6 +79,8 @@ const PASSIVES = {
   bane: { name: '破妄', desc: '對關主與魔王的傷害 ×1.5。' },
   regen: { name: '回春', desc: '每回合結束時恢復 8% 氣血。' },
   retry: { name: '再思', desc: '每場戰鬥第一次答錯時，可以重答一次。' },
+  po: { name: '破妄', desc: '戰鬥中選擇題自動刪去一個錯誤選項。' },
+  guard: { name: '護心', desc: '受到的傷害減少 40%（答錯時扣血較少）。' },
 };
 const ARCH = {};
 function skillsFor(cats) {
@@ -92,7 +94,7 @@ for (const [key, cats, ch, ult, sc, li, wu, col] of WEAPON_TABLE)
   ARCH[key] = { cats, ch, ult, col, names: { school: sc[0], literati: li[0], wuxia: wu[0] }, shapes: { school: sc[1], literati: li[1], wuxia: wu[1] }, skills: skillsFor(cats) };
 for (const [key, g] of Object.entries(GUARDIANS))
   ARCH[key] = { cats: ALL_CATS, ch: 9, ult: g.ult, col: g.col, guardian: true, passive: g.passive, names: { school: g.name, literati: g.name, wuxia: g.name }, shapes: { school: g.shape, literati: g.shape, wuxia: g.shape },
-    skills: [['守護', ALL_CATS, 70], ['神威', ALL_CATS, 80], ['天啟', ALL_CATS, 95], ['永恆', ALL_CATS, 110]] };
+    skills: [['守護', ALL_CATS, 48], ['神威', ALL_CATS, 55], ['天啟', ALL_CATS, 65], ['永恆', ALL_CATS, 78]] };
 const ARCH_ORDER = WEAPON_TABLE.map(r => r[0]);
 const STARTER_ARCHS = ['brush', 'tome', 'scroll'];
 const weaponDesc = a => (W.weapons && W.weapons[a] && W.weapons[a][1]) || (ARCH[a].guardian ? `守護神器．特殊能力「${PASSIVES[ARCH[a].passive].name}」：${PASSIVES[ARCH[a].passive].desc}` : `擅長「${ARCH[a].cats.join('」「')}」題型的武器。`);
@@ -111,7 +113,7 @@ const RARITY = [
 const MERGE_N = [3, 3, 4, 4, 5];   // 升階所需同名同階武器數：白→綠 3、綠→藍 3、藍→紫 4、紫→金 4、金→紅 5
 const FRAG_N = 5;                   // 碎片合成一件凡品武器所需數量
 const FRAG_RATE = 0.45;             // 打倒武器怪掉落碎片的機率
-const RAR_ATK = [0, 2, 4, 7, 10, 14, 20], RAR_POW = [1, 1.1, 1.2, 1.35, 1.5, 1.7, 2];
+const RAR_ATK = [0, 2, 4, 7, 10, 14, 14], RAR_POW = [1, 1.1, 1.2, 1.35, 1.5, 1.7, 1.6];
 const RAR_BONUS = ['', '答對時熟練度額外 +1', '剋制屬性時威力 +15%', '答對時恢復 3% 氣血', '剋制屬性時文氣額外 +1', '被剋制時威力不降低'];
 const bonusList = r => RAR_BONUS.slice(1, Math.min(r, 5) + 1);
 const newWeapon = (arch, r = 0) => ({ id: 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), arch, r, mastery: 0 });
@@ -124,7 +126,7 @@ const rarChip = r => `<span class="rchip r${r}">${RARITY[r].n}</span>`;
    出招時會用自己武器擅長的題型出「防禦題」。 */
 function monInfo(arch) {   // 怪物屬性＝其武器擅長題型的五行；弱點＝剋它的屬性
   const c0 = ARCH[arch].cats[0], i = ALL_CATS.indexOf(c0), el = elOfCats(ARCH[arch].cats) || '金';
-  return { el, weak: catsOfEl(KE_BY[el]), resist: catsOfEl(KE[el]), base: { hp: 42 + (i % 3) * 3, atk: 46 + (i % 4) * 2, def: 40 + (i % 3) * 2 } };
+  return { el, weak: el ? catsOfEl(KE_BY[el]) : [], resist: el ? catsOfEl(KE[el]) : [], base: { hp: 42 + (i % 3) * 3, atk: 46 + (i % 4) * 2, def: 40 + (i % 3) * 2 } };
 }
 
 /* ============ 道具（名稱依世界觀而不同，見 WORLDS.items） ============ */
@@ -143,27 +145,27 @@ function playerStats() {
   G.maxhp = 28 + lv * 6; G.atk = 7 + lv * 2 + (w ? (weaponLv(w) - 1) * 2 + RAR_ATK[w.r] : 0); G.def = 6 + lv * 2;
   if (G.hp == null || G.hp > G.maxhp) G.hp = G.maxhp;
 }
-const expNeed = lv => lv * 10 + 10;
+const expNeed = lv => lv * 12 + 20;
 const monName = arch => (W.monsters && W.monsters[arch]) || ARCH[arch].names[W.id] + W.monSuffix;
 function makeFoe(arch, lv) {
   const M = monInfo(arch), b = M.base;
   const f = { kind: 'mon', sp: arch, lv, name: monName(arch), el: M.el, weak: M.weak, resist: M.resist,
     moves: ARCH[arch].skills.slice(0, 2).map(([n, cats], i) => ({ name: n, cats, pow: i ? 45 : 35 })),
-    maxhp: Math.floor(b.hp * lv / 25) + lv + 12, atk: Math.floor(b.atk * lv / 25) + 6, def: Math.floor(b.def * lv / 25) + 6, exp: lv * 6 };
+    maxhp: Math.floor(b.hp * lv / 25) + lv + 12, atk: Math.floor(b.atk * lv / 25) + 6, def: Math.floor(b.def * lv / 25) + 6, exp: lv * 5 };
   f.hp = f.maxhp; return f;
 }
 function makePersonFoe(R) {
   const F = R.foe, lv = F.lv + (G.ng || 0) * 4;
-  const el = F.el || (F.weak && F.weak.length ? KE[CAT_EL[F.weak[0]]] : '土');   // 人物的屬性：由弱點題型推回
-  const f = { kind: 'person', look: R.look, name: R.name, lv, el, weak: catsOfEl(KE_BY[el]), resist: catsOfEl(KE[el]),
-    moves: F.moves.map(([name, cats, pow]) => ({ name, cats, pow })),
-    maxhp: Math.floor((12 + lv * 3.5) * (F.hpMul || 1)), atk: Math.floor(5 + lv * 1.6), def: Math.floor(4 + lv * 1.5), exp: Math.floor(lv * 9 * (F.hpMul || 1)) };
+  const el = F.el === 'none' ? null : F.el || (F.weak && F.weak.length ? KE[CAT_EL[F.weak[0]]] : '土');   // 人物的屬性：由弱點題型推回
+  const f = { kind: 'person', look: R.look, name: R.name, lv, el, weak: el ? catsOfEl(KE_BY[el]) : [], resist: el ? catsOfEl(KE[el]) : [],
+    moves: F.moves.map(([name, cats, pow, qtype]) => ({ name, cats, pow, qtype })),
+    maxhp: Math.floor((20 + lv * 6) * (F.hpMul || 1)), atk: Math.floor(5 + lv * 1.6), def: Math.floor(4 + lv * 1.5), exp: Math.floor(lv * 5 * (F.hpMul || 1)) };
   f.hp = f.maxhp; return f;
 }
 
 /* ============ 地圖版型（三個世界共用；外觀由世界主題決定） ============
    . 草地  , 道路  g 草叢  T 樹  ~ 水  # 牆  W 窗  D 門  R 屋頂  = 柵欄  S 告示牌  F 花  L 燈  ^ 岩石 */
-const SOLID = new Set(['T', '#', 'W', 'D', 'R', '~', '=', 'S', 'L', '^', 'X', 'w', 'b', 't', 'k', 'p']);
+const SOLID = new Set(['T', '#', 'W', 'D', 'R', '~', '=', 'S', 'L', '^', 'X', 'w', 'b', 't', 'k', 'p', 'B']);
 const LAYOUTS = {
   town1: { music: 'town', qlv: 1, chapter: 1,
     rows: [
@@ -282,3 +284,145 @@ const LAYOUTS = {
     warps: [{ x: 5, y: 9, to: 'town2', tx: 4, ty: 5, dir: 'down' }, { x: 6, y: 9, to: 'town2', tx: 4, ty: 5, dir: 'down' }],
     npcs: [{ role: 'gym1', x: 5, y: 2, dir: 'down' }, { role: 'rivalB', x: 8, y: 7, dir: 'left', route: 'b' }] },
 };
+
+/* ============ 國中生涯．獨立劇情地圖 ============
+   B 黑板  g（國中主題）散落的考卷堆 */
+Object.assign(LAYOUTS, {
+  c8: { music: 'town', qlv: 1, indoor: 1, rows: [
+      'wwwwBBBBwwww',
+      'w__________w',
+      'w_tt____tt_w',
+      'w__________w',
+      'w_tt____tt_w',
+      'w__________w',
+      'w_tt____tt_w',
+      'wp________pw',
+      'wwwwww__wwww'],
+    warps: [{ x: 6, y: 8, to: 'hallway', tx: 6, ty: 1, dir: 'down' }, { x: 7, y: 8, to: 'hallway', tx: 7, ty: 1, dir: 'down' }] },
+  hallway: { music: 'route', qlv: 1, indoor: 1, rows: [
+      'wwwwww__wwwwwwwwwww__wwwwwww',
+      'w__________________________w',
+      'w__gg______gggg______gg____w',
+      'w__gg__p___gggg__p___gg____w',
+      'w__________________________w',
+      'w____gggg______gg_____gggg_w',
+      'w____gggg______gg_____gggg_w',
+      'w__________________________w',
+      'wwwwwwwwwwwww__wwwwwwwwwwwww'],
+    warps: [{ x: 6, y: 0, to: 'c8', tx: 6, ty: 7, dir: 'up' }, { x: 7, y: 0, to: 'c8', tx: 7, ty: 7, dir: 'up' },
+      { x: 19, y: 0, to: 'c1a', tx: 6, ty: 7, dir: 'up' }, { x: 20, y: 0, to: 'c1a', tx: 7, ty: 7, dir: 'up' },
+      { x: 13, y: 8, to: 'campus', tx: 7, ty: 4, dir: 'down' }, { x: 14, y: 8, to: 'campus', tx: 7, ty: 4, dir: 'down' }],
+    npcs: [{ role: 'xiaomo', x: 8, y: 4, dir: 'down' }, { role: 'dictA', x: 10, y: 1, dir: 'down', sight: 3 }, { role: 'dictB', x: 18, y: 7, dir: 'up', sight: 3 }],
+    chests: [{ id: 'h1', x: 26, y: 2, weapon: 'scroll', r: 0 }, { id: 'h2', x: 1, y: 7, items: { heal: 2, hint: 1 }, frags: { ruler: 2 } }],
+    foes: { n: 9, lv: [2, 4], scale: 3, list: [{ sp: 'eraser', w: 3 }, { sp: 'brush', w: 2 }, { sp: 'ruler', w: 2 }, { sp: 'zhuyin', w: 2 },
+      { sp: 'tome', w: 2, stage: 1 }, { sp: 'idiom', w: 2, stage: 1 }, { sp: 'fan', w: 2, stage: 2 }, { sp: 'glasses', w: 2, stage: 2 },
+      { sp: 'scroll', w: 2, stage: 3 }, { sp: 'classic', w: 2, stage: 3 }, { sp: 'seal', w: 1, stage: 3 }, { sp: 'poemcard', w: 2, stage: 4 }] } },
+  c1a: { music: 'hall', qlv: 1, indoor: 1, rows: [
+      'wwwwBBBBwwww',
+      'w____t_____w',
+      'w_tt____tt_w',
+      'w__________w',
+      'w_tt____tt_w',
+      'w__________w',
+      'w_tt____tt_w',
+      'wp________pw',
+      'wwwwww__wwww'],
+    warps: [{ x: 6, y: 8, to: 'hallway', tx: 19, ty: 1, dir: 'down' }, { x: 7, y: 8, to: 'hallway', tx: 20, ty: 1, dir: 'down' }],
+    npcs: [{ role: 'boss1', x: 5, y: 1, dir: 'down' }, { role: 'c1aTip', x: 2, y: 5, dir: 'right' }] },
+  campus: { music: 'town', qlv: 2, rows: [
+      'TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT',
+      'T.RRRRRRRRRR....RRRRRRRRRRRR.T',
+      'T.RRRRRRRRRR....RRRRRRRRRRRR.T',
+      'T.#W#W#D#W#W....#W#W##DD##W#.T',
+      'T......,..............,,.....T',
+      'T......,,,,,,,,,,,,,,,,,.....T',
+      'T..F...,.......,.......F.....T',
+      'T......,.......,.............T',
+      'T.RRRRR,.......,......RRRRR..T',
+      'T.RRRRR,.......,......RRRRR..T',
+      'T.#WDW#,.......,......#WDW#..T',
+      'T...,..,.......,........,....T',
+      'T...,,,,,,,,,,,,,,,,,,,,,....T',
+      'T..............,.............T',
+      'T.RRRR.........,........RRRR.T',
+      'T.#D#W.........,........W#D#.T',
+      'T..,...........,..........,..T',
+      'T..,,,,,,,,,,,,,,,,,,,,,,,,..T',
+      'T..FF..........,.........FF..T',
+      'TTTTTTTTTTTTTTT,TTTTTTTTTTTTTT'],
+    warps: [{ x: 15, y: 19, to: 'yard', tx: 10, ty: 1, dir: 'down' }],
+    gates: { '15,19': 'need2' },
+    doorWarps: { '7,3': { to: 'hallway', tx: 13, ty: 7, dir: 'up' },
+      '4,10': { to: 'lib', tx: 7, ty: 10, dir: 'up', need: 1, gate: 'need1' },
+      '24,10': { to: 'hist', tx: 6, ty: 10, dir: 'up', need: 3, gate: 'need3' },
+      '22,3': { to: 'aud', tx: 7, ty: 11, dir: 'up', need: 4, gate: 'need4' }, '23,3': { to: 'aud', tx: 8, ty: 11, dir: 'up', need: 4, gate: 'need4' },
+      '3,15': { to: 'clinic', tx: 4, ty: 5, dir: 'up', ret: { x: 3, y: 16 } }, '26,15': { to: 'store', tx: 4, ty: 5, dir: 'up', ret: { x: 26, y: 16 } } },
+    signs: {},
+    npcs: [{ role: 'xiaomo', x: 16, y: 7, dir: 'down' }, { role: 'tipA', x: 10, y: 7, dir: 'down', wander: 1 }, { role: 'tipB', x: 20, y: 13, dir: 'left', wander: 1 }, { role: 'tipC', x: 5, y: 18, dir: 'right', wander: 1 }],
+    shop: ['heal', 'heal2', 'wenqi', 'hint'] },
+  lib: { music: 'hall', qlv: 2, indoor: 1, rows: [
+      'wwwwwwwwwwwwwwww',
+      'wkk____t_____kkw',
+      'w______________w',
+      'w_kkkk__kkkk_k_w',
+      'w____k______k__w',
+      'wkk__k_kkkk_k_kw',
+      'w____k____k____w',
+      'w_kkkk_kk_kkkk_w',
+      'w______________w',
+      'wp____kkkk____pw',
+      'w______________w',
+      'wwwwwww__wwwwwww'],
+    warps: [{ x: 7, y: 11, to: 'campus', tx: 4, ty: 11, dir: 'down' }, { x: 8, y: 11, to: 'campus', tx: 4, ty: 11, dir: 'down' }],
+    npcs: [{ role: 'rival1', x: 6, y: 10, dir: 'right', sight: 2 }, { role: 'boss2', x: 8, y: 1, dir: 'down' }] },
+  yard: { music: 'town', qlv: 2, rows: [
+      'TTTTTTTTTT,TTTTTTTTTTT',
+      'T.F.F.....,......F.F.T',
+      'T.........,..........T',
+      'T..TT.....,.....TT...T',
+      'T..TT..,,,,,,,..TT...T',
+      'T......,.....,.......T',
+      'T.~~~..,.RRR.,..F.F..T',
+      'T.~~~..,.LtL.,.......T',
+      'T.~~~..,,,,,,,..F.F..T',
+      'T......,.....,.......T',
+      'T..F..,,.....,,..F...T',
+      'T.....,.......,......T',
+      'T.FF..,.......,...FF.T',
+      'T.....,,,,,,,,,......T',
+      'T....................T',
+      'TTTTTTTTTTTTTTTTTTTTTT'],
+    warps: [{ x: 10, y: 0, to: 'campus', tx: 15, ty: 18, dir: 'up' }],
+    npcs: [{ role: 'm1', x: 4, y: 9, dir: 'right', sight: 3 }, { role: 'm2', x: 16, y: 11, dir: 'left', sight: 3 }, { role: 'm3', x: 10, y: 14, dir: 'up', sight: 1 }, { role: 'boss3', x: 10, y: 8, dir: 'down' }] },
+  hist: { music: 'hall', qlv: 3, indoor: 1, rows: [
+      'wwwwwwwwwwwwww',
+      'wkk___t____kkw',
+      'w____________w',
+      'wkkk_kkkk_kkkw',
+      'w____________w',
+      'w_p________p_w',
+      'wwwww____wwwww',
+      'w____________w',
+      'wk__________kw',
+      'w____________w',
+      'w____________w',
+      'wwwwww__wwwwww'],
+    warps: [{ x: 6, y: 11, to: 'campus', tx: 24, ty: 11, dir: 'down' }, { x: 7, y: 11, to: 'campus', tx: 24, ty: 11, dir: 'down' }],
+    npcs: [{ role: 'rival2', x: 6, y: 7, dir: 'down', sight: 3 }, { role: 'boss4', x: 7, y: 1, dir: 'down' }] },
+  aud: { music: 'hall', qlv: 3, indoor: 1, rows: [
+      'wwwwwBBBBBBwwwww',
+      'w______________w',
+      'wtttttt__ttttttw',
+      'w______rr______w',
+      'w_tt_t_rr_t_tt_w',
+      'w______rr______w',
+      'w_tt_t_rr_t_tt_w',
+      'w______rr______w',
+      'w_tt_t_rr_t_tt_w',
+      'w______rr______w',
+      'w_tt_t_rr_t_tt_w',
+      'w______rr______w',
+      'wwwwwww__wwwwwww'],
+    warps: [{ x: 7, y: 12, to: 'campus', tx: 22, ty: 4, dir: 'down' }, { x: 8, y: 12, to: 'campus', tx: 23, ty: 4, dir: 'down' }],
+    npcs: [{ role: 'e1', x: 1, y: 9, dir: 'right', sight: 14 }, { role: 'e2', x: 14, y: 7, dir: 'left', sight: 14 }, { role: 'e3', x: 1, y: 5, dir: 'right', sight: 14 }, { role: 'boss5', x: 7, y: 1, dir: 'down' }] },
+});

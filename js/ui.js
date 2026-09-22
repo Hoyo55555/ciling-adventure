@@ -193,7 +193,7 @@ UI.question = function (q, opt = {}) {
         const wrong = shuffle(btns.filter(b => +b.dataset.oi !== correctIdx)).slice(0, Math.max(0, btns.length - 2)); wrong.forEach(b => b.classList.add('gone'));
         hintBtn.remove(); all.splice(all.indexOf(hintBtn), 1); hintBtn = null; sel = btns.indexOf(btns.find(b => !b.classList.contains('gone'))); paint(); };
       all.forEach((b, i) => b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); sel = i; paint(); choose(i); }));
-      if (opt.autoHint && q.type === 'choice' && btns.length > 2) { const w = shuffle(btns.filter(b => +b.dataset.oi !== correctIdx))[0]; w.classList.add('gone'); w.insertAdjacentHTML('beforeend', ' <span class="small muted">（慧眼刪去）</span>'); if (btns[sel] === w) sel = btns.findIndex(b => b !== w); }
+      if (opt.autoHint && q.type === 'choice' && btns.length > 2) { const w = shuffle(btns.filter(b => +b.dataset.oi !== correctIdx))[0]; w.classList.add('gone'); w.insertAdjacentHTML('beforeend', ' <span class="small muted">（守護神器刪去）</span>'); if (btns[sel] === w) sel = btns.findIndex(b => b !== w); }
       navUpdate = () => {
         const d = Input.dir(); const nb = btns.length;
         if (d) { let s = sel;
@@ -208,7 +208,7 @@ UI.question = function (q, opt = {}) {
       const line = h('div', 'ordline'); const grid = h('div', 'qopts'); body.append(line, grid);
       const parts = shuffle(q.parts.map((p, i) => ({ p, i }))); const picked = [];
       const btns = parts.map(o => { const d = h('div', 'qopt', esc(o.p)); grid.appendChild(d); return d; });
-      box._pickCorrect = () => q.parts.forEach(p => choose(parts.findIndex((o, k) => o.p === p && !picked.includes(k)))); // 測試用
+      box._pickCorrect = () => { picked.length = 0; q.parts.forEach(p => choose(parts.findIndex((o, k) => o.p === p && !picked.includes(k)))); }; // 測試用
       const tip = h('div', 'qnext', 'A 選取片段．B 退回上一個'); body.appendChild(tip);
       let sel = 0;
       const paint = () => { btns.forEach((b, i) => { b.classList.toggle('sel', i === sel); b.classList.toggle('gone', picked.includes(i)); }); line.textContent = picked.map(i => parts[i].p).join('　') || '　'; };

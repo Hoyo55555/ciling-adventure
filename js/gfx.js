@@ -151,6 +151,12 @@ const GFX = (() => {
         else { for (let i = 0; i < 7; i++) { const v = hash(i, 7); R(v % 15, (v >> 4) % 15, 1 + (v >> 9) % 2, 1, T.path2); } }
         break;
       case 'g':
+        if (theme === 'school') {   // 國中：散落的考卷堆
+          R(0, 0, 16, 16, T.floor);
+          for (const [x, y, w2, h2] of [[1, 2, 7, 5], [7, 1, 8, 6], [2, 8, 8, 6], [9, 9, 6, 6]]) { R(x, y, w2, h2, '#fbfaf4'); R(x, y + h2 - 1, w2, 1, '#c8c4b4'); R(x + 1, y + 1, w2 - 2, 1, '#9ab0d0'); R(x + 1, y + 3, w2 - 3, 1, '#9ab0d0'); }
+          R(3, 10, 2, 1, '#e04a4a'); R(11, 3, 1, 2, '#e04a4a'); R(4, 4, 1, 1, '#16120e'); R(12, 11, 2, 2, '#16120e');
+          break;
+        }
         R(0, 0, 16, 16, T.tall);
         for (const [bx, by] of [[0, 1], [8, 1], [4, 8], [12, 8]]) { R(bx + 1, by + 3, 1, 4, T.tall3); R(bx + 5, by + 3, 1, 4, T.tall3); R(bx + 2, by + 1, 1, 2, T.tall2); R(bx + 3, by, 1, 2, T.tall2); R(bx + 4, by + 1, 1, 2, T.tall2); R(bx + 2, by + 3, 3, 1, T.tall3); }
         R(0, 15, 16, 1, T.tall3); break;
@@ -200,6 +206,7 @@ const GFX = (() => {
         break;
       case '^': ground(); R(2, 5, 12, 10, T.rock); R(4, 3, 8, 3, T.rock); R(4, 4, 4, 2, adj(T.rock, .3)); R(2, 13, 12, 2, adj(T.rock, -.3)); break;
       case 'X': R(0, 0, 16, 16, '#16120e'); break;
+      case 'B': R(0, 0, 16, 16, T.iwall || '#f4ecd4'); R(0, 2, 16, 10, '#6a4424'); R(0, 3, 16, 8, '#2e5a3a'); R(2, 5, 5, 1, '#e8f0e0'); R(9, 7, 4, 1, '#e8f0e0'); R(0, 12, 16, 4, T.iwall2 || '#9ab8d8'); R(3, 11, 3, 1, '#f8f8f8'); break;
       case '_': R(0, 0, 16, 16, T.floor); if (theme === 'school') { R(0, 0, 16, 1, T.floor2); R(0, 0, 1, 16, T.floor2); } else { R(0, 5, 16, 1, T.floor2); R(0, 11, 16, 1, T.floor2); R(6, 0, 1, 5, T.floor2); R(11, 6, 1, 5, T.floor2); } break;
       case 'w': R(0, 0, 16, 16, T.iwall); R(0, 10, 16, 6, T.iwall2); R(0, 10, 16, 1, adj(T.iwall2, -.3)); R(0, 15, 16, 1, adj(T.iwall2, -.4)); break;
       case 'r': g.drawImage(tile(theme, '_'), 0, 0); R(1, 1, 14, 14, '#a83838'); R(3, 3, 10, 10, '#c85a4a'); R(5, 5, 6, 6, '#e8c070'); R(7, 7, 2, 2, '#a83838'); break;
@@ -297,6 +304,27 @@ const GFX = (() => {
     const cv = toCanvas(32, 32, raster(32, 32, P, Object.assign({}, WPAL[theme] || WPAL.school, WOVR[theme + '.' + arch] ? {} : { a: A.col })));
     cache.set(key, cv); return cv;
   }
+  /* 劇情角色：小墨（水墨小精靈）、總複習大魔王（考卷與黑墨揉成的怪獸） */
+  function special(kind) {
+    const key = 'sp:' + kind; if (cache.has(key)) return cache.get(key);
+    let cv;
+    if (kind === 'xiaomo') {
+      cv = toCanvas(16, 16, raster(16, 16, [
+        { t: 'p', v: [[5, 8], [8, 1], [11, 8]], c: '#2a2a3a' }, { t: 'e', v: [8, 10, 5, 4.5], c: '#2a2a3a' }, { t: 'e', v: [6, 7, 1.2, 1.5], c: '#5a5a78' },
+        { t: 'r', v: [5, 9, 2, 2], c: '#ffffff' }, { t: 'r', v: [9, 9, 2, 2], c: '#ffffff' }, { t: 'd', v: [[6, 10], [10, 10]], c: OUT },
+        { t: 'd', v: [[4, 12], [12, 12]], c: '#f08a8a' }, { t: 'd', v: [[7, 12], [8, 12]], c: '#f8f8f8' }, { t: 'd', v: [[2, 14], [14, 13]], c: '#2a2a3a' }], null), false);
+    } else {
+      cv = toCanvas(32, 32, raster(32, 32, [
+        { t: 'p', v: [[3, 28], [6, 8], [16, 2], [27, 7], [29, 28]], c: '#e8e2d0' },
+        { t: 'p', v: [[6, 12], [14, 6], [12, 20]], c: '#d4ccb4' }, { t: 'p', v: [[20, 10], [27, 14], [22, 22]], c: '#d4ccb4' },
+        { t: 'r', v: [8, 22, 16, 1], c: '#b8b0a0' }, { t: 'r', v: [9, 25, 14, 1], c: '#b8b0a0' }, { t: 'r', v: [7, 9, 6, 1], c: '#b8b0a0' },
+        { t: 'e', v: [10, 6, 3, 2.5], c: '#16120e' }, { t: 'e', v: [24, 22, 3.5, 3], c: '#16120e' }, { t: 'e', v: [5, 20, 2, 3], c: '#16120e' }, { t: 'e', v: [27, 9, 2, 2], c: '#16120e' },
+        { t: 'e', v: [11, 14, 3.5, 3], c: '#16120e' }, { t: 'e', v: [21, 14, 3.5, 3], c: '#16120e' }, { t: 'r', v: [10, 13, 2, 2], c: '#f03838' }, { t: 'r', v: [21, 13, 2, 2], c: '#f03838' },
+        { t: 'p', v: [[10, 19], [22, 19], [20, 23], [18, 21], [16, 24], [14, 21], [12, 23]], c: '#16120e' },
+        { t: 'd', v: [[13, 20], [15, 20], [17, 20], [19, 20]], c: '#f8f8f8' }], null));
+    }
+    cache.set(key, cv); return cv;
+  }
   function chest(open) {
     const key = 'chest' + open; if (cache.has(key)) return cache.get(key);
     const P = open ? [{ t: 'r', v: [2, 7, 12, 7], c: '#8a5a2a' }, { t: 'r', v: [3, 8, 10, 2], c: '#3a2410' }, { t: 'r', v: [2, 3, 12, 3], c: '#a86a32' }]
@@ -304,5 +332,5 @@ const GFX = (() => {
     const cv = toCanvas(16, 16, raster(16, 16, P, null)); cache.set(key, cv); return cv;
   }
 
-  return { person, tile, weapon, weaponMon, chest, THEMES, adj, hue, star, pxEllipse, el, OUT };
+  return { person, tile, weapon, weaponMon, special, chest, THEMES, adj, hue, star, pxEllipse, el, OUT };
 })();

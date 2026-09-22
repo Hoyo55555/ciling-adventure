@@ -106,7 +106,7 @@ const CharPanel = {
         <div style="display:flex;gap:${U(3)};align-items:center">氣血 ${inkBar(G.hp, G.maxhp, 1)} ${G.hp}/${G.maxhp}</div>
         <div>攻擊 ${G.atk}　防禦 ${G.def}　文氣 ${wenqiDots()}</div>
         <div>${esc(W.money)} ${G.money}　遊玩時間 ${fmtTime(G.time)}</div>
-        <div>徽章　${G.badges.length ? G.badges.map(b => `<span class="seal">${esc(b)}</span>`).join(' ') : '<span class="muted">尚未取得</span>'}</div>
+        <div>${W.story ? W.fragName + ` ${G.badges.length} / 5` : '徽章'}　${G.badges.length ? G.badges.map(b => `<span class="seal">${esc(b.replace('准考證碎片', '碎片'))}</span>`).join(' ') : '<span class="muted">尚未取得</span>'}</div>
         </div></div>` + footKeys('B 返回');
       $('.pv', ctl.box).appendChild(GFX.el(GFX.person(G.player.look, 'down', 0), 4.5)); closeOnAB(ctl);
     });
@@ -267,6 +267,7 @@ const Shop = {
 /* ---------- 任務 ---------- */
 const Quests = {
   main() {
+    if (W.story) return !G.flags.prologue ? '和小墨談談。' : W.stages[Math.min(G.badges.length, 5)].text;
     if (!G.equip.length) return `去找${W.roles.mentor.name}領取武器。`;
     if (!G.badges.length) return `穿過${W.mapNames.route1}，到${W.mapNames.town2}挑戰關主「${W.roles.gym1.name}」。`;
     return '第一章完成！（試玩版內容到此為止）';
@@ -469,10 +470,11 @@ const ChapterEnd = {
 };
 /* 守護神器：正式版在主線結局取得；試玩版於第一章結尾示範 */
 const Guardian = {
-  async grant() {
+  async grant(story) {
     const route = G.route || 'a'; const a = W.guardians[route];
     if (G.weapons.some(w => w.arch === a)) return;
-    await say(`（試玩版示範：正式版中，守護神器會在主線結局、打倒最終魔王後取得。你選擇了「${W.routeNames[route]}」，所以會得到這一件。）`);
+    if (story) await say('（你的話語化成一道光，從周以恆的題庫中飛出一件閃耀著七彩光芒的神器……）');
+    else await say(`（試玩版示範：正式版中，守護神器會在主線結局、打倒最終魔王後取得。你選擇了「${W.routeNames[route]}」，所以會得到這一件。）`);
     Sound.sfx('badge'); s_flash();
     const w = newWeapon(a, 6); G.weapons.push(w); Meta.seeWeapon(G.world, a, 6);
     await say(`${G.player.name} 得到了守護神器「${weaponName(a)}」！`);
@@ -481,6 +483,25 @@ const Guardian = {
   },
 };
 function s_flash() { const fx = $('#fx'); fx.classList.add('white'); fx.style.opacity = 0.9; Anim.run(0.6, k => fx.style.opacity = 0.9 * (1 - k)).then(() => fx.classList.remove('white')); }
+/* 國中生涯．劇情結局 */
+const StoryEnding = {
+  async play() {
+    Sound.play('ending');
+    for (const t of W.ending) await say(t);
+    if (G.route) await say(W.routeEnd[G.route]);
+    s_flash(); await say(W.finale);
+    await Credits.play();
+    const first = !G.flags.cleared; G.flags.cleared = true;
+    const T = totals(G);
+    if (first) { Meta.clear(G.world); Meta.addReport({ world: G.world, name: G.player.name, title: rankTitle(T.pct), pct: T.pct, total: T.t, time: G.time, lv: G.lv, ng: G.ng || 0, at: Date.now() }); }
+    autosave();
+    await Report.open(G);
+    const k = await UI.ask('恭喜通關國中生涯！接下來要做什麼呢？', ['留在校園繼續探索', '重新開始（全新冒險）', '返回標題畫面'], { cancel: false });
+    if (k === 1) { Game.scene = 'blank'; Flow.newGame(G.slot); }
+    else if (k === 2) { Game.scene = 'blank'; titleScreen(); }
+    else Sound.play(W.music[OW.L.music] || OW.L.music);
+  },
+};
 function rankTitle(p) { return p >= 90 ? '文曲下凡' : p >= 80 ? '博學鴻儒' : p >= 65 ? '飽讀詩書' : p >= 50 ? '勤學書生' : '初出茅廬'; }
 const Ending = {
   async play() {
