@@ -1,128 +1,114 @@
 'use strict';
-/* ============ 題型（招式屬性） ============ */
+/* ============ 題型 ============ */
 const CATS = {
-  '字音': { color: '#e0604a', desc: '讀音辨識' },
-  '字形': { color: '#e08a2a', desc: '錯別字辨正' },
-  '詞義': { color: '#b89818', desc: '詞語意義與運用' },
-  '成語': { color: '#4ea838', desc: '成語意義與典故' },
-  '修辭': { color: '#2a9ea0', desc: '修辭技巧' },
-  '文言': { color: '#3a70c8', desc: '文言文字詞與文意' },
-  '詩詞': { color: '#7a58c8', desc: '古典詩詞曲' },
-  '常識': { color: '#c04a98', desc: '國學與文學常識' },
-  '閱讀': { color: '#5a6a80', desc: '閱讀理解' },
+  '字音': { color: '#d0503a', desc: '讀音辨識' }, '字形': { color: '#d07a1a', desc: '錯別字辨正' },
+  '詞義': { color: '#a88a10', desc: '詞語意義與運用' }, '成語': { color: '#3e9830', desc: '成語意義與典故' },
+  '修辭': { color: '#1a8e90', desc: '修辭技巧' }, '文言': { color: '#2a60b8', desc: '文言文字詞與文意' },
+  '詩詞': { color: '#6a48b8', desc: '古典詩詞曲' }, '常識': { color: '#b03a88', desc: '國學與文學常識' },
+  '閱讀': { color: '#4a5a70', desc: '閱讀理解' },
 };
+const ALL_CATS = Object.keys(CATS);
 const catColor = c => (CATS[c] || { color: '#707888' }).color;
 const chip = c => `<span class="chip" style="background:${catColor(c)}">${esc(c)}</span>`;
 
-/* ============ 招式：每招對應題型，答對才命中 ============ */
-const MOVES = {
-  peck: { name: '啄字', cats: ['字形'], pow: 40, pp: 20 },
-  cry: { name: '鳴音', cats: ['字音'], pow: 40, pp: 20 },
-  story_wing: { name: '典故羽', cats: ['成語'], pow: 55, pp: 15 },
-  insight: { name: '洞察', cats: ['閱讀'], pow: 60, pp: 12 },
-  ink_rain: { name: '萬字墨雨', cats: ['字音', '字形'], pow: 80, pp: 8 },
-  slam: { name: '硯撞', cats: ['詞義'], pow: 40, pp: 20 },
-  idiom_shield: { name: '成語盾擊', cats: ['成語'], pow: 40, pp: 20 },
-  rhetoric_jet: { name: '修辭水砲', cats: ['修辭'], pow: 55, pp: 15 },
-  ponder: { name: '沉思', cats: ['閱讀'], pow: 60, pp: 12 },
-  eternal_ink: { name: '千古一硯', cats: ['成語', '詞義'], pow: 80, pp: 8 },
-  brush: { name: '揮毫', cats: ['文言'], pow: 40, pp: 20 },
-  poem_fire: { name: '詩火', cats: ['詩詞'], pow: 40, pp: 20 },
-  lore: { name: '常識幻術', cats: ['常識'], pow: 55, pp: 15 },
-  speedread: { name: '一目十行', cats: ['閱讀'], pow: 60, pp: 12 },
-  fox_fu: { name: '狐仙賦', cats: ['文言', '詩詞'], pow: 80, pp: 8 },
-  // 野生詞靈招式
-  bite: { name: '錯字咬', cats: ['字形'], pow: 35, pp: 25 }, scrawl: { name: '亂筆', cats: ['字形'], pow: 50, pp: 15 },
-  tail: { name: '拼音尾', cats: ['字音'], pow: 35, pp: 25 }, tones: { name: '聲調亂舞', cats: ['字音'], pow: 50, pp: 15 },
-  squirt: { name: '墨汁噴', cats: ['詞義'], pow: 35, pp: 25 }, glue: { name: '黏墨', cats: ['詞義'], pow: 50, pp: 15 },
-  croak: { name: '蛙鳴', cats: ['成語'], pow: 35, pp: 25 }, well: { name: '井底之躍', cats: ['成語'], pow: 50, pp: 15 },
-  dust: { name: '譬喻粉', cats: ['修辭'], pow: 35, pp: 25 }, dance: { name: '擬人舞', cats: ['修辭'], pow: 55, pp: 15 },
-  wrap: { name: '簡纏', cats: ['文言'], pow: 35, pp: 25 }, fang: { name: '古文毒牙', cats: ['文言'], pow: 55, pp: 15 },
-  flame: { name: '燈火', cats: ['詩詞'], pow: 35, pp: 25 }, quatrain: { name: '絕句焰', cats: ['詩詞'], pow: 55, pp: 15 },
-  starlight: { name: '文曲光', cats: ['常識'], pow: 60, pp: 20 }, starplan: { name: '星辰策', cats: ['閱讀'], pow: 70, pp: 10 },
-  scrolls: { name: '萬卷書', cats: ['文言'], pow: 70, pp: 10 }, poemsea: { name: '詩海', cats: ['詩詞'], pow: 70, pp: 10 },
+/* ============ 武器系統 ============
+   六種武器「原型」，三個世界各有不同名稱與外觀。轉生時依原型自動轉換。
+   武器等級由「熟練度」決定：用該武器答對題目就會增加。 */
+const ARCH = {
+  brush: { cats: ['字形', '字音'], skills: [['點畫', ['字形'], 40], ['聲韻', ['字音'], 40], ['筆走龍蛇', ['字形', '字音'], 60], ['一字千金', ['字形', '字音'], 85]], ult: '力透紙背' },
+  tome: { cats: ['成語', '詞義'], skills: [['引經', ['成語'], 40], ['據典', ['詞義'], 40], ['妙語連珠', ['成語', '詞義'], 60], ['字字珠璣', ['成語', '詞義'], 85]], ult: '出口成章' },
+  scroll: { cats: ['文言', '詩詞'], skills: [['吟詠', ['詩詞'], 40], ['誦古', ['文言'], 40], ['詩情畫意', ['詩詞', '文言'], 60], ['千古絕唱', ['詩詞', '文言'], 85]], ult: '氣壯山河' },
+  fan: { cats: ['修辭'], skills: [['譬喻', ['修辭'], 45], ['轉化', ['修辭'], 50], ['誇飾', ['修辭'], 65], ['排比連擊', ['修辭'], 85]], ult: '妙筆生花' },
+  seal: { cats: ['常識', '閱讀'], skills: [['博聞', ['常識'], 45], ['細讀', ['閱讀'], 45], ['融會貫通', ['常識', '閱讀'], 65], ['學富五車', ['常識', '閱讀'], 85]], ult: '洞若觀火' },
+  legend: { cats: ALL_CATS, skills: [['文心', ALL_CATS, 55], ['雕龍', ALL_CATS, 65], ['萬卷', ALL_CATS, 80], ['天章', ALL_CATS, 100]], ult: '文曲天降' },
 };
-const STRUGGLE = { name: '硬記', cats: Object.keys(CATS), pow: 25, pp: 99 };
+const ARCH_ORDER = ['brush', 'tome', 'scroll', 'fan', 'seal', 'legend'];
+const STARTER_ARCHS = ['brush', 'tome', 'scroll'];
+const MASTERY_STEPS = [0, 10, 25, 45];            // 熟練度門檻 → 武器 Lv1~4
+const weaponLv = w => MASTERY_STEPS.filter(s => w.mastery >= s).length;
+const weaponSkills = (arch, lv) => ARCH[arch].skills.slice(0, Math.min(4, lv + 1));
+const weaponName = arch => W.weapons[arch][0];
+const ULT_COST = 5;
 
-/* ============ 詞靈圖鑑（形狀清單：e 橢圓 / r 矩形 / p 多邊形 / d 點 / eye 眼睛，m:1 左右鏡射） ============ */
+/* ============ 敵人（詞妖） ============ */
 const SPECIES = {
-  moya: { name: '墨鴉', desc: '由硯臺裡的墨汁凝成的烏鴉，眼力極好，一眼就能看穿錯字。', base: { hp: 45, atk: 56, def: 42 }, weak: ['詩詞'], resist: ['字形'], expY: 34,
-    learn: [[1, 'peck'], [1, 'cry'], [7, 'story_wing'], [10, 'insight'], [13, 'ink_rain']], pal: { a: '#3b3d5c', b: '#262840', c: '#f2b233', d: '#8a90c8' },
-    parts: [{ t: 'p', v: [[3, 14], [11, 11], [13, 23], [6, 25]], c: 'b', m: 1 }, { t: 'e', v: [16, 20, 8, 8], c: 'a' }, { t: 'e', v: [16, 22, 5, 5], c: 'd' }, { t: 'p', v: [[13, 6], [15, 1], [18, 5]], c: 'a' },
-      { t: 'e', v: [16, 11, 7, 6.5], c: 'a' }, { t: 'eye', v: [12, 9], m: 1 }, { t: 'p', v: [[13.5, 13], [18.5, 13], [16, 17.5]], c: 'c' }, { t: 'r', v: [12, 27, 2, 3], c: 'c', m: 1 }] },
-  yangui: { name: '硯龜', desc: '背著一方古硯的烏龜，個性沉穩，肚子裡裝滿了成語故事。', base: { hp: 56, atk: 44, def: 58 }, weak: ['字音'], resist: ['成語'], expY: 34,
-    learn: [[1, 'slam'], [1, 'idiom_shield'], [7, 'rhetoric_jet'], [10, 'ponder'], [13, 'eternal_ink']], pal: { a: '#86929e', b: '#27386a', c: '#6ab04c', d: '#56626e' },
-    parts: [{ t: 'e', v: [7, 25, 3.5, 3], c: 'c', m: 1 }, { t: 'e', v: [16, 20, 12.5, 8], c: 'd' }, { t: 'e', v: [16, 18.5, 11.5, 7], c: 'a' }, { t: 'e', v: [16, 18.5, 6, 3.5], c: 'b' },
-      { t: 'e', v: [16, 8.5, 5.5, 5], c: 'c' }, { t: 'eye', v: [13, 7], m: 1 }, { t: 'd', v: [[15, 11], [16, 11]], c: '#2e5a26' }] },
-  bihu: { name: '筆狐', desc: '尾巴像一支大毛筆的狐狸，一揮尾巴就能寫出詩句與古文。', base: { hp: 48, atk: 52, def: 45 }, weak: ['成語'], resist: ['詩詞'], expY: 34,
-    learn: [[1, 'brush'], [1, 'poem_fire'], [7, 'lore'], [10, 'speedread'], [13, 'fox_fu']], pal: { a: '#e8894a', b: '#fff2dc', c: '#2a2a3a', d: '#c0602a' },
-    parts: [{ t: 'e', v: [26, 17, 4.5, 8.5], c: 'a' }, { t: 'e', v: [27.5, 9.5, 3.5, 4], c: 'c' }, { t: 'e', v: [16, 22, 7, 7], c: 'a' }, { t: 'e', v: [16, 23.5, 4, 5], c: 'b' },
-      { t: 'p', v: [[8, 9], [9, 1], [14, 6]], c: 'a', m: 1 }, { t: 'p', v: [[9.5, 6.5], [10, 3], [12.5, 6]], c: 'd', m: 1 }, { t: 'e', v: [16, 12, 8, 6.5], c: 'a' },
-      { t: 'e', v: [16, 15, 4, 2.5], c: 'b' }, { t: 'eye', v: [11, 10], m: 1 }, { t: 'd', v: [[15, 14], [16, 14]], c: 'c' }, { t: 'r', v: [11, 27, 3, 3], c: 'a', m: 1 }] },
-  cuozi: { name: '錯字蟲', desc: '專門把字寫錯的小蟲，身上的花紋其實是寫歪的筆畫。怕「字形」題。', base: { hp: 40, atk: 45, def: 38 }, weak: ['字形'], resist: ['閱讀'], expY: 28,
-    learn: [[1, 'bite'], [8, 'scrawl']], pal: { a: '#9ccc3c', b: '#6a9a2a', c: '#e84a4a', d: '#f8e070' },
+  cuozi: { name: '錯字蟲', desc: '專門把字寫錯的小蟲，身上的花紋是寫歪的筆畫。', base: { hp: 40, atk: 45, def: 38 }, weak: ['字形'], resist: ['閱讀'], moves: ['bite', 'scrawl'], pal: { a: '#9ccc3c', b: '#6a9a2a', c: '#e84a4a', d: '#f8e070' },
     parts: [{ t: 'r', v: [9, 28, 3, 2], c: 'b', m: 1 }, { t: 'e', v: [16, 22, 9, 7.5], c: 'a' }, { t: 'r', v: [8, 20, 16, 1], c: 'b' }, { t: 'r', v: [9, 24, 14, 1], c: 'b' },
       { t: 'd', v: [[11, 3], [12, 4], [12, 5], [13, 6]], c: 'b', m: 1 }, { t: 'e', v: [10.5, 2.5, 1.6, 1.6], c: 'c', m: 1 }, { t: 'e', v: [16, 11.5, 8, 6.5], c: 'a' },
       { t: 'eye', v: [12, 10], m: 1 }, { t: 'd', v: [[14, 15], [15, 16], [16, 16], [17, 15]], c: 'c' }, { t: 'd', v: [[14, 21], [15, 22], [16, 23], [17, 22], [18, 21]], c: 'd' }] },
-  zhuyin: { name: '注音鼠', desc: '耳朵像「ㄅ」的小老鼠，最愛把聲調弄亂。怕「字音」題。', base: { hp: 38, atk: 48, def: 36 }, weak: ['字音'], resist: ['成語'], expY: 28,
-    learn: [[1, 'tail'], [8, 'tones']], pal: { a: '#b8b8cc', b: '#f4a8b8', c: '#6a6a80', d: '#f4f4f8' },
+  zhuyin: { name: '注音鼠', desc: '耳朵像「ㄅ」的小老鼠，最愛把聲調弄亂。', base: { hp: 38, atk: 48, def: 36 }, weak: ['字音'], resist: ['成語'], moves: ['tail', 'tones'], pal: { a: '#b8b8cc', b: '#f4a8b8', c: '#6a6a80', d: '#f4f4f8' },
     parts: [{ t: 'e', v: [8, 8, 5.5, 5.5], c: 'a', m: 1 }, { t: 'e', v: [8, 8, 3.5, 3.5], c: 'b', m: 1 }, { t: 'e', v: [16, 23, 7.5, 7], c: 'a' }, { t: 'e', v: [16, 24, 4.5, 4.5], c: 'd' },
       { t: 'e', v: [16, 14, 8, 6.5], c: 'a' }, { t: 'eye', v: [12, 12], m: 1 }, { t: 'd', v: [[15, 16], [16, 16]], c: 'b' }, { t: 'd', v: [[8, 15], [9, 15], [8, 17], [9, 16]], c: 'c', m: 1 },
       { t: 'e', v: [11, 29, 2.5, 1.5], c: 'b', m: 1 }, { t: 'd', v: [[14, 21], [15, 21], [16, 21], [17, 21], [17, 22], [16, 23], [15, 24]], c: 'c' }] },
-  motuan: { name: '墨團', desc: '一團會動的墨漬，會把詞語塗得意思不清。怕「詞義」題。', base: { hp: 46, atk: 42, def: 44 }, weak: ['詞義'], resist: ['字音'], expY: 28,
-    learn: [[1, 'squirt'], [8, 'glue']], pal: { a: '#3a4a8a', b: '#7a8ad8', c: '#ffffff', d: '#1e2850' },
+  motuan: { name: '墨團', desc: '一團會動的墨漬，會把詞語塗得意思不清。', base: { hp: 46, atk: 42, def: 44 }, weak: ['詞義'], resist: ['字音'], moves: ['squirt', 'glue'], pal: { a: '#3a4a8a', b: '#7a8ad8', c: '#ffffff', d: '#1e2850' },
     parts: [{ t: 'p', v: [[9, 17], [16, 3], [23, 17]], c: 'a' }, { t: 'e', v: [16, 21, 11, 8.5], c: 'a' }, { t: 'e', v: [11, 15, 2, 3], c: 'b' },
       { t: 'e', v: [8, 29.5, 2, 1.5], c: 'a' }, { t: 'e', v: [23, 30, 1.5, 1.2], c: 'a' }, { t: 'eye', v: [12, 18], m: 1 }, { t: 'd', v: [[15, 24], [16, 24]], c: 'd' }] },
-  chengyu: { name: '成語蛙', desc: '背上有四個圓點的青蛙，據說每一點都是一個字。怕「成語」題。', base: { hp: 48, atk: 46, def: 44 }, weak: ['成語'], resist: ['修辭'], expY: 30,
-    learn: [[1, 'croak'], [8, 'well']], pal: { a: '#4cb07a', b: '#e8f0a0', c: '#2e7a50', d: '#f06a6a' },
+  chengyu: { name: '成語蛙', desc: '背上有四個圓點的青蛙，據說每一點都是一個字。', base: { hp: 48, atk: 46, def: 44 }, weak: ['成語'], resist: ['修辭'], moves: ['croak', 'well'], pal: { a: '#4cb07a', b: '#e8f0a0', c: '#2e7a50', d: '#f06a6a' },
     parts: [{ t: 'e', v: [7, 26, 5, 3.5], c: 'c', m: 1 }, { t: 'e', v: [16, 21, 11, 8], c: 'a' }, { t: 'e', v: [16, 24, 6, 4.5], c: 'b' }, { t: 'e', v: [10, 11, 4, 4], c: 'a', m: 1 },
       { t: 'e', v: [10, 11, 2.5, 2.5], c: '#ffffff', m: 1 }, { t: 'r', v: [10, 11, 2, 2], c: '#181820', m: 1 }, { t: 'r', v: [11, 18, 10, 1], c: 'c' }, { t: 'e', v: [8, 17, 1.5, 1], c: 'd', m: 1 },
       { t: 'd', v: [[10, 22], [22, 22], [9, 25], [23, 25]], c: 'c' }] },
-  xiuci: { name: '修辭蝶', desc: '翅膀會變換花紋的蝴蝶，一會兒譬喻，一會兒擬人。怕「修辭」題。', base: { hp: 42, atk: 52, def: 40 }, weak: ['修辭'], resist: ['詞義'], expY: 32,
-    learn: [[1, 'dust'], [10, 'dance']], pal: { a: '#e86ab0', b: '#7ad0f0', c: '#3a2a4a', d: '#f8e070' },
+  xiuci: { name: '修辭蝶', desc: '翅膀會變換花紋的蝴蝶，一會兒譬喻，一會兒擬人。', base: { hp: 42, atk: 52, def: 40 }, weak: ['修辭'], resist: ['詞義'], moves: ['dust', 'dance'], pal: { a: '#e86ab0', b: '#7ad0f0', c: '#3a2a4a', d: '#f8e070' },
     parts: [{ t: 'e', v: [8, 11, 7, 7], c: 'a', m: 1 }, { t: 'e', v: [9, 22, 5.5, 5], c: 'b', m: 1 }, { t: 'e', v: [7, 10, 2.5, 2.5], c: 'd', m: 1 }, { t: 'e', v: [9, 22, 2, 2], c: '#ffffff', m: 1 },
       { t: 'e', v: [16, 17, 2.5, 10], c: 'c' }, { t: 'e', v: [16, 7, 3.5, 3], c: 'c' }, { t: 'd', v: [[14, 4], [13, 3], [12, 2]], c: 'c', m: 1 }, { t: 'd', v: [[14, 7]], c: '#ffffff', m: 1 }] },
-  zhujian: { name: '竹簡蛇', desc: '由一片片竹簡串成的蛇，身上刻滿了古文。怕「文言」題。', base: { hp: 50, atk: 50, def: 46 }, weak: ['文言'], resist: ['字形'], expY: 32,
-    learn: [[1, 'wrap'], [10, 'fang']], pal: { a: '#c8b070', b: '#8a7040', c: '#e84a4a', d: '#e8d8a0' },
+  zhujian: { name: '竹簡蛇', desc: '由一片片竹簡串成的蛇，身上刻滿了古文。', base: { hp: 50, atk: 50, def: 46 }, weak: ['文言'], resist: ['字形'], moves: ['wrap', 'fang'], pal: { a: '#c8b070', b: '#8a7040', c: '#e84a4a', d: '#e8d8a0' },
     parts: [{ t: 'e', v: [16, 25, 11, 5], c: 'a' }, { t: 'e', v: [16, 20, 8, 4], c: 'a' }, { t: 'r', v: [9, 23, 1, 6], c: 'b', m: 1 }, { t: 'r', v: [13, 18, 1, 11], c: 'b', m: 1 },
       { t: 'r', v: [14, 14, 4, 5], c: 'a' }, { t: 'e', v: [16, 11, 6, 5.5], c: 'a' }, { t: 'eye', v: [13, 9], m: 1 }, { t: 'd', v: [[15, 17], [16, 17], [14, 18], [17, 18]], c: 'c' }] },
-  shihun: { name: '詩魂燈', desc: '寄宿著千年詩魂的紅燈籠，會吟出熊熊燃燒的絕句。怕「詩詞」題。', base: { hp: 44, atk: 54, def: 42 }, weak: ['詩詞'], resist: ['文言'], expY: 32,
-    learn: [[1, 'flame'], [10, 'quatrain']], pal: { a: '#e85a4a', b: '#f8c040', c: '#8a2a2a', d: '#fff0b0' },
+  shihun: { name: '詩魂燈', desc: '寄宿著千年詩魂的紅燈籠，會吟出熊熊燃燒的絕句。', base: { hp: 44, atk: 54, def: 42 }, weak: ['詩詞'], resist: ['文言'], moves: ['flame', 'quatrain'], pal: { a: '#e85a4a', b: '#f8c040', c: '#8a2a2a', d: '#fff0b0' },
     parts: [{ t: 'r', v: [15, 1, 2, 3], c: 'c' }, { t: 'r', v: [12, 4, 8, 3], c: 'c' }, { t: 'e', v: [16, 16, 10, 10], c: 'a' }, { t: 'e', v: [16, 16, 6, 10], c: 'c' }, { t: 'e', v: [16, 16, 5, 9.6], c: 'a' },
       { t: 'e', v: [16, 18, 3, 3], c: 'd' }, { t: 'eye', v: [12, 13], m: 1 }, { t: 'r', v: [12, 26, 8, 2], c: 'c' }, { t: 'r', v: [15, 28, 2, 3], c: 'b' }, { t: 'p', v: [[3, 22], [5, 12], [7, 22]], c: 'b', m: 1 }] },
-  wenqu: { name: '文曲星', desc: '主掌天下文運的星辰之靈。被黑暗籠罩時，會出最難的題目。', base: { hp: 70, atk: 64, def: 60 }, weak: ['閱讀'], resist: [], expY: 60,
-    learn: [[1, 'starlight'], [1, 'scrolls'], [1, 'poemsea'], [1, 'starplan']], pal: { a: '#f8d040', b: '#fff4b0', c: '#b07a10', d: '#6a4ae0' },
+  wenqu: { name: '文曲星', desc: '主掌天下文運的星辰之靈。', base: { hp: 70, atk: 64, def: 60 }, weak: ['閱讀'], resist: [], moves: ['starlight', 'scrolls', 'poemsea', 'starplan'], pal: { a: '#f8d040', b: '#fff4b0', c: '#b07a10', d: '#6a4ae0' },
     parts: [{ t: 'e', v: [16, 16, 15, 15], c: 'd' }, { t: 'e', v: [16, 16, 13.2, 13.2], c: '_' }, { t: 'p', v: GFX.star(16, 17, 13, 5.5), c: 'a' }, { t: 'e', v: [16, 18, 4.5, 4], c: 'b' },
       { t: 'eye', v: [13, 15], m: 1 }, { t: 'd', v: [[15, 20], [16, 20]], c: 'c' }] },
 };
-const STARTERS = ['moya', 'yangui', 'bihu'];
-
-/* ============ 道具 ============ */
-const ITEMS = {
-  ink: { name: '墨水', price: 100, desc: '恢復一隻詞靈 25 點 HP。', use: 'heal', val: 25 },
-  ink2: { name: '濃墨', price: 260, desc: '恢復一隻詞靈 60 點 HP。', use: 'heal', val: 60 },
-  tea: { name: '醒神茶', price: 200, desc: '恢復一隻詞靈所有招式的 PP。', use: 'pp' },
-  ball: { name: '墨球', price: 150, desc: '對野生詞靈使用，HP 越低越容易收服。', use: 'ball' },
-  hint: { name: '錦囊', price: 120, desc: '答題時使用，刪去兩個錯誤選項（選擇題）。', use: 'hint' },
+/* 敵人的招式（敵人出招時可能出「防禦題」，題型依招式而定） */
+const MOVES = {
+  bite: { name: '錯字咬', cats: ['字形'], pow: 35 }, scrawl: { name: '亂筆', cats: ['字形'], pow: 50 },
+  tail: { name: '拼音尾', cats: ['字音'], pow: 35 }, tones: { name: '聲調亂舞', cats: ['字音'], pow: 50 },
+  squirt: { name: '墨汁噴', cats: ['詞義'], pow: 35 }, glue: { name: '黏墨', cats: ['詞義'], pow: 50 },
+  croak: { name: '蛙鳴', cats: ['成語'], pow: 35 }, well: { name: '井底之躍', cats: ['成語'], pow: 50 },
+  dust: { name: '譬喻粉', cats: ['修辭'], pow: 35 }, dance: { name: '擬人舞', cats: ['修辭'], pow: 55 },
+  wrap: { name: '簡纏', cats: ['文言'], pow: 35 }, fang: { name: '古文毒牙', cats: ['文言'], pow: 55 },
+  flame: { name: '燈火', cats: ['詩詞'], pow: 35 }, quatrain: { name: '絕句焰', cats: ['詩詞'], pow: 55 },
+  starlight: { name: '文曲光', cats: ['常識'], pow: 60 }, starplan: { name: '星辰策', cats: ['閱讀'], pow: 70 },
+  scrolls: { name: '萬卷書', cats: ['文言'], pow: 70 }, poemsea: { name: '詩海', cats: ['詩詞'], pow: 70 },
 };
-const ITEM_ORDER = ['ink', 'ink2', 'tea', 'ball', 'hint'];
 
-/* ============ 詞靈數值 ============ */
-function calcStats(m) { const b = SPECIES[m.sp].base; m.maxhp = Math.floor(b.hp * m.lv / 25) + m.lv + 12; m.atk = Math.floor(b.atk * m.lv / 25) + 6; m.def = Math.floor(b.def * m.lv / 25) + 6; }
-function expNeed(lv) { return lv * 8 + 12; }
-function makeMon(sp, lv, variant = 0) {
-  const m = { sp, lv, exp: 0, variant: variant || 0 }; calcStats(m); m.hp = m.maxhp;
-  const learned = SPECIES[sp].learn.filter(([L]) => L <= lv).map(([, id]) => id);
-  m.moves = learned.slice(-4).map(id => ({ id, pp: MOVES[id].pp })); return m;
+/* ============ 道具（名稱依世界觀而不同，見 WORLDS.items） ============ */
+const ITEMS = {
+  heal: { price: 80, desc: '恢復 30 點氣血。', use: 'heal', val: 30 },
+  heal2: { price: 200, desc: '恢復 80 點氣血。', use: 'heal', val: 80 },
+  wenqi: { price: 150, desc: '文氣增加 2 格。', use: 'wenqi', val: 2 },
+  hint: { price: 120, desc: '答選擇題時使用，刪去兩個錯誤選項。', use: 'hint' },
+};
+const ITEM_ORDER = ['heal', 'heal2', 'wenqi', 'hint'];
+const itemName = id => W.items[id];
+
+/* ============ 數值 ============ */
+function playerStats() {
+  const lv = G.lv, w = G.weapons[G.equip[G.cur]];
+  G.maxhp = 28 + lv * 6; G.atk = 7 + lv * 2 + (w ? (weaponLv(w) - 1) * 2 : 0); G.def = 6 + lv * 2;
+  if (G.hp == null || G.hp > G.maxhp) G.hp = G.maxhp;
 }
-const monName = m => SPECIES[m.sp].name;
+const expNeed = lv => lv * 10 + 10;
+function makeFoe(sp, lv, variant = 0) {
+  const S = SPECIES[sp]; const b = S.base;
+  const f = { kind: 'mon', sp, lv, variant, name: S.name, weak: S.weak, resist: S.resist, moves: S.moves.map(id => MOVES[id]),
+    maxhp: Math.floor(b.hp * lv / 25) + lv + 12, atk: Math.floor(b.atk * lv / 25) + 6, def: Math.floor(b.def * lv / 25) + 6, exp: lv * 6 };
+  f.hp = f.maxhp; return f;
+}
+function makePersonFoe(R) {
+  const F = R.foe, lv = F.lv + (G.ng || 0) * 4;
+  const f = { kind: 'person', look: R.look, name: R.name, lv, weak: F.weak || [], resist: F.resist || [],
+    moves: F.moves.map(([name, cats, pow]) => ({ name, cats, pow })),
+    maxhp: Math.floor((12 + lv * 3.5) * (F.hpMul || 1)), atk: Math.floor(5 + lv * 1.6), def: Math.floor(4 + lv * 1.5), exp: Math.floor(lv * 9 * (F.hpMul || 1)) };
+  f.hp = f.maxhp; return f;
+}
 
 /* ============ 地圖版型（三個世界共用；外觀由世界主題決定） ============
-   . 草地  , 道路  g 草叢(會遇敵)  T 樹  ~ 水  # 牆  W 窗  D 門  R 屋頂
-   = 柵欄  S 告示牌  F 花  L 燈  ^ 岩石                                   */
+   . 草地  , 道路  g 草叢  T 樹  ~ 水  # 牆  W 窗  D 門  R 屋頂  = 柵欄  S 告示牌  F 花  L 燈  ^ 岩石 */
 const SOLID = new Set(['T', '#', 'W', 'D', 'R', '~', '=', 'S', 'L', '^']);
 const LAYOUTS = {
-  town1: { music: 'town', qlv: 2,
+  town1: { music: 'town', qlv: 1, chapter: 1,
     rows: [
       'TTTTTTTTTTT,,TTTTTTTTTTT',
       'T.....F....,,....RRRRR.T',
@@ -143,12 +129,12 @@ const LAYOUTS = {
       'T~~~~~......,..........T',
       'TTTTTTTTTTTTTTTTTTTTTTTT'],
     warps: [{ x: 11, y: 0, to: 'route1', tx: 8, ty: 22, dir: 'up' }, { x: 12, y: 0, to: 'route1', tx: 9, ty: 22, dir: 'up' }],
-    gates: { '11,0': 'needStarter', '12,0': 'needStarter' },
-    doors: { '6,4': 'home', '19,4': 'gym1door', '3,11': 'heal', '20,11': 'shop' },
+    gates: { '11,0': 'needWeapon', '12,0': 'needWeapon' },
+    doors: { '6,4': 'home', '19,4': 'hall1', '3,11': 'heal', '20,11': 'shop' },
     signs: { '10,11': 'sign_town1' },
-    npcs: [{ role: 'mentor', x: 13, y: 8, dir: 'down' }, { role: 'tip1', x: 7, y: 14, dir: 'down', wander: 1 }, { role: 'tip2', x: 16, y: 7, dir: 'left', wander: 1 }, { role: 'gym1', x: 19, y: 5, dir: 'down' }],
-    shop: ['ink', 'tea', 'ball', 'hint'] },
-  route1: { music: 'route', qlv: 2,
+    npcs: [{ role: 'mentor', x: 13, y: 8, dir: 'down' }, { role: 'tip1', x: 7, y: 14, dir: 'down', wander: 1 }, { role: 'tip2', x: 16, y: 7, dir: 'left', wander: 1 }, { role: 'tip6', x: 19, y: 5, dir: 'down' }],
+    shop: ['heal', 'heal2', 'wenqi', 'hint'] },
+  route1: { music: 'route', qlv: 2, chapter: 1,
     rows: [
       'TTTTTTTT,,TTTTTTTTTT',
       'T.......,,.........T',
@@ -177,9 +163,11 @@ const LAYOUTS = {
     warps: [{ x: 8, y: 23, to: 'town1', tx: 11, ty: 1, dir: 'down' }, { x: 9, y: 23, to: 'town1', tx: 12, ty: 1, dir: 'down' },
       { x: 8, y: 0, to: 'town2', tx: 11, ty: 16, dir: 'up' }, { x: 9, y: 0, to: 'town2', tx: 12, ty: 16, dir: 'up' }],
     signs: { '16,9': 'sign_route1' },
-    npcs: [{ role: 'trainerA', x: 5, y: 7, dir: 'right', sight: 4 }, { role: 'trainerB', x: 14, y: 19, dir: 'left', sight: 6 }, { role: 'tip3', x: 12, y: 13, dir: 'down', wander: 1 }],
-    enc: [{ sp: 'cuozi', min: 3, max: 6, w: 3 }, { sp: 'zhuyin', min: 3, max: 6, w: 3 }, { sp: 'motuan', min: 4, max: 7, w: 2 }, { sp: 'chengyu', min: 5, max: 7, w: 1 }] },
-  town2: { music: 'town', qlv: 3,
+    npcs: [{ role: 'trainerA', x: 5, y: 7, dir: 'right', sight: 4 }, { role: 'trainerB', x: 14, y: 19, dir: 'left', sight: 6 }, { role: 'questGiver', x: 12, y: 13, dir: 'down' },
+      { role: 'rival', x: 10, y: 5, dir: 'left', sight: 2 }],
+    chests: [{ id: 'r1a', x: 17, y: 2, weapon: 'fan' }, { id: 'r1b', x: 2, y: 17, items: { heal: 3, hint: 2 } }],
+    foes: { n: 9, lv: [3, 6], list: [{ sp: 'cuozi', w: 3 }, { sp: 'zhuyin', w: 3 }, { sp: 'motuan', w: 2 }, { sp: 'chengyu', w: 1 }] } },
+  town2: { music: 'town', qlv: 2, chapter: 1,
     rows: [
       'TTTTTTTTTTT,,TTTTTTTTTTT',
       'T..........,,..........T',
@@ -199,30 +187,12 @@ const LAYOUTS = {
       'Tggg.......,,..........T',
       'Tggg.......,,..........T',
       'TTTTTTTTTTT,,TTTTTTTTTTT'],
-    warps: [{ x: 11, y: 17, to: 'route1', tx: 8, ty: 1, dir: 'down' }, { x: 12, y: 17, to: 'route1', tx: 9, ty: 1, dir: 'down' },
-      { x: 11, y: 0, to: 'hall', tx: 6, ty: 10, dir: 'up' }, { x: 12, y: 0, to: 'hall', tx: 7, ty: 10, dir: 'up' }],
-    gates: { '11,0': 'needBadges3', '12,0': 'needBadges3' },
-    doors: { '4,4': 'gym2door', '19,4': 'gym3door', '3,11': 'heal', '20,11': 'shop' },
+    warps: [{ x: 11, y: 17, to: 'route1', tx: 8, ty: 1, dir: 'down' }, { x: 12, y: 17, to: 'route1', tx: 9, ty: 1, dir: 'down' }],
+    gates: { '11,0': 'trialEnd', '12,0': 'trialEnd' },
+    doors: { '4,4': 'gymdoor', '19,4': 'hall2', '3,11': 'heal', '20,11': 'shop' },
     signs: { '8,11': 'sign_town2' },
-    npcs: [{ role: 'gym2', x: 4, y: 5, dir: 'down' }, { role: 'gym3', x: 19, y: 5, dir: 'down' }, { role: 'guard', x: 13, y: 1, dir: 'left' },
+    npcs: [{ role: 'gym1', x: 4, y: 5, dir: 'down' }, { role: 'locked2', x: 19, y: 5, dir: 'down' }, { role: 'guard', x: 13, y: 1, dir: 'left' },
       { role: 'tip4', x: 8, y: 8, dir: 'down', wander: 1 }, { role: 'tip5', x: 16, y: 15, dir: 'up', wander: 1 }, { role: 'trainerC', x: 15, y: 8, dir: 'left', sight: 3 }],
-    enc: [{ sp: 'xiuci', min: 8, max: 11, w: 3 }, { sp: 'zhujian', min: 8, max: 11, w: 3 }, { sp: 'shihun', min: 9, max: 12, w: 3 }, { sp: 'chengyu', min: 8, max: 10, w: 1 }],
-    shop: ['ink', 'ink2', 'tea', 'ball', 'hint'] },
-  hall: { music: 'hall', qlv: 3,
-    rows: [
-      'TTTTTTTTTTTTTT',
-      'T..RRRRRRRR..T',
-      'T..RRRRRRRR..T',
-      'T..##W##W##..T',
-      'T..###DD###..T',
-      'T.L...,,...L.T',
-      'T.....,,.....T',
-      'T.F...,,...F.T',
-      'T.....,,.....T',
-      'T.L...,,...L.T',
-      'T.....,,.....T',
-      'TTTTTT,,TTTTTT'],
-    warps: [{ x: 6, y: 11, to: 'town2', tx: 11, ty: 1, dir: 'down' }, { x: 7, y: 11, to: 'town2', tx: 12, ty: 1, dir: 'down' }],
-    doors: { '6,4': 'halldoor', '7,4': 'halldoor' },
-    npcs: [{ role: 'boss', x: 7, y: 5, dir: 'down', sight: 4 }] },
+    foes: { n: 3, lv: [6, 8], list: [{ sp: 'xiuci', w: 2 }, { sp: 'zhujian', w: 2 }, { sp: 'shihun', w: 2 }] },
+    shop: ['heal', 'heal2', 'wenqi', 'hint'] },
 };

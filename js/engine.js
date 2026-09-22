@@ -7,7 +7,7 @@ const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+const sleep = ms => Anim.run(ms / 1000, () => { });   // 以影格計時，分頁隱藏時會一起暫停
 const U = n => `calc(var(--u) * ${n})`;
 const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 const OPP = { up: 'down', down: 'up', left: 'right', right: 'left' };
@@ -19,6 +19,10 @@ const Store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
   del(k) { try { localStorage.removeItem(k); } catch (e) { } },
 };
+
+/* ============ 設定 ============ */
+const Settings = Object.assign({ music: 6, sfx: 7, speed: 1, hud: true }, Store.get('ciling_settings', {}));
+const saveSettings = () => Store.set('ciling_settings', Settings);
 
 /* ============ 輸入 ============ */
 const Input = (() => {
@@ -83,8 +87,8 @@ const Sound = (() => {
     try {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       master = ctx.createGain(); master.gain.value = muted ? 0 : 0.5; master.connect(ctx.destination);
-      mus = ctx.createGain(); mus.gain.value = 0.2; mus.connect(master);
-      sfxG = ctx.createGain(); sfxG.gain.value = 0.32; sfxG.connect(master);
+      mus = ctx.createGain(); mus.connect(master);
+      sfxG = ctx.createGain(); sfxG.connect(master); applyVol();
       if (pendingSong) { const s = pendingSong; pendingSong = null; play(s); }
     } catch (e) { ctx = null; }
   }
@@ -146,9 +150,10 @@ const Sound = (() => {
       }
     }, 60);
   }
+  function applyVol() { if (!ctx) return; mus.gain.value = Settings.music * 0.035; sfxG.gain.value = Settings.sfx * 0.05; }
   function stop() { if (timer) clearInterval(timer); timer = null; current = null; pendingSong = null; }
   function toggle() { muted = !muted; Store.set('ciling_mute', muted); if (master) master.gain.value = muted ? 0 : 0.5; return muted; }
-  return { unlock, sfx, play, stop, toggle, get muted() { return muted; }, get song() { return current; } };
+  return { unlock, sfx, play, stop, toggle, applyVol, get muted() { return muted; }, get song() { return current; } };
 })();
 
 /* 原創 8-bit 曲目（五聲音階為主），每軌長度皆為 32 個八分音符 */

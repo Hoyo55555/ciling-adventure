@@ -11,9 +11,9 @@ const UI = {
   clear() { this.stack = []; this.root.innerHTML = ''; },
 };
 function fmt(t) {
-  return String(t).replace(/\{name\}/g, G ? G.player.name : '').replace(/\{money\}/g, W ? W.money : '');
+  return String(t).replace(/\{name\}/g, G ? G.player.name : '').replace(/\{money\}/g, W ? W.money : '').replace(/\{weapon\}/g, G && W && G.equip && G.equip.length ? weaponName(G.equip[G.cur]) : '');
 }
-function paginate(text, max = 56) {
+function paginate(text, max = 46) {
   const out = [];
   for (const block of String(text).split(/\n{2,}/)) {
     let s = block;
@@ -35,6 +35,7 @@ UI.say = function (text, opt = {}) {
     const pages = paginate(fmt(text));
     const box = UI.el('box tb' + (opt.dark ? ' dark' : ''));
     if (opt.right) box.style.right = U(opt.right);
+    if (opt.left) box.style.left = U(opt.left);
     const tx = h('div', 'tbtext'), ar = h('div', 'tbarrow', '▼'); box.append(tx, ar); ar.style.visibility = 'hidden';
     const tag = opt.name ? UI.el('box nametag', esc(fmt(opt.name))) : null;
     let pi = 0, n = 0, acc = 0, full = pages[0], done = false, timer = 0, closed = false;
@@ -51,7 +52,7 @@ UI.say = function (text, opt = {}) {
       pi++; full = pages[pi]; n = 0; acc = 0; done = false; ar.style.visibility = 'hidden'; tx.textContent = '';
     };
     const m = { el: box, update() {
-      if (!done) { acc += opt.fast ? 3 : 1.4; const k = Math.floor(acc); if (k > n) { n = Math.min(full.length, k); tx.textContent = full.slice(0, n); if (n >= full.length) finishTyping(); } }
+      if (!done) { acc += opt.fast ? 3 : [0.7, 1.4, 3][Settings.speed]; const k = Math.floor(acc); if (k > n) { n = Math.min(full.length, k); tx.textContent = full.slice(0, n); if (n >= full.length) finishTyping(); } }
       else if (opt.auto && last()) { timer += 1000 / 60; if (timer >= opt.auto) { close(); return; } }
       if (Input.p('A') || Input.p('B')) next();
     } };
@@ -237,6 +238,7 @@ const Stats = {
     if (!G) return;
     const s = G.stats[q.cat] || (G.stats[q.cat] = { r: 0, t: 0 }); s.t++; if (ok) s.r++;
     G.answered = (G.answered || 0) + 1;
+    const ch = (G.chStats || (G.chStats = {}))[G.chapter || 1] || (G.chStats[G.chapter || 1] = { r: 0, t: 0 }); ch.t++; if (ok) ch.r++;
     if (ok) { G.streak = (G.streak || 0) + 1; G.bestStreak = Math.max(G.bestStreak || 0, G.streak); } else G.streak = 0;
     const w = G.wrong.find(x => x.id === q.id);
     if (!ok) { if (w) { w.n++; w.last = chosen; w.at = Date.now(); } else G.wrong.unshift({ id: q.id, n: 1, last: chosen, at: Date.now(), snap: q }); if (G.wrong.length > 200) G.wrong.pop(); }

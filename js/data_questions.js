@@ -151,9 +151,11 @@ const QB = {
   lessonOf: q => q.lesson || '（未標課次）',
   active() { return this.all.filter(q => !this.off.has(this.lessonOf(q))); },
   has(cats) { return this.active().some(q => cats.includes(q.cat)); },
-  draw(cats, maxLv = 3) {
+  draw(cats, maxLv = 3, minLv = 1) {
     const pool = this.active(); if (!pool.length) return null;
-    let p = pool.filter(q => cats.includes(q.cat) && q.lv <= maxLv);
+    maxLv = Math.min(3, maxLv); minLv = Math.min(minLv, maxLv);
+    let p = pool.filter(q => cats.includes(q.cat) && q.lv <= maxLv && q.lv >= minLv);
+    if (!p.length) p = pool.filter(q => cats.includes(q.cat) && q.lv <= maxLv);
     if (!p.length) p = pool.filter(q => cats.includes(q.cat));
     if (!p.length) p = pool.filter(q => q.lv <= maxLv);
     if (!p.length) p = pool;

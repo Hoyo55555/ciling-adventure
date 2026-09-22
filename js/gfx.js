@@ -200,5 +200,44 @@ const GFX = (() => {
   /* 把 canvas 複製成可放進 DOM 的像素圖 */
   function el(src, scale = 2, cls = '') { const c = document.createElement('canvas'); c.width = src.width; c.height = src.height; c.getContext('2d').drawImage(src, 0, 0); c.className = 'pix ' + cls; c.style.width = U(src.width * scale); c.style.height = U(src.height * scale); return c; }
 
-  return { creature, person, tile, THEMES, adj, hue, star, pxEllipse, el, OUT };
+  /* ---------- 武器圖示 16×16（依世界觀換配色） ---------- */
+  const WPAL = {
+    school: { a: '#f0c040', b: '#4a78c8', c: '#e8584a', m: '#c8d0dc' },
+    literati: { a: '#8a5a32', b: '#2a2a34', c: '#c83a2a', m: '#e8e0c8' },
+    wuxia: { a: '#b8c4d4', b: '#6a3a22', c: '#c8a040', m: '#e0e4ec' },
+  };
+  const WPARTS = {
+    brush: [{ t: 'p', v: [[2, 13], [10, 5], [12, 7], [4, 15]], c: 'a' }, { t: 'p', v: [[10, 5], [14, 1], [12, 7]], c: 'b' }, { t: 'r', v: [3, 12, 2, 2], c: 'c' }],
+    tome: [{ t: 'r', v: [3, 2, 11, 12], c: 'b' }, { t: 'r', v: [5, 3, 8, 10], c: 'm' }, { t: 'r', v: [3, 2, 2, 12], c: 'c' }, { t: 'r', v: [7, 5, 4, 1], c: 'b' }, { t: 'r', v: [7, 8, 4, 1], c: 'b' }],
+    scroll: [{ t: 'r', v: [3, 4, 10, 8], c: 'm' }, { t: 'r', v: [1, 3, 3, 10], c: 'a' }, { t: 'r', v: [12, 3, 3, 10], c: 'a' }, { t: 'r', v: [5, 6, 6, 1], c: 'b' }, { t: 'r', v: [5, 9, 5, 1], c: 'b' }],
+    fan: [{ t: 'p', v: [[8, 14], [1, 6], [3, 3], [8, 1], [13, 3], [15, 6]], c: 'm' }, { t: 'd', v: [[8, 13], [7, 11], [6, 9], [5, 7], [4, 5], [9, 11], [10, 9], [11, 7], [12, 5], [8, 11], [8, 9], [8, 7], [8, 5], [8, 3]], c: 'b' }, { t: 'r', v: [7, 13, 2, 2], c: 'c' }],
+    seal: [{ t: 'e', v: [7, 7, 5, 5], c: 'a' }, { t: 'e', v: [7, 7, 3.2, 3.2], c: '#bfe4f8' }, { t: 'p', v: [[10, 10], [15, 14], [13, 16], [9, 12]], c: 'b' }, { t: 'd', v: [[5, 5]], c: '#ffffff' }],
+    legend: [{ t: 'r', v: [7, 1, 3, 10], c: 'm' }, { t: 'r', v: [8, 1, 1, 10], c: '#ffffff' }, { t: 'r', v: [4, 10, 9, 2], c: 'c' }, { t: 'r', v: [7, 12, 3, 3], c: 'b' }],
+  };
+  const SWORD = [{ t: 'p', v: [[4, 11], [12, 3], [14, 2], [13, 4], [5, 12]], c: 'm' }, { t: 'p', v: [[2, 10], [6, 14], [7, 13], [3, 9]], c: 'c' }, { t: 'p', v: [[1, 14], [3, 12], [4, 13], [2, 15]], c: 'b' }];
+  const WOVR = {
+    'school.scroll': [{ t: 'r', v: [3, 2, 11, 12], c: '#3a8a58' }, { t: 'r', v: [5, 3, 8, 10], c: 'm' }, { t: 'r', v: [3, 2, 2, 12], c: '#2a6a40' }, { t: 'r', v: [7, 5, 4, 1], c: '#3a8a58' }, { t: 'r', v: [7, 8, 3, 1], c: '#3a8a58' }],
+    'school.fan': [{ t: 'p', v: [[2, 12], [10, 4], [13, 7], [5, 15]], c: '#f070b0' }, { t: 'p', v: [[10, 4], [13, 1], [15, 3], [13, 7]], c: '#f8e040' }, { t: 'r', v: [4, 11, 3, 2], c: '#ffffff' }],
+    'literati.tome': [{ t: 'r', v: [2, 3, 12, 10], c: 'a' }, { t: 'r', v: [4, 3, 1, 10], c: '#5a3a1a' }, { t: 'r', v: [7, 3, 1, 10], c: '#5a3a1a' }, { t: 'r', v: [10, 3, 1, 10], c: '#5a3a1a' }, { t: 'r', v: [2, 5, 12, 1], c: 'c' }, { t: 'r', v: [2, 10, 12, 1], c: 'c' }],
+    'literati.scroll': [{ t: 'p', v: [[1, 13], [13, 1], [15, 3], [3, 15]], c: '#6a9a58' }, { t: 'd', v: [[6, 9], [8, 7], [10, 5]], c: '#1a2a14' }, { t: 'r', v: [1, 13, 2, 3], c: 'c' }],
+    'literati.seal': [{ t: 'r', v: [2, 4, 12, 9], c: '#4a4a52' }, { t: 'e', v: [8, 9, 4, 2.5], c: '#16161e' }, { t: 'r', v: [4, 5, 8, 2], c: '#6a6a74' }],
+    'literati.legend': [{ t: 'p', v: [[5, 2], [11, 2], [11, 14], [5, 14]], c: '#1a1a22' }, { t: 'd', v: [[7, 5], [8, 5], [9, 5], [8, 7], [7, 9], [8, 9], [9, 9], [8, 11]], c: '#e0b040' }],
+    'wuxia.tome': SWORD,
+    'wuxia.scroll': [{ t: 'p', v: [[1, 7], [14, 2], [15, 5], [2, 11]], c: '#8a5a2a' }, { t: 'p', v: [[2, 8], [14, 3], [14, 3.6], [2, 8.6]], c: 'm' }, { t: 'p', v: [[2, 9.5], [14.5, 4.5], [14.5, 5.1], [2, 10.1]], c: 'm' }, { t: 'r', v: [12, 2, 2, 5], c: '#3a2410' }],
+    'wuxia.seal': [{ t: 'p', v: [[2, 13], [11, 4], [12, 5], [3, 14]], c: 'b' }, { t: 'p', v: [[10, 3], [15, 1], [13, 6]], c: 'm' }, { t: 'p', v: [[1, 11], [4, 14], [2, 15], [0, 13]], c: '#c83838' }],
+    'wuxia.legend': SWORD.map((q, i) => i === 1 ? Object.assign({}, q, { c: '#e0b040' }) : q),
+  };
+  function weapon(arch, theme) {
+    const key = 'w:' + arch + theme; if (cache.has(key)) return cache.get(key);
+    const cv = toCanvas(16, 16, raster(16, 16, WOVR[theme + '.' + arch] || WPARTS[arch], WPAL[theme] || WPAL.school));
+    cache.set(key, cv); return cv;
+  }
+  function chest(open) {
+    const key = 'chest' + open; if (cache.has(key)) return cache.get(key);
+    const P = open ? [{ t: 'r', v: [2, 7, 12, 7], c: '#8a5a2a' }, { t: 'r', v: [3, 8, 10, 2], c: '#3a2410' }, { t: 'r', v: [2, 3, 12, 3], c: '#a86a32' }]
+      : [{ t: 'r', v: [2, 6, 12, 8], c: '#8a5a2a' }, { t: 'r', v: [2, 4, 12, 4], c: '#a86a32' }, { t: 'r', v: [2, 8, 12, 1], c: '#d8b040' }, { t: 'r', v: [7, 7, 2, 3], c: '#f0d060' }];
+    const cv = toCanvas(16, 16, raster(16, 16, P, null)); cache.set(key, cv); return cv;
+  }
+
+  return { creature, person, tile, weapon, chest, THEMES, adj, hue, star, pxEllipse, el, OUT };
 })();
