@@ -150,10 +150,34 @@ const OW = {
       if (this.tile(p.moving ? p.tx : p.x, p.moving ? p.ty : p.y) === 'g' && (!p.moving || k > 0.5)) g.drawImage(GFX.tile(theme, 'g'), 0, 10, 16, 6, px - cx, py - cy + 10, 16, 6);
     } });
     actors.sort((a, b) => a.y - b.y).forEach(a => a.draw());
+    // 任務提示：該對話的對象頭上閃爍
+    const marks = questMarks();
+    for (const n of this.npcs) { const m = marks[n.role === W.roles.questGiver ? 'questGiver' : n.key.split(':')[1]]; if (m) drawMark(g, n.x * 16 + n.ox - cx + 3, n.y * 16 + n.oy - cy - 17, m, now); }
     if (this.bubble) { const n = this.bubble; const bx = n.x * 16 + n.ox - cx + 3, by = n.y * 16 + n.oy - cy - 16;
       g.fillStyle = '#2a2018'; g.fillRect(bx - 1, by - 1, 12, 13); g.fillStyle = '#fbf3dc'; g.fillRect(bx, by, 10, 11); g.fillStyle = '#b8322a'; g.fillRect(bx + 4, by + 2, 2, 5); g.fillRect(bx + 4, by + 8, 2, 2); }
   },
 };
+/* 目前該找誰：main 主線（黃 !）、side 可接支線（藍 !）、report 可回報（黃 ?） */
+function questMarks() {
+  const m = {};
+  if (!G.equip.length) m.mentor = 'main';
+  else if (!G.defeated['route1:rival'] && !G.flags.rivalGone) m.rival = 'main';
+  else if (!G.badges.length) { m.gymguide = 'main'; m.gym1 = 'main'; m.rivalA = 'main'; m.rivalB = 'main'; }
+  const q = G.quests.bugs;
+  if (!q || q.state === 'none') m.questGiver = 'side'; else if (q.state === 'active' && q.n >= 3) m.questGiver = 'report';
+  return m;
+}
+const GLYPH = { '!': ['..#..', '..#..', '..#..', '..#..', '.....', '..#..'], '?': ['.###.', '#...#', '...#.', '..#..', '.....', '..#..'] };
+function drawMark(g, x, y, type, now) {
+  const blink = (Math.sin(now / 180) + 1) / 2; if (blink < 0.15) return;
+  const bob = Math.round(Math.sin(now / 250) * 1.5); y += bob;
+  const col = type === 'side' ? '#4aa0f0' : '#f8c830';
+  g.globalAlpha = 0.55 + 0.45 * blink;
+  g.fillStyle = '#2a2018'; g.fillRect(x - 1, y - 1, 11, 11); g.fillRect(x + 3, y + 10, 3, 2);
+  g.fillStyle = col; g.fillRect(x, y, 9, 9); g.fillRect(x + 4, y + 9, 1, 2);
+  g.fillStyle = '#2a2018'; GLYPH[type === 'report' ? '?' : '!'].forEach((row, j) => [...row].forEach((c, i) => { if (c === '#') g.fillRect(x + 2 + i, y + 1 + j, 1, 1); }));
+  g.globalAlpha = 1;
+}
 const wenqiDots = () => `<span class="wq">${Array.from({ length: ULT_COST }, (_, i) => `<i class="${i < G.wenqi ? 'on' : ''}"></i>`).join('')}</span>`;
 function gateOpen(gate) { if (gate === 'needWeapon') return G.equip.length > 0; return false; }
 

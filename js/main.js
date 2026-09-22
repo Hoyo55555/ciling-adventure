@@ -131,12 +131,16 @@ async function opening() {
 async function titleScreen() {
   UI.clear(); setWorldClass(null); Game.scene = 'title'; G = null; W = null; Sound.play('title');
   const logo = UI.el('logo', `<div class="t1">詞靈冒險</div><div class="t2">翡翠之卷</div><div class="t3">國中國文 × 像素冒險　試玩版</div>`);
-  const tlink = UI.el('teacherlink', '👩‍🏫 教師設定'); tlink.addEventListener('pointerdown', e => { e.preventDefault(); if (!UI.stack.some(m => m.el && m.el.classList.contains('panel'))) Teacher.open(); });
+  // 右上角小連結：沒有雲端存檔時，教師從這裡登入；教師登入後才出現「教師設定」
+  const tlink = UI.el('teacherlink', ''); const paintLink = () => { tlink.textContent = TeacherAuth.on ? '👩‍🏫 教師設定' : (Cloud.enabled ? '' : '🔑 教師登入'); tlink.style.display = tlink.textContent ? '' : 'none'; };
+  tlink.addEventListener('pointerdown', async e => { e.preventDefault(); if (UI.stack.some(m => m.el && m.el.classList.contains('panel'))) return;
+    if (TeacherAuth.on) Teacher.open(); else { const r = await LoginPanel.open(); if (r === 'teacher') await say('教師登入成功！標題選單已出現「教師設定」。'); paintLink(); Cloud.paint(); } });
+  paintLink();
   let sel = 0; Cloud.paint();
-  if (Cloud.enabled && !Cloud.user && !Cloud.skipped) { logo.style.display = 'none'; const r = await LoginPanel.open(); if (r === 'skip' || r === null) Cloud.skipped = true; if (r === 'created') await say('帳號建立完成！之後請用同一組班級、座號和密碼登入。'); logo.style.display = ''; Cloud.paint(); }
+  if (Cloud.enabled && !Cloud.user && !Cloud.skipped && !TeacherAuth.on) { logo.style.display = 'none'; const r = await LoginPanel.open(); if (r === 'skip' || r === null) Cloud.skipped = true; if (r === 'created') await say('帳號建立完成！之後請用同一組班級、座號和密碼登入。'); if (r === 'teacher') await say('教師登入成功！標題選單已出現「教師設定」。'); logo.style.display = ''; paintLink(); Cloud.paint(); }
   while (true) {
     // 只有「新的冒險」與「設定」一定出現；其他選項要有理由才出現
-    const labels = [].concat(Slots.any() ? ['繼續冒險'] : [], ['新的冒險'], Slots.cleared().length ? ['轉生'] : [], Meta.hasAny() ? ['紀錄館'] : [], ['設定'], Cloud.enabled ? [Cloud.user ? '登出' : '登入帳號'] : []);
+    const labels = [].concat(Slots.any() ? ['繼續冒險'] : [], ['新的冒險'], Slots.cleared().length ? ['轉生'] : [], Meta.hasAny() ? ['紀錄館'] : [], ['設定'], TeacherAuth.on ? ['教師設定', '教師登出'] : Cloud.enabled ? [Cloud.user ? '登出' : '登入帳號'] : []);
     const i = await UI.choose(labels, { pos: { left: '50%', bottom: U(6), transform: 'translateX(-50%)' }, cancel: false, start: Math.min(sel, labels.length - 1), cls: 'titlemenu', cols: labels.length > 3 ? 2 : 1 });
     sel = i; const L = labels[i];
     logo.style.display = 'none';
@@ -145,7 +149,9 @@ async function titleScreen() {
     if (L === '轉生') { const n = await SlotScreen.open('rebirth'); if (n) { logo.remove(); const ok = await Flow.rebirth(n); if (ok) return; return titleScreen(); } }
     if (L === '登出' || L === '登入帳號') {
       if (L === '登出' && !(await Cloud.logoutFlow())) { logo.style.display = ''; continue; }
-      const r = await LoginPanel.open(); if (r === 'skip' || r === null) Cloud.skipped = true; if (r === 'created') await say('帳號建立完成！之後請用同一組班級、座號和密碼登入。'); Cloud.paint(); }
+      const r = await LoginPanel.open(); if (r === 'skip' || r === null) Cloud.skipped = true; if (r === 'created') await say('帳號建立完成！之後請用同一組班級、座號和密碼登入。'); if (r === 'teacher') await say('教師登入成功！標題選單已出現「教師設定」。'); paintLink(); Cloud.paint(); }
+    if (L === '教師設定') await Teacher.open();
+    if (L === '教師登出') { if (await UI.yesno('要登出教師模式嗎？')) { TeacherAuth.logout(); Cloud.skipped = false; paintLink(); Cloud.paint(); await say('已登出教師模式。'); logo.remove(); tlink.remove(); return titleScreen(); } }
     if (L === '紀錄館') await RecordHall.open();
     if (L === '設定') await SettingsPanel.open();
     logo.style.display = '';
@@ -214,7 +220,7 @@ $('#muteBtn').addEventListener('click', () => { Sound.unlock(); const m = Sound.
 if (Sound.muted) $('#muteBtn').firstChild.textContent = '✕';
 window.addEventListener('pointerdown', () => Sound.unlock(), { once: true });
 window.addEventListener('keydown', e => {   // 教師設定快捷鍵：在標題畫面按 T
-  if (Game.scene === 'title' && !G && (e.key === 't' || e.key === 'T') && !/INPUT|TEXTAREA/.test(e.target.tagName) && !UI.stack.some(m => m.el && m.el.classList.contains('panel'))) Teacher.open();
+  if (Game.scene === 'title' && !G && TeacherAuth.on && (e.key === 't' || e.key === 'T') && !/INPUT|TEXTAREA/.test(e.target.tagName) && !UI.stack.some(m => m.el && m.el.classList.contains('panel'))) Teacher.open();
 });
 requestAnimationFrame(loop);
 opening().then(titleScreen);

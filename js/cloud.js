@@ -46,9 +46,10 @@ const Cloud = {
   },
   setStatus(s) { this.status = s; this.paint(); },
   paint() {
-    const show = this.enabled && (Game.scene === 'title' || this.status === 'error');
+    const show = (this.enabled || TeacherAuth.on) && (Game.scene === 'title' || this.status === 'error');
     if (!show) { if (this.badge) { this.badge.remove(); this.badge = null; } return; }
     if (!this.badge || !this.badge.isConnected) { this.badge = h('div', 'cloudbadge'); $('#screen').appendChild(this.badge); }
+    if (TeacherAuth.on) { this.badge.textContent = '👩‍🏫 教師模式'; this.badge.className = 'cloudbadge teacher'; return; }
     const t = !this.user ? '☁ 未登入（只存在這台電腦）' : { syncing: '☁ 同步中…', error: '☁ 同步失敗，稍後重試', ok: '☁ 已同步', idle: '☁ 已登入' }[this.status];
     this.badge.textContent = (this.user ? this.label() + '　' : '') + t; this.badge.className = 'cloudbadge ' + this.status;
   },
@@ -56,6 +57,20 @@ const Cloud = {
 /* 精簡存檔：題庫中已有的錯題不必存整題 */
 function slim(g) { const c = JSON.parse(JSON.stringify(g)); c.wrong = c.wrong.map(w => QB.byId(w.id) ? Object.assign({}, w, { snap: undefined }) : w); return c; }
 function summary(g) { const T = totals(g); return { name: g.player.name, world: WORLDS[g.world].name, lv: g.lv, chapter: g.chapter, badges: g.badges.length, answered: T.t, pct: T.pct, wrong: g.wrong.length, minutes: Math.round((g.time || 0) / 60) }; }
+
+/* 教師模式：用教師帳號登入後才看得到「教師設定」（不會連到雲端，也不會寫進試算表） */
+const TeacherAuth = {
+  get on() { return !!Store.get('ciling_teacher', false); },
+  async check(cls, no, pin) {
+    const T = typeof CONFIG !== 'undefined' && CONFIG.teacher; if (!T) return false;
+    if (String(cls).toUpperCase() !== String(T.cls).toUpperCase() || String(+no) !== String(+T.no)) return false;
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`ciling-teacher|${T.cls}|${T.no}|${pin}`));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('') === T.hash;
+  },
+  isTeacherId(cls, no) { const T = typeof CONFIG !== 'undefined' && CONFIG.teacher; return !!T && String(cls).toUpperCase() === String(T.cls).toUpperCase() && String(+no) === String(+T.no); },
+  login() { Store.set('ciling_teacher', true); },
+  logout() { Store.del('ciling_teacher'); },
+};
 
 /* 登入畫面 */
 const LoginPanel = {
@@ -69,9 +84,14 @@ const LoginPanel = {
       const $i = n => $(`input[name=${n}]`, ctl.box), m = $('.lg-msg', ctl.box);
       if (Cloud.user) { $i('cls').value = Cloud.user.cls; $i('no').value = Cloud.user.no; }
       const submit = async () => {
-        const cls = $i('cls').value.trim(), no = String(+$i('no').value.trim() || ''), pin = $i('pin').value.trim();
+        const cls = $i('cls').value.trim(), noRaw = $i('no').value.trim(), no = /^\d{1,3}$/.test(noRaw) ? String(parseInt(noRaw, 10)) : '', pin = $i('pin').value.trim();
         if (!/^[0-9A-Za-z]{1,6}$/.test(cls) || !/^\d{1,3}$/.test(no)) { m.textContent = '請填寫班級與座號。'; return; }
         if (!/^\d{4}$/.test(pin)) { m.textContent = '密碼要是 4 位數字。第一次登入時設定的密碼，之後都要用同一組喔！'; return; }
+        if (TeacherAuth.isTeacherId(cls, no)) {   // 教師帳號：本機驗證，不連雲端
+          if (await TeacherAuth.check(cls, no, pin)) { TeacherAuth.login(); Sound.sfx('badge'); ctl.done('teacher'); } else { Sound.sfx('bump'); m.textContent = '教師密碼錯誤。'; }
+          return;
+        }
+        if (!Cloud.enabled) { m.textContent = '目前沒有設定雲端存檔，學生不需要登入，按「不登入」即可。'; return; }
         m.textContent = '連線中……';
         try { const j = await Cloud.login(cls, no, pin); m.textContent = ''; Sound.sfx('badge'); ctl.done(j.created ? 'created' : 'ok'); }
         catch (e) { Sound.sfx('bump'); m.textContent = '登入失敗：' + e.message; }
