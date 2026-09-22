@@ -11,7 +11,7 @@ const UI = {
   clear() { this.stack = []; this.root.innerHTML = ''; },
 };
 function fmt(t) {
-  return String(t).replace(/\{name\}/g, G ? G.player.name : '').replace(/\{money\}/g, W ? W.money : '').replace(/\{weapon\}/g, G && W && G.equip && G.equip.length ? weaponName(G.equip[G.cur]) : '');
+  return String(t).replace(/\{name\}/g, G ? G.player.name : '').replace(/\{money\}/g, W ? W.money : '').replace(/\{weapon\}/g, G && W && G.equip && G.equip.length && curW() ? weaponName(curW()) : '');
 }
 function paginate(text, max = 46) {
   const out = [];

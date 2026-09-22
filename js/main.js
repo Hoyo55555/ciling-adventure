@@ -18,11 +18,78 @@ const Title = {
     for (let x = -16; x < 256; x += 16) { g.drawImage(GFX.tile('literati', ','), x - off, 118); g.drawImage(GFX.tile('literati', '.'), x - off, 134); g.drawImage(GFX.tile('literati', '.'), x - off, 150); }
     const fr = Math.floor(t * 6) % 2 ? 1 : 2;
     HEROES.forEach((L, i) => { const x = 40 + i * 34; g.drawImage(GFX.person(L, 'right', fr), x, 94, 24, 24); g.drawImage(GFX.weapon(STARTER_ARCHS[i], L.style), x + 18, 104, 10, 10); });
-    const bob = Math.abs(Math.sin(t * 5)) * 4; g.drawImage(GFX.creature('cuozi'), 176, 88 - bob, 30, 30);
+    const bob = Math.abs(Math.sin(t * 5)) * 4; g.drawImage(GFX.weaponMon('brush', 'school'), 176, 88 - bob, 30, 30);
   },
 };
 const Blank = { draw(g) { g.fillStyle = '#16120e'; g.fillRect(0, 0, 240, 160); } };
-const SCENES = { title: Title, overworld: OW, battle: Battle, blank: Blank };
+/* ---------- 世界觀選擇動畫：三幅畫卷依序升起，選定後展開並介紹角色與冒險 ---------- */
+function drawDiorama(g, wid, x, w, t) {
+  const Wd = WORLDS[wid], th = Wd.theme, i = WORLD_ORDER.indexOf(wid);
+  const sky = { school: ['#bfe6ff', '#e6f6ff'], literati: ['#e6dfc8', '#f6f1e2'], wuxia: ['#f0b878', '#f8dcb0'] }[wid];
+  g.fillStyle = sky[0]; g.fillRect(x, 0, w, 64); g.fillStyle = sky[1]; g.fillRect(x, 32, w, 32);
+  if (wid === 'wuxia') { g.fillStyle = '#f8a860'; g.fillRect(x + w - 30, 10, 16, 16); }
+  if (wid === 'literati') { g.fillStyle = '#b8322a'; g.fillRect(x + w - 26, 10, 12, 12); }
+  g.save(); g.translate(0, -18);
+  for (let tx = Math.floor(x / 16) * 16 - 16; tx < x + w + 16; tx += 16) { g.drawImage(GFX.tile(th, 'T'), tx, 48); g.drawImage(GFX.tile(th, '.'), tx, 64); g.drawImage(GFX.tile(th, '.'), tx, 80); g.drawImage(GFX.tile(th, '.'), tx, 96); g.drawImage(GFX.tile(th, ','), tx, 112); g.drawImage(GFX.tile(th, '.'), tx, 128); g.drawImage(GFX.tile(th, 'g'), tx, 144); g.drawImage(GFX.tile(th, 'g'), tx, 160); }
+  const cx = x + w / 2, bx = Math.round(cx - 24);
+  ['R', 'R', 'R'].forEach((c, k) => g.drawImage(GFX.tile(th, c), bx + k * 16, 64)); ['#', 'D', 'W'].forEach((c, k) => g.drawImage(GFX.tile(th, c), bx + k * 16, 80));
+  const fr = Math.floor(t * 6) % 2 ? 1 : 2, walk = w > 100 ? Math.sin(t * 0.8) * 30 : 0;
+  g.drawImage(GFX.person(HEROES[i], 'right', fr), Math.round(cx - 34 + walk), 98, 32, 32);
+  g.drawImage(GFX.weapon(STARTER_ARCHS[i], th), Math.round(cx - 12 + walk), 110, 14, 14);
+  const bob = Math.abs(Math.sin(t * 4 + i)) * 3; g.drawImage(GFX.weaponMon(STARTER_ARCHS[(i + 1) % 3], th), Math.round(cx + 8 + walk * 0.5), Math.round(102 - bob), 26, 26);
+  g.restore();
+}
+const WorldPick = {
+  t: 0, sel: 0, enter: 0, exp: 0, chosen: -1, exclude: null,
+  draw(g) {
+    this.t += 1 / 60; g.fillStyle = '#16120e'; g.fillRect(0, 0, 240, 160);
+    for (let i = 0; i < 3; i++) {
+      let x = i * 80, w = 80;
+      if (this.chosen >= 0) { if (i !== this.chosen) { if (this.exp > 0.98) continue; } else { x = i * 80 * (1 - this.exp); w = 80 + 160 * this.exp; } }
+      const rise = (1 - clamp(this.enter * 2.2 - i * 0.55, 0, 1)); const oy = Math.round(rise * rise * 160);
+      g.save(); g.beginPath(); g.rect(x, oy, w, 160); g.clip(); g.translate(0, oy);
+      drawDiorama(g, WORLD_ORDER[i], x, w, this.t);
+      const dim = this.chosen < 0 ? (i !== this.sel ? 0.55 : 0) : (i !== this.chosen ? 0.7 : 0);
+      if (WORLD_ORDER[i] === this.exclude) { g.fillStyle = 'rgba(16,12,8,.75)'; g.fillRect(x, 0, w, 160); }
+      else if (dim) { g.fillStyle = `rgba(16,12,8,${dim})`; g.fillRect(x, 0, w, 160); }
+      g.restore();
+      if (this.chosen < 0) { g.fillStyle = '#16120e'; g.fillRect(x + w - 1, 0, 2, 160); }
+    }
+  },
+  async open(opt = {}) {
+    Object.assign(this, { exclude: opt.exclude || null, chosen: -1, exp: 0, enter: 0 });
+    this.sel = WORLD_ORDER.findIndex(w => w !== this.exclude);
+    UI.clear(); setWorldClass(null); Game.scene = 'worldpick'; Sound.play('title');
+    const head = UI.el('box wp-head', esc(opt.title || '選擇你要冒險的世界'));
+    const labels = WORLD_ORDER.map((w, i) => UI.el('box wp-label', `<b>${WORLDS[w].icon} ${esc(WORLDS[w].name)}</b>${Meta.d.cleared[w] ? '<br><span class="small good">✓ 已通關</span>' : ''}${w === this.exclude ? '<br><span class="small muted">目前的世界</span>' : ''}`, { left: U(i * 80 + 4), width: U(72) }));
+    const foot = UI.el('wp-foot', '←→ 選擇　A 決定　B 返回');
+    const cleanup = () => { head.remove(); labels.forEach(l => l.remove()); foot.remove(); };
+    await Anim.run(1.1, k => this.enter = k);
+    while (true) {
+      const paint = () => labels.forEach((l, i) => l.classList.toggle('sel', i === this.sel));
+      paint();
+      const pick = await new Promise(res => {
+        const ok = i => { if (WORLD_ORDER[i] === this.exclude) { Sound.sfx('bump'); return; } UI.pop(m); res(i); };
+        const m = { update: () => { const d = Input.dir();
+          if (d === 'left' && this.sel > 0) { this.sel--; Sound.sfx('cursor'); paint(); } if (d === 'right' && this.sel < 2) { this.sel++; Sound.sfx('cursor'); paint(); }
+          if (Input.p('A')) ok(this.sel); else if (Input.p('B')) { Sound.sfx('back'); UI.pop(m); res(-1); } } };
+        labels.forEach((l, i) => l.onpointerdown = e => { e.preventDefault(); if (this.sel === i) ok(i); else { this.sel = i; Sound.sfx('cursor'); paint(); } });
+        UI.push(m);
+      });
+      if (pick < 0) { cleanup(); return null; }
+      Sound.sfx('ok'); this.chosen = pick; [head, foot, ...labels].forEach(e => e.style.display = 'none');
+      await Anim.run(0.7, k => this.exp = k * k * (3 - 2 * k));
+      const Wd = WORLDS[WORLD_ORDER[pick]]; setWorldClass(Wd.id); Sound.play(Wd.music.town);
+      const ttl = UI.el('box wp-title', `${Wd.icon} ${esc(Wd.name)}`);
+      for (const t of Wd.intro) await UI.say(t);
+      const k = await UI.ask('要進入這個世界嗎？', ['進入這個世界', '回去重新選擇']);
+      ttl.remove();
+      if (k === 0) { cleanup(); return Wd.id; }
+      setWorldClass(null); Sound.play('title'); await Anim.run(0.5, q => this.exp = 1 - q); this.chosen = -1; [head, foot, ...labels].forEach(e => e.style.display = '');
+    }
+  },
+};
+const SCENES = { title: Title, overworld: OW, battle: Battle, blank: Blank, worldpick: WorldPick };
 
 function setWorldClass(wid) { document.body.classList.remove('w-school', 'w-literati', 'w-wuxia'); if (wid) document.body.classList.add('w-' + wid); }
 
@@ -64,73 +131,74 @@ async function opening() {
 async function titleScreen() {
   UI.clear(); setWorldClass(null); Game.scene = 'title'; G = null; W = null; Sound.play('title');
   const logo = UI.el('logo', `<div class="t1">詞靈冒險</div><div class="t2">翡翠之卷</div><div class="t3">國中國文 × 像素冒險　試玩版</div>`);
-  let sel = Slots.any() ? 0 : 1;
+  const tlink = UI.el('teacherlink', '👩‍🏫 教師設定'); tlink.addEventListener('pointerdown', e => { e.preventDefault(); if (!UI.stack.some(m => m.el && m.el.classList.contains('panel'))) Teacher.open(); });
+  let sel = 0;
   while (true) {
-    const canReborn = Slots.cleared().length > 0;
-    const opts = [{ label: '繼續冒險', disabled: !Slots.any() }, '新的冒險'].concat(canReborn ? ['轉生'] : []).concat(['紀錄館', '設定', '教師設定', '遊戲說明']);
-    const labels = opts.map(o => typeof o === 'string' ? o : o.label);
-    const i = await UI.choose(opts, { pos: { left: '50%', bottom: U(6), transform: 'translateX(-50%)' }, cancel: false, start: sel, cls: 'titlemenu', cols: 2 });
+    // 只有「新的冒險」與「設定」一定出現；其他選項要有理由才出現
+    const labels = [].concat(Slots.any() ? ['繼續冒險'] : [], ['新的冒險'], Slots.cleared().length ? ['轉生'] : [], Meta.hasAny() ? ['紀錄館'] : [], ['設定']);
+    const i = await UI.choose(labels, { pos: { left: '50%', bottom: U(6), transform: 'translateX(-50%)' }, cancel: false, start: Math.min(sel, labels.length - 1), cls: 'titlemenu', cols: labels.length > 3 ? 2 : 1 });
     sel = i; const L = labels[i];
     logo.style.display = 'none';
-    if (L === '繼續冒險') { const n = await SlotScreen.open('load'); if (n) { logo.remove(); return Flow.load(n); } }
+    if (L === '繼續冒險') { const n = await SlotScreen.open('load'); if (n) { logo.remove(); tlink.remove(); return Flow.load(n); } }
     if (L === '新的冒險') { const n = await SlotScreen.open('new'); if (n) { logo.remove(); const ok = await Flow.newGame(n); if (ok) return; return titleScreen(); } }
     if (L === '轉生') { const n = await SlotScreen.open('rebirth'); if (n) { logo.remove(); const ok = await Flow.rebirth(n); if (ok) return; return titleScreen(); } }
     if (L === '紀錄館') await RecordHall.open();
     if (L === '設定') await SettingsPanel.open();
-    if (L === '教師設定') await Teacher.open();
-    if (L === '遊戲說明') await Help.open();
     logo.style.display = '';
   }
 }
 
 /* ---------- 存檔資料 ---------- */
 function freshState(world, player, slot) {
-  return { v: 2, slot, world, player, map: 'town1', x: 6, y: 5, lv: 3, exp: 0, hp: null, weapons: {}, equip: [], cur: 0, wenqi: 0,
-    bag: { heal: 0, heal2: 0, wenqi: 0, hint: 0 }, money: 300, chapter: 1, badges: [], flags: {}, defeated: {}, chests: {}, quests: {},
+  return { v: 2, slot, world, player, map: 'town1', x: 6, y: 5, lv: 3, exp: 0, hp: null, weapons: [], equip: [], cur: 0, wenqi: 0,
+    bag: { heal: 0, heal2: 0, wenqi: 0, hint: 0 }, frags: {}, money: 300, chapter: 1, badges: [], flags: {}, defeated: {}, chests: {}, quests: {},
     stats: {}, chStats: {}, wrong: [], seen: {}, weakKnown: {}, lastHeal: { map: 'town1', x: 6, y: 5 }, time: 0, streak: 0, bestStreak: 0, answered: 0, ng: 0 };
 }
 const Flow = {
   async load(n) {
     G = Slots.read(n); if (!G) return titleScreen(); G.slot = n; W = WORLDS[G.world]; setWorldClass(G.world);
     const base = freshState(G.world, G.player, n); for (const k in base) if (G[k] == null) G[k] = base[k];
+    if (!Array.isArray(G.weapons)) {   // 舊版存檔：武器由「每種一件」轉換為武器實體
+      const old = G.weapons, map = {}; G.weapons = [];
+      for (const a in old) { const w = newWeapon(a, 0); w.mastery = old[a].mastery || 0; G.weapons.push(w); map[a] = w.id; }
+      G.equip = G.equip.map(a => map[a]).filter(Boolean); G.cur = 0;
+    }
+    if (G.map === 'town2' && !LAYOUTS.town2.rows[G.y]) { G.x = 11; G.y = 12; }
     playerStats();
     await fade(1, 0.3); UI.clear(); Game.scene = 'overworld'; OW.load(G.map, G.x, G.y, 'down'); await fade(0, 0.3);
   },
   async newGame(slot, preset) {
     while (true) {
       UI.clear(); setWorldClass(null); Game.scene = 'title';
-      const wid = await WorldSelect.open(); if (!wid) return false;
-      W = WORLDS[wid]; setWorldClass(wid); G = freshState(wid, { name: '', title: '', look: {} }, slot);
+      const wid = await WorldPick.open(); if (!wid) return false;
+      W = WORLDS[wid]; setWorldClass(wid); Game.scene = 'title'; G = freshState(wid, { name: '', title: '', look: {} }, slot);
       const pl = await CharCreate.open(wid, preset); if (!pl) { G = null; W = null; continue; }
       G.player = pl; playerStats();
-      await Flow.prologue(); return true;
+      await Flow.start(); return true;
     }
   },
   async rebirth(slot) {
     const old = Slots.read(slot); if (!old) return false;
     while (true) {
       UI.clear(); setWorldClass(null); Game.scene = 'title';
-      await say('轉生後會保留：等級、武器與熟練度、錯題本、學習紀錄。\n敵人和題目會變得更難喔！');
-      const wid = await WorldSelect.open({ title: '要轉生到哪一個世界？', exclude: old.world }); if (!wid) return false;
-      W = WORLDS[wid]; setWorldClass(wid);
+      await say('轉生後會保留：等級、武器（含稀有度與熟練度）、碎片、錯題本、學習紀錄。\n敵人和題目會變得更難喔！');
+      const wid = await WorldPick.open({ title: '要轉生到哪一個世界？', exclude: old.world }); if (!wid) return false;
+      W = WORLDS[wid]; setWorldClass(wid); Game.scene = 'title';
       const pl = await CharCreate.open(wid, old.player); if (!pl) continue;
       G = freshState(wid, pl, slot);
-      Object.assign(G, { lv: old.lv, exp: old.exp, weapons: JSON.parse(JSON.stringify(old.weapons)), equip: old.equip.slice(), stats: old.stats, wrong: old.wrong,
+      Object.assign(G, { lv: old.lv, exp: old.exp, weapons: JSON.parse(JSON.stringify(old.weapons)), equip: old.equip.slice(), frags: old.frags || {}, stats: old.stats, wrong: old.wrong,
         bestStreak: old.bestStreak, answered: old.answered, weakKnown: old.weakKnown, bag: old.bag, money: Math.floor(old.money / 2), ng: (old.ng || 0) + 1,
         history: (old.history || []).concat([{ world: old.world, time: old.time, at: Date.now() }]) });
-      for (const a in G.weapons) Meta.seeWeapon(wid, a);
-      playerStats(); G.hp = G.maxhp;
-      await Flow.prologue();
-      await say(`（轉生完成！你帶著 Lv.${G.lv} 的實力與 ${Object.keys(G.weapons).length} 件武器的熟練度，來到了${W.name}。武器已化為這個世界的兵器。）`);
+      for (const w of G.weapons) Meta.seeWeapon(wid, w.arch, w.r);
+      G.flags.tut = 'skip'; playerStats(); G.hp = G.maxhp;
+      await Flow.start();
+      await say(`（轉生完成！你帶著 Lv.${G.lv} 的實力與 ${G.weapons.length} 件武器來到了${W.name}。武器已化為這個世界的兵器。）`);
       return true;
     }
   },
-  async prologue() {
-    await fade(1, 0.4); UI.clear(); Game.scene = 'blank'; await fade(0, 0.1);
-    Sound.play(W.music.town);
-    for (const t of W.prologue) await say(t);
-    await fade(1, 0.3); Game.scene = 'overworld'; OW.load('town1', 6, 5, 'down'); autosave(); await fade(0, 0.4);
-    await sleep(300); showBanner(W.chapterName);
+  async start() {
+    await fade(1, 0.4); UI.clear(); Game.scene = 'overworld'; OW.load('town1', 6, 5, 'down'); autosave(); await fade(0, 0.4);
+    await sleep(200); showBanner(W.chapterName); await say(W.start);
   },
 };
 
@@ -141,5 +209,8 @@ UI.init(); QB.init(); Input.bindPad();
 $('#muteBtn').addEventListener('click', () => { Sound.unlock(); const m = Sound.toggle(); $('#muteBtn').firstChild.textContent = m ? '✕' : '♪'; });
 if (Sound.muted) $('#muteBtn').firstChild.textContent = '✕';
 window.addEventListener('pointerdown', () => Sound.unlock(), { once: true });
+window.addEventListener('keydown', e => {   // 教師設定快捷鍵：在標題畫面按 T
+  if (Game.scene === 'title' && !G && (e.key === 't' || e.key === 'T') && !/INPUT|TEXTAREA/.test(e.target.tagName) && !UI.stack.some(m => m.el && m.el.classList.contains('panel'))) Teacher.open();
+});
 requestAnimationFrame(loop);
 opening().then(titleScreen);

@@ -56,15 +56,6 @@ const GFX = (() => {
     return cv;
   }
 
-  /* ---------- 詞靈 32×32 ---------- */
-  function creature(id, variant = 0) {
-    const key = 'c:' + id + ':' + variant; if (cache.has(key)) return cache.get(key);
-    const S = SPECIES[id]; let pal = S.pal;
-    if (variant) { pal = {}; for (const k in S.pal) pal[k] = hue(S.pal[k], variant); }
-    const cv = toCanvas(32, 32, raster(32, 32, S.parts, pal));
-    cache.set(key, cv); return cv;
-  }
-
   /* ---------- 人物 16×16（四方向、三格走路） ---------- */
   function personParts(L, dir, fr) {
     const P = [], R = (x, y, w, hh, c, m) => P.push({ t: 'r', v: [x, y, w, hh], c, m }), D = (v, c, m) => P.push({ t: 'd', v, c, m }), E = (v, c, m) => P.push({ t: 'e', v, c, m });
@@ -188,6 +179,7 @@ const GFX = (() => {
         else { R(4, 1, 8, 7, T.lamp); R(4, 1, 8, 1, '#40302a'); R(4, 7, 8, 1, '#40302a'); R(6, 3, 4, 3, '#f8d060'); }
         break;
       case '^': ground(); R(2, 5, 12, 10, T.rock); R(4, 3, 8, 3, T.rock); R(4, 4, 4, 2, adj(T.rock, .3)); R(2, 13, 12, 2, adj(T.rock, -.3)); break;
+      case 'X': R(0, 0, 16, 16, '#16120e'); break;
       default: ground();
     }
     cache.set(key, cv); return cv;
@@ -232,6 +224,24 @@ const GFX = (() => {
     const cv = toCanvas(16, 16, raster(16, 16, WOVR[theme + '.' + arch] || WPARTS[arch], WPAL[theme] || WPAL.school));
     cache.set(key, cv); return cv;
   }
+  /* 武器妖：把武器圖示放大成 32×32，加上眼睛、腳、腮紅 */
+  function weaponMon(arch, theme) {
+    const key = 'm:' + arch + theme; if (cache.has(key)) return cache.get(key);
+    const k = 1.6, ox = 16 - 8 * k, oy = 0;
+    const src = WOVR[theme + '.' + arch] || WPARTS[arch]; const P = [];
+    for (const q of src) {
+      if (q.t === 'e') P.push({ t: 'e', v: [q.v[0] * k + ox, q.v[1] * k + oy, q.v[2] * k, q.v[3] * k], c: q.c });
+      else if (q.t === 'r') P.push({ t: 'r', v: [Math.round(q.v[0] * k + ox), Math.round(q.v[1] * k + oy), Math.round(q.v[2] * k), Math.round(q.v[3] * k)], c: q.c });
+      else if (q.t === 'p') P.push({ t: 'p', v: q.v.map(([x, y]) => [x * k + ox, y * k + oy]), c: q.c });
+      else if (q.t === 'd') for (const [x, y] of q.v) P.push({ t: 'r', v: [Math.round(x * k + ox), Math.round(y * k + oy), 2, 2], c: q.c });
+    }
+    P.push({ t: 'e', v: [10, 29.5, 3, 1.8], c: '#3a2a20' }, { t: 'e', v: [22, 29.5, 3, 1.8], c: '#3a2a20' });
+    P.push({ t: 'e', v: [12.5, 14, 3, 3.3], c: '#ffffff' }, { t: 'e', v: [19.5, 14, 3, 3.3], c: '#ffffff' });
+    P.push({ t: 'r', v: [12, 14, 2, 3], c: OUT }, { t: 'r', v: [19, 14, 2, 3], c: OUT }, { t: 'd', v: [[12, 14], [19, 14]], c: '#ffffff' });
+    P.push({ t: 'r', v: [9, 18, 2, 1], c: '#f08080' }, { t: 'r', v: [21, 18, 2, 1], c: '#f08080' }, { t: 'r', v: [15, 19, 2, 1], c: OUT });
+    const cv = toCanvas(32, 32, raster(32, 32, P, WPAL[theme] || WPAL.school));
+    cache.set(key, cv); return cv;
+  }
   function chest(open) {
     const key = 'chest' + open; if (cache.has(key)) return cache.get(key);
     const P = open ? [{ t: 'r', v: [2, 7, 12, 7], c: '#8a5a2a' }, { t: 'r', v: [3, 8, 10, 2], c: '#3a2410' }, { t: 'r', v: [2, 3, 12, 3], c: '#a86a32' }]
@@ -239,5 +249,5 @@ const GFX = (() => {
     const cv = toCanvas(16, 16, raster(16, 16, P, null)); cache.set(key, cv); return cv;
   }
 
-  return { creature, person, tile, weapon, chest, THEMES, adj, hue, star, pxEllipse, el, OUT };
+  return { person, tile, weapon, weaponMon, chest, THEMES, adj, hue, star, pxEllipse, el, OUT };
 })();

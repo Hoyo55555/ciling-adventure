@@ -16,7 +16,7 @@ const OW = {
     }).filter(Boolean);
     this.spawnFoes();
     G.map = id; G.x = x; G.y = y;
-    Sound.play(W.music[this.L.music] || 'route');
+    Sound.play(W.music[this.L.music] || this.L.music);
     showBanner(W.mapNames[id]);
   },
   spawnFoes() {
@@ -29,7 +29,7 @@ const OW = {
       this.foes.push({ sp: e.sp, lv: rnd(F.lv[0], F.lv[1]) + (G.ng || 0) * 4, x: s[0], y: s[1], hx: s[0], hy: s[1], ox: 0, oy: 0, t: Math.random() * 1.5, cool: 0, moving: false });
     }
   },
-  tile(x, y) { const r = this.L.rows; if (y < 0 || y >= r.length || x < 0 || x >= r[0].length) return 'T'; return r[y][x]; },
+  tile(x, y) { const r = this.L.rows; if (y < 0 || y >= r.length || x < 0 || x >= r[0].length) return this.L.indoor ? 'X' : 'T'; return r[y][x]; },
   npcAt(x, y) { return this.npcs.find(n => n.x === x && n.y === y); },
   foeAt(x, y) { return this.foes.find(f => f.x === x && f.y === y); },
   chestAt(x, y) { return (this.L.chests || []).find(c => c.x === x && c.y === y); },
@@ -49,6 +49,7 @@ const OW = {
       else return;
     }
     if (Input.p('START')) { Sound.sfx('ok'); this.run(() => BookMenu.open()); return; }
+    if (Input.p('HOME')) { this.run(() => goHome()); return; }
     if (Input.p('A')) { this.interact(); return; }
     const d = ['up', 'down', 'left', 'right'].find(k => Input.h(k));
     if (!d) { p.cont = false; p.turnWait = 0; return; }
@@ -60,6 +61,8 @@ const OW = {
     const p = this.p, [dx, dy] = DIRS[d], nx = p.x + dx, ny = p.y + dy;
     const gate = this.L.gates && this.L.gates[nx + ',' + ny];
     if (gate && !gateOpen(gate)) { p.cont = false; this.run(() => say(W.gates[gate])); return; }
+    const dw = this.L.doorWarps && this.L.doorWarps[nx + ',' + ny];
+    if (dw) { p.cont = false; this.run(() => warpTo(dw.to, dw.tx, dw.ty, dw.dir)); return; }
     const f = this.foeAt(nx, ny);
     if (f && f.cool <= 0) { p.cont = false; this.run(() => foeBattle(f)); return; }
     if (this.solid(nx, ny) || f) { if (this.bumpCd <= 0) { Sound.sfx('bump'); this.bumpCd = 0.35; } p.cont = false; return; }
@@ -107,6 +110,8 @@ const OW = {
     const c = this.chestAt(tx, ty); if (c) { this.run(() => openChest(c)); return; }
     const f = this.foeAt(tx, ty); if (f && f.cool <= 0) { this.run(() => foeBattle(f)); return; }
     if (this.L.signs && this.L.signs[key]) { this.run(() => say(W.signs[this.L.signs[key]])); return; }
+    const dw = this.L.doorWarps && this.L.doorWarps[key];
+    if (dw) { this.run(() => warpTo(dw.to, dw.tx, dw.ty, dw.dir)); return; }
     if (this.L.doors && this.L.doors[key]) { this.run(() => doorAct(this.L.doors[key], tx, ty)); return; }
     if (this.tile(tx, ty) === '~') this.run(() => say('水面波光粼粼，倒映著天空。'));
   },
@@ -135,7 +140,7 @@ const OW = {
       const bob = Math.round(Math.abs(Math.sin(now / 220 + f.hx)) * 2); const fx = f.x * 16 + f.ox - cx, fy = f.y * 16 + f.oy - cy;
       g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(fx + 3, fy + 13, 10, 2);
       if (f.cool > 0 && Math.floor(now / 120) % 2) return;
-      g.drawImage(GFX.creature(f.sp), fx - 1, fy - 4 - bob, 18, 18);
+      g.drawImage(GFX.weaponMon(f.sp, W.theme), fx - 1, fy - 4 - bob, 18, 18);
     } });
     const fr = p.moving ? (k < 0.5 ? (p.step % 2 ? 1 : 2) : 0) : 0;
     actors.push({ y: py, draw: () => {
@@ -151,13 +156,25 @@ const wenqiDots = () => `<span class="wq">${Array.from({ length: ULT_COST }, (_,
 function gateOpen(gate) { if (gate === 'needWeapon') return G.equip.length > 0; return false; }
 
 /* ---------- 腳本 ---------- */
-async function warpTo(map, x, y, dir) { Sound.sfx('door'); await fade(1, 0.22); OW.load(map, x, y, dir); autosave(); await sleep(60); await fade(0, 0.22); }
+async function warpTo(map, x, y, dir) {
+  Sound.sfx('door'); await fade(1, 0.22); OW.load(map, x, y, dir); autosave(); await sleep(60); await fade(0, 0.22);
+  if (map === 'route1' && G.flags.tut === 'pending') {   // 教學戰在步道入口進行（城鎮裡不戰鬥）
+    G.flags.tut = 'done'; const M = W.roles.mentor.name;
+    await say('就在這裡練習吧！', M);
+    await Battle.start({ kind: 'wild', foe: makeFoe('brush', 2), tutorial: true, mentor: M });
+  }
+}
+async function goHome() {
+  if (!(await UI.yesno('要回到主畫面嗎？\n（目前進度會自動儲存）'))) return;
+  autosave(); await fade(1, 0.3); titleScreen(); await fade(0, 0.3);
+}
 async function talkTo(n) {
   const R = n.role; n.dir = OPP[OW.p.dir];
   switch (R.kind) {
     case 'mentor': return mentorTalk(n);
     case 'trainer': case 'rival': case 'gym': return trainerTalk(n);
     case 'quest': return questTalk(n);
+    case 'smith': await say(R.lines.join('\n\n'), R.name); await Forge.open(); n.dir = n.home; return;
     default: await say(R.lines.join('\n\n'), R.name); n.dir = n.home;
   }
 }
@@ -166,19 +183,20 @@ async function mentorTalk(n) {
   if (G.equip.length) { G.hp = G.maxhp; Sound.sfx('heal'); await say(R.later, R.name); return; }
   await say(R.intro, R.name);
   const arch = await WeaponPick.open();
-  giveWeapon(arch, true); G.cur = 0; playerStats(); G.hp = G.maxhp;
+  giveWeapon(arch, 0); G.cur = 0; playerStats(); G.hp = G.maxhp;
   Sound.sfx('badge'); await say(`${G.player.name} 得到了「${weaponName(arch)}」！`);
   G.bag.heal += 3; G.bag.hint += 2;
   await say(`${R.name} 還送給你「${itemName('heal')}」×3、「${itemName('hint')}」×2！`);
   const t = await UI.ask('要不要先來一場練習，熟悉一下戰鬥方式？', ['好，來練習！', '不用了，直接出發'], { name: R.name });
-  if (t === 0) { await Battle.start({ kind: 'wild', foe: makeFoe('motuan', 2), tutorial: true, mentor: R.name }); }
-  else await say('那就出發吧！記得：答對才打得中，找出敵人的弱點題型！', R.name);
+  if (t === 0) { G.flags.tut = 'pending'; await say(R.practice, R.name); }
+  else { G.flags.tut = 'skip'; await say('那就出發吧！記得：答對才打得中，找出敵人的弱點題型！', R.name); }
   autosave();
 }
-function giveWeapon(arch, equip) {
-  if (!G.weapons[arch]) G.weapons[arch] = { mastery: 0 };
-  Meta.seeWeapon(G.world, arch);
-  if (equip !== false && G.equip.length < 3 && !G.equip.includes(arch)) G.equip.push(arch);
+function giveWeapon(arch, r = 0) {
+  const w = newWeapon(arch, r); G.weapons.push(w);
+  Meta.seeWeapon(G.world, arch, r);
+  if (G.equip.length < 3) G.equip.push(w.id);
+  return w;
 }
 async function spotted(n) {
   Sound.sfx('alert'); OW.bubble = n; await sleep(650); OW.bubble = null;
@@ -200,14 +218,15 @@ async function trainerTalk(n) {
   if (R.kind === 'gym') {
     G.badges.push(R.badge); Sound.play('victory'); Sound.sfx('badge');
     await say(`${G.player.name} 得到了「${R.badge}」！`);
-    if (R.rewardWeapon && !G.weapons[R.rewardWeapon]) { giveWeapon(R.rewardWeapon); await say(`${R.name} 還給了你新武器「${weaponName(R.rewardWeapon)}」！`); }
+    if (R.rewardWeapon) { const w = giveWeapon(R.rewardWeapon, R.rewardRarity || 2); await say(`${R.name} 還給了你新武器「${weaponName(w)}」（${RARITY[w.r].n}）！`); }
     await say(R.after, R.name);
     await ChapterEnd.play();
   }
   autosave();
 }
 async function questTalk(n) {
-  const R = n.role, q = G.quests.bugs || (G.quests.bugs = { state: 'none', n: 0 });
+  const R = Object.assign({}, n.role), q = G.quests.bugs || (G.quests.bugs = { state: 'none', n: 0 });
+  for (const k of ['offer', 'progress']) R[k] = R[k].replace(/\{mon\}/g, monName('brush'));
   if (q.state === 'none') { const ok = await UI.ask(R.offer, ['好，交給我！', '下次吧'], { name: R.name }); if (ok === 0) { q.state = 'active'; Sound.sfx('ok'); await say('【支線任務】消滅 3 隻錯字蟲（可在選單「任務」查看）'); } }
   else if (q.state === 'active' && q.n < 3) await say(`${R.progress}（目前 ${q.n} / 3）`, R.name);
   else if (q.state === 'active') { q.state = 'done'; G.bag.heal2 += 2; G.bag.wenqi += 1; G.money += 200; Sound.sfx('badge');
@@ -217,14 +236,16 @@ async function questTalk(n) {
 }
 async function foeBattle(f) {
   const res = await Battle.start({ kind: 'wild', foe: makeFoe(f.sp, f.lv) });
-  if (res === 'win') { OW.foes = OW.foes.filter(x => x !== f); const q = G.quests.bugs; if (q && q.state === 'active' && f.sp === 'cuozi') q.n = Math.min(3, q.n + 1); }
+  if (res === 'win') { OW.foes = OW.foes.filter(x => x !== f); const q = G.quests.bugs; if (q && q.state === 'active' && f.sp === 'brush') q.n = Math.min(3, q.n + 1); }
   else if (res === 'run') f.cool = 3;
 }
 async function openChest(c) {
   if (G.chests[c.id]) { await say('寶箱是空的。'); return; }
   G.chests[c.id] = true; Sound.sfx('catch');
-  if (c.weapon) { giveWeapon(c.weapon); await say(`打開寶箱……找到了武器「${weaponName(c.weapon)}」！`); if (G.equip.includes(c.weapon)) await say('（已自動放入攜帶欄，可在選單「武器」中切換）'); else await say('（攜帶欄已滿，可在選單「武器」中更換）'); }
-  else { const parts = Object.entries(c.items).map(([id, n]) => { G.bag[id] += n; return `「${itemName(id)}」×${n}`; }); await say(`打開寶箱……得到了 ${parts.join('、')}！`); }
+  if (c.weapon) { const w = giveWeapon(c.weapon, c.r || 0); Sound.sfx('badge'); await say(`打開寶箱……找到了武器「${weaponName(w)}」（${RARITY[w.r].n}）！`); await say(G.equip.includes(w.id) ? '（已自動放入攜帶欄，可在選單「武器」中切換）' : '（攜帶欄已滿，可在選單「武器」中更換）'); }
+  else { const parts = Object.entries(c.items || {}).map(([id, n]) => { G.bag[id] += n; return `「${itemName(id)}」×${n}`; });
+    for (const [a, n] of Object.entries(c.frags || {})) { G.frags[a] = (G.frags[a] || 0) + n; parts.push(`「${weaponName(a)}碎片」×${n}`); }
+    await say(`打開寶箱……得到了 ${parts.join('、')}！`); }
   autosave();
 }
 async function doorAct(key, dx, dy) {

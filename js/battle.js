@@ -31,13 +31,13 @@ const Battle = {
       g.globalAlpha = s.me.a;
       const x = 34 + s.me.x, y = 56 + s.me.dy;
       g.drawImage(GFX.person(G.player.look, 'right', 0), x, y, 48, 48);
-      const arch = G.equip[G.cur]; if (arch) g.drawImage(GFX.weapon(arch, W.theme), x + 38, y + 18, 24, 24);
+      const w = curW(); if (w) g.drawImage(GFX.weapon(w.arch, W.theme), x + 38, y + 18, 24, 24);
       g.globalAlpha = 1;
     }
     // 敵人
     if (s.fo.vis && !s.fo.blink) {
       g.globalAlpha = s.fo.a; const f = s.foe;
-      if (f.kind === 'mon') g.drawImage(GFX.creature(f.sp, f.variant), 146 + s.fo.x, 40 + s.fo.dy, 64, 64);
+      if (f.kind === 'mon') g.drawImage(GFX.weaponMon(f.sp, W.theme), 146 + s.fo.x, 40 + s.fo.dy, 64, 64);
       else g.drawImage(GFX.person(f.look, 'left', 0), 154 + s.fo.x, 56 + s.fo.dy, 48, 48);
       g.globalAlpha = 1;
     }
@@ -77,11 +77,11 @@ function buildHud(s) {
 }
 const foeKey = f => f.kind === 'mon' ? f.sp : 'p:' + f.name;
 function hudMe(s, hp) {
-  const v = hp == null ? G.hp : hp, r = v / G.maxhp, arch = G.equip[G.cur], w = G.weapons[arch];
+  const v = hp == null ? G.hp : hp, r = v / G.maxhp, w = curW(), arch = w.arch;
   s.hm.innerHTML = `<div class="bh-top"><b>${esc(G.player.name)}</b><span>Lv.${G.lv}</span></div>
     <div class="bh-row"><span class="lab">氣血</span><div class="inkbar"><i class="${r <= .25 ? 'low' : ''}" style="width:${r * 100}%"></i></div><span class="num">${Math.ceil(v)}/${G.maxhp}</span></div>
     <div class="bh-row"><span class="lab">文氣</span>${wenqiDots()}${G.wenqi >= ULT_COST ? '<span class="ready">必殺可用！</span>' : ''}</div>
-    <div class="bh-row wpn"><span class="wicon"></span>${esc(weaponName(arch))} <span class="muted">Lv.${weaponLv(w)}</span></div>`;
+    <div class="bh-row wpn"><span class="wicon"></span><span class="rtxt r${w.r}">${esc(weaponName(arch))}</span> <span class="muted">Lv.${weaponLv(w)}</span></div>`;
   $('.wicon', s.hm).appendChild(GFX.el(GFX.weapon(arch, W.theme), 0.6));
 }
 function hudFoe(s, hp) {
@@ -125,7 +125,7 @@ async function battleLoop(s) {
     } else if (act.type === 'skill') { await playerAttack(s, act.skill); }
     else if (act.type === 'ult') { await playerUlt(s); }
     else if (act.type === 'item') { const r = await useItem(s, act.id); if (r === 'cancel') continue; }
-    else if (act.type === 'switch') { G.cur = act.idx; playerStats(); hudMe(s); Sound.sfx('ok'); await msg(`換上了「${weaponName(G.equip[G.cur])}」！`); }
+    else if (act.type === 'switch') { G.cur = act.idx; playerStats(); hudMe(s); Sound.sfx('ok'); await msg(`換上了「${weaponName(curW())}」！`); }
     if (tut && turn === 1) {
       if (s.lastCorrect) { G.wenqi = ULT_COST; hudMe(s); await msg('答對了就會累積「文氣」（右上角的圓點）。\n文氣集滿 5 格，就能施展必殺技！\n\n這次先借你滿滿的文氣，下一回合試試看吧！', { name: C.mentor }); }
       else await msg('答錯沒關係，看完解析就是學到了！錯題會收進「錯題本」。', { name: C.mentor });
@@ -145,9 +145,9 @@ async function chooseAction(s) {
     close(); s.lastCmd = i;
     if (i === 0) { const r = await skillMenu(s); if (r) return r; }
     else if (i === 1) {
-      const others = G.equip.map((a, k) => ({ a, k })).filter(o => o.k !== G.cur);
+      const others = G.equip.map((id, k) => ({ w: wById(id), k })).filter(o => o.k !== G.cur);
       if (!others.length) { await msg('你目前只攜帶一件武器。'); continue; }
-      const k = await UI.ask('要換成哪一件武器？（會用掉這一回合）', others.map(o => ({ label: weaponName(o.a), sub: ARCH[o.a].cats.join('、') })).concat(['取消']), {});
+      const k = await UI.ask('要換成哪一件武器？（會用掉這一回合）', others.map(o => ({ label: weaponName(o.w), sub: RARITY[o.w.r].n + '．' + ARCH[o.w.arch].cats.join('、') })).concat(['取消']), {});
       if (k >= 0 && k < others.length) return { type: 'switch', idx: others[k].k };
     }
     else if (i === 2) { const r = await Bag.open({ battle: true }); if (r) return { type: 'item', id: r }; }
@@ -156,7 +156,7 @@ async function chooseAction(s) {
 }
 function skillMenu(s) {
   return new Promise(res => {
-    const arch = G.equip[G.cur], w = G.weapons[arch], skills = weaponSkills(arch, weaponLv(w)).map(([name, cats, pow]) => ({ name, cats, pow }));
+    const w = curW(), arch = w.arch, skills = weaponSkills(arch, weaponLv(w)).map(([name, cats, pow]) => ({ name, cats, pow: Math.round(pow * RAR_POW[w.r]) }));
     const canUlt = G.wenqi >= ULT_COST;
     const list = skills.concat(canUlt ? [{ name: '★ ' + ARCH[arch].ult, ult: true }] : []);
     const box = UI.el('box menu bcmd skills'); const info = UI.el('box skillinfo');
@@ -181,7 +181,7 @@ function skillMenu(s) {
   });
 }
 async function playerAttack(s, sk) {
-  const f = s.foe, arch = G.equip[G.cur], w = G.weapons[arch];
+  const f = s.foe, w = curW(), arch = w.arch;
   await amsg(`${G.player.name} 使出了「${sk.name}」！`, 400);
   const [maxLv, minLv] = qLv();
   const q = QB.draw(sk.cats, maxLv, minLv);
@@ -203,12 +203,12 @@ async function playerAttack(s, sk) {
   }
 }
 async function playerUlt(s) {
-  const f = s.foe, arch = G.equip[G.cur];
+  const f = s.foe, w = curW(), arch = w.arch;
   G.wenqi = 0; hudMe(s);
   await msg(`文氣凝聚——必殺技「${ARCH[arch].ult}」！`, { auto: 700 });
   s.flash = 1; Sound.sfx('badge'); await Anim.run(0.5, k => s.flash = 1 - k); s.flash = 0;
   await lunge(s.me, 1); Sound.sfx('hit'); inkBurst(s, 178, 72, '#b8322a'); inkBurst(s, 170, 66, '#16120e'); await blink(s.fo);
-  const dmg = calcDmg(G, f, 120, 1); const from = f.hp; f.hp = Math.max(0, f.hp - dmg); await tweenHP(s, true, from, f.hp);
+  const dmg = calcDmg(G, f, Math.round(120 * RAR_POW[w.r]), 1); const from = f.hp; f.hp = Math.max(0, f.hp - dmg); await tweenHP(s, true, from, f.hp);
 }
 async function foeTurn(s, forceQ) {
   const f = s.foe, mv = pick(f.moves);
@@ -238,6 +238,11 @@ async function victory(s) {
   }
   const coin = f.kind === 'mon' ? f.lv * 8 : C.role.reward; G.money += coin;
   await msg(`得到了 ${coin} ${W.money}！`);
+  if (f.kind === 'mon' && (C.tutorial || Math.random() < FRAG_RATE)) {
+    G.frags[f.sp] = (G.frags[f.sp] || 0) + 1; Sound.sfx('catch');
+    const n = G.frags[f.sp];
+    await msg(`${f.name} 掉落了「${weaponName(f.sp)}碎片」！（${n} / ${FRAG_N}）${n >= FRAG_N ? '\n碎片夠了！可以到選單的「鍛造」合成武器！' : ''}`);
+  }
   if (C.tutorial) { G.wenqi = 0; await msg('很好！打倒敵人會得到經驗值，讓你升級。\n\n用同一件武器答對題目，武器熟練度會提升，還能學到新招式喔！\n\n去吧！', { name: C.mentor }); }
   return 'win';
 }

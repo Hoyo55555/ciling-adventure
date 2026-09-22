@@ -12,7 +12,8 @@ const Slots = {
 const Meta = {
   d: Object.assign({ cleared: {}, armory: {}, reports: [] }, Store.get('ciling_meta', {})),
   save() { Store.set('ciling_meta', this.d); },
-  seeWeapon(world, arch) { const k = world + ':' + arch; if (!this.d.armory[k]) { this.d.armory[k] = 1; this.save(); } },
+  seeWeapon(world, arch, r = 0) { const k = world + ':' + arch; if ((this.d.armory[k] || 0) < r + 1) { this.d.armory[k] = r + 1; this.save(); } },
+  hasAny() { return Object.keys(this.d.cleared).length > 0 || this.d.reports.length > 0; },
   clear(world) { this.d.cleared[world] = (this.d.cleared[world] || 0) + 1; this.save(); },
   addReport(r) { this.d.reports.unshift(r); this.d.reports = this.d.reports.slice(0, 20); this.save(); },
 };
@@ -23,6 +24,9 @@ const inkBar = (v, max, low) => { const r = clamp(v / max, 0, 1); return `<div c
 function totals(g) { let r = 0, t = 0; for (const c in g.stats) { r += g.stats[c].r; t += g.stats[c].t; } return { r, t, pct: t ? Math.round(r / t * 100) : 0 }; }
 function download(name, blobOrText, type) { const blob = blobOrText instanceof Blob ? blobOrText : new Blob([blobOrText], { type }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800); }
 function pickFile(accept) { return new Promise(res => { const f = document.createElement('input'); f.type = 'file'; f.accept = accept; f.onchange = () => { const file = f.files[0]; if (!file) return res(null); const rd = new FileReader(); rd.onload = () => res({ name: file.name, text: String(rd.result) }); rd.readAsText(file, 'utf-8'); }; f.click(); }); }
+const catChips = a => ARCH[a].cats.length >= ALL_CATS.length ? '<span class="chip" style="background:#2e261e">全題型</span>' : catChips(a);
+/* 帶稀有度外框的武器圖示 */
+function wIcon(arch, r, scale = 1.2) { const b = h('span', 'wbox r' + r); b.appendChild(GFX.el(GFX.weapon(arch, W.theme), scale)); return b; }
 const closeOnAB = ctl => { ctl.update = () => { if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } }; };
 
 /* ============ 存檔畫面 ============ */
@@ -74,18 +78,20 @@ const BookMenu = {
   async open() {
     let sel = 0;
     while (true) {
-      const opts = ['角色', '武器', '道具', '兵器譜', '任務', '錯題本', '學習紀錄', '存檔', '設定', '關閉'];
+      const opts = ['角色', '武器', '鍛造', '道具', '兵器譜', '任務', '錯題本', '學習紀錄', '存檔', '設定', '回到主畫面', '關閉'];
       const i = await UI.choose(opts, { pos: {}, cls: 'bookmenu', start: sel });
-      if (i < 0 || i === 9) return; sel = i;
-      if (i === 0) await CharPanel.open();
-      if (i === 1) await WeaponMenu.open();
-      if (i === 2) await Bag.open({});
-      if (i === 3) await Armory.open();
-      if (i === 4) await Quests.open();
-      if (i === 5) await WrongBook.open();
-      if (i === 6) await Records.open();
-      if (i === 7) { autosave(); Sound.sfx('badge'); await say(`已儲存到欄位 ${G.slot}！（${fmtDate(G.savedAt)}）`); }
-      if (i === 8) await SettingsPanel.open();
+      const L = opts[i]; if (i < 0 || L === '關閉') return; sel = i;
+      if (L === '角色') await CharPanel.open();
+      if (L === '武器') await WeaponMenu.open();
+      if (L === '鍛造') await Forge.open();
+      if (L === '道具') await Bag.open({});
+      if (L === '兵器譜') await Armory.open();
+      if (L === '任務') await Quests.open();
+      if (L === '錯題本') await WrongBook.open();
+      if (L === '學習紀錄') await Records.open();
+      if (L === '存檔') { autosave(); Sound.sfx('badge'); await say(`已儲存到欄位 ${G.slot}！（${fmtDate(G.savedAt)}）`); }
+      if (L === '設定') await SettingsPanel.open();
+      if (L === '回到主畫面') { await goHome(); if (Game.scene === 'title') return; }
     }
   },
 };
@@ -107,43 +113,81 @@ const CharPanel = {
 };
 
 /* ---------- 武器 ---------- */
+function sortedWeapons() { return G.weapons.slice().sort((a, b) => (G.equip.indexOf(b.id) >= 0) - (G.equip.indexOf(a.id) >= 0) || b.r - a.r || ARCH_ORDER.indexOf(a.arch) - ARCH_ORDER.indexOf(b.arch)); }
 const WeaponMenu = {
   open() {
     return UI.panel(ctl => {
       const render = () => {
-        const owned = ARCH_ORDER.filter(a => G.weapons[a]);
-        ctl.box.innerHTML = `<h2>武器　<span class="small muted">最多攜帶 3 件，戰鬥中可切換</span></h2><div class="scroll"></div>` + footKeys('A 選擇　B 返回');
+        const list = sortedWeapons();
+        ctl.box.innerHTML = `<h2>武器　<span class="small muted">共 ${list.length} 件．最多攜帶 3 件，戰鬥中可切換</span></h2><div class="scroll"></div>` + footKeys('A 選擇　B 返回');
         const sc = $('.scroll', ctl.box);
-        const rows = owned.map(a => { const w = G.weapons[a], lv = weaponLv(w), next = MASTERY_STEPS[lv];
-          const slot = G.equip.indexOf(a); const r = h('div', 'row');
-          r.appendChild(GFX.el(GFX.weapon(a, W.theme), 1.2));
-          r.insertAdjacentHTML('beforeend', `<div class="grow"><b>${esc(weaponName(a))}</b> <span class="small">Lv.${lv}</span> ${ARCH[a].cats.map(chip).join('')}
+        const rows = list.map(w => { const lv = weaponLv(w), next = MASTERY_STEPS[lv], slot = G.equip.indexOf(w.id); const r = h('div', 'row');
+          r.appendChild(wIcon(w.arch, w.r));
+          r.insertAdjacentHTML('beforeend', `<div class="grow"><b class="rtxt r${w.r}">${esc(weaponName(w))}</b> ${rarChip(w.r)} <span class="small">Lv.${lv}</span> ${catChips(w.arch)}
             <div class="small muted">熟練度 ${w.mastery}${next != null ? ' / ' + next : '（已滿級）'}</div></div>
             <span class="small">${slot === G.cur ? '<b class="good">★ 使用中</b>' : slot >= 0 ? `攜帶 ${slot + 1}` : '<span class="muted">收納中</span>'}</span>`);
           sc.appendChild(r); return r; });
         listNav(ctl, rows, { onBack: () => ctl.done(), onPick: async i => {
-          const a = owned[i], slot = G.equip.indexOf(a);
+          const w = list[i], slot = G.equip.indexOf(w.id);
           const opts = [slot >= 0 ? '設為使用中' : '放入攜帶欄', slot >= 0 ? '從攜帶欄取出' : null, '查看招式', '取消'].filter(Boolean);
           const k = await UI.choose(opts, { pos: { right: U(8), bottom: U(10) } }); const o = opts[k];
           if (o === '設為使用中') { G.cur = slot; playerStats(); Sound.sfx('ok'); }
-          if (o === '放入攜帶欄') { if (G.equip.length >= 3) { const j = await UI.ask('攜帶欄滿了，要替換哪一件？', G.equip.map(weaponName).concat(['取消'])); if (j < 0 || j > 2) return; const wasCur = j === G.cur; G.equip[j] = a; if (wasCur) playerStats(); } else G.equip.push(a); Sound.sfx('ok'); }
+          if (o === '放入攜帶欄') { if (G.equip.length >= 3) { const j = await UI.ask('攜帶欄滿了，要替換哪一件？', G.equip.map(id => { const x = wById(id); return { label: weaponName(x), sub: RARITY[x.r].n }; }).concat(['取消'])); if (j < 0 || j > 2) return render(); G.equip[j] = w.id; if (j === G.cur) playerStats(); } else G.equip.push(w.id); Sound.sfx('ok'); }
           if (o === '從攜帶欄取出') { if (G.equip.length <= 1) { await say('至少要攜帶一件武器！'); return; } const cur = G.equip[G.cur]; G.equip.splice(slot, 1); G.cur = Math.max(0, G.equip.indexOf(cur)); playerStats(); Sound.sfx('ok'); }
-          if (o === '查看招式') await WeaponMenu.detail(a);
+          if (o === '查看招式') await WeaponMenu.detail(w);
           render();
         } });
       };
       render();
     });
   },
-  detail(a) {
+  detail(w) {
     return UI.panel(ctl => {
-      const w = G.weapons[a], lv = weaponLv(w);
-      ctl.box.innerHTML = `<h2>${esc(weaponName(a))}　<span class="small muted">Lv.${lv}</span></h2><div style="display:flex;gap:${U(6)};flex:1;min-height:0"><div class="pv"></div><div class="grow scroll small">
-        <div>${esc(W.weapons[a][1])}</div><div style="margin:${U(2)} 0">擅長 ${ARCH[a].cats.map(chip).join('')}</div>
-        ${ARCH[a].skills.map(([n, c, p], i) => { const open = i < lv + 1; return `<div class="row" style="padding:${U(1)} ${U(2)}"><b class="grow">${open ? esc(n) : '？？？'}</b>${open ? c.slice(0, 3).map(chip).join('') + `　威力 ${p}` : `<span class="muted">武器 Lv.${i} 解鎖（熟練度 ${MASTERY_STEPS[i - 1]}）</span>`}</div>`; }).join('')}
+      const a = w.arch, lv = weaponLv(w), mul = RAR_POW[w.r];
+      ctl.box.innerHTML = `<h2><span class="rtxt r${w.r}">${esc(weaponName(w))}</span>　${rarChip(w.r)} <span class="small muted">Lv.${lv}</span></h2><div style="display:flex;gap:${U(6)};flex:1;min-height:0"><div class="pv"></div><div class="grow scroll small">
+        <div>${esc(W.weapons[a][1])}</div><div style="margin:${U(2)} 0">擅長 ${catChips(a)}　<span class="muted">稀有度加成：攻擊 +${RAR_ATK[w.r]}、招式威力 ×${mul}</span></div>
+        ${ARCH[a].skills.map(([n, c, p], i) => { const open = i < lv + 1; return `<div class="row" style="padding:${U(1)} ${U(2)}"><b class="grow">${open ? esc(n) : '？？？'}</b>${open ? c.slice(0, 3).map(chip).join('') + `　威力 ${Math.round(p * mul)}` : `<span class="muted">武器 Lv.${i} 解鎖（熟練度 ${MASTERY_STEPS[i - 1]}）</span>`}</div>`; }).join('')}
         <div class="row" style="padding:${U(1)} ${U(2)}"><b class="grow">★ ${esc(ARCH[a].ult)}</b><span class="muted">必殺技．文氣 5 格</span></div>
         <div class="muted" style="margin-top:${U(2)}">用這件武器答對題目，熟練度 +1；打中弱點 +2。</div></div></div>` + footKeys('B 返回');
-      $('.pv', ctl.box).appendChild(GFX.el(GFX.weapon(a, W.theme), 4)); closeOnAB(ctl);
+      $('.pv', ctl.box).appendChild(wIcon(a, w.r, 4)); closeOnAB(ctl);
+    });
+  },
+};
+
+/* ---------- 鍛造：碎片合成、升階合成 ---------- */
+const Forge = {
+  open() {
+    return UI.panel(ctl => {
+      const render = () => {
+        const acts = [];
+        ctl.box.innerHTML = `<h2>⚒ 鍛造</h2><div class="scroll"></div>` + footKeys(`A 合成　B 返回　｜碎片 ${FRAG_N} 片 → 凡品武器；同名同階武器 → 升一階（彩色守護神器無法合成）`);
+        const sc = $('.scroll', ctl.box);
+        sc.insertAdjacentHTML('beforeend', '<div class="qsec">碎片合成</div>');
+        const fr = ARCH_ORDER.filter(a => (G.frags[a] || 0) > 0);
+        if (!fr.length) sc.insertAdjacentHTML('beforeend', `<div class="small muted">還沒有碎片。打倒${esc(W.monsters.brush)}等武器妖，有機會掉落碎片。</div>`);
+        for (const a of fr) { const n = G.frags[a], ok = n >= FRAG_N; const r = h('div', 'row' + (ok ? '' : ' dis')); r.appendChild(wIcon(a, 0));
+          r.insertAdjacentHTML('beforeend', `<div class="grow"><b>${esc(weaponName(a))}碎片</b>　${n} / ${FRAG_N}<div class="small muted">${ok ? '可以合成一件凡品「' + esc(weaponName(a)) + '」' : '還差 ' + (FRAG_N - n) + ' 片'}</div></div>`);
+          sc.appendChild(r); acts.push({ r, ok, run: () => { G.frags[a] -= FRAG_N; const w = giveWeapon(a, 0); return `合成成功！得到了「${weaponName(w)}」（凡品）！`; } }); }
+        sc.insertAdjacentHTML('beforeend', '<div class="qsec">升階合成</div>');
+        const groups = {}; for (const w of G.weapons) if (w.r < 5) (groups[w.arch + ':' + w.r] || (groups[w.arch + ':' + w.r] = [])).push(w);
+        const keys = Object.keys(groups).sort((x, y) => ARCH_ORDER.indexOf(x.split(':')[0]) - ARCH_ORDER.indexOf(y.split(':')[0]) || +x.split(':')[1] - +y.split(':')[1]);
+        if (!keys.length) sc.insertAdjacentHTML('beforeend', '<div class="small muted">沒有可以升階的武器。</div>');
+        for (const k of keys) { const g = groups[k], a = g[0].arch, rr = g[0].r, need = MERGE_N[rr], ok = g.length >= need; const r = h('div', 'row' + (ok ? '' : ' dis'));
+          r.appendChild(wIcon(a, rr));
+          r.insertAdjacentHTML('beforeend', `<div class="grow"><b>${esc(weaponName(a))}</b> ${rarChip(rr)} × ${g.length} / ${need}　→　${rarChip(rr + 1)}<div class="small muted">${ok ? '可以升階！熟練度保留最高的一件' : '還差 ' + (need - g.length) + ' 件同名同階武器'}</div></div>`);
+          sc.appendChild(r); acts.push({ r, ok, run: async () => {
+            if (!(await UI.yesno(`要消耗 ${need} 件${RARITY[rr].n}「${weaponName(a)}」，合成一件${RARITY[rr + 1].n}嗎？`))) return null;
+            const use = g.slice().sort((x, y) => (G.equip.indexOf(x.id) >= 0) - (G.equip.indexOf(y.id) >= 0) || x.mastery - y.mastery).slice(0, need);
+            const nw = newWeapon(a, rr + 1); nw.mastery = Math.max(...use.map(x => x.mastery));
+            const curId = G.equip[G.cur]; let slot = -1;
+            for (const x of use) { const i = G.equip.indexOf(x.id); if (i >= 0) { if (slot < 0) slot = i; G.equip.splice(i, 1); } G.weapons.splice(G.weapons.indexOf(x), 1); }
+            G.weapons.push(nw); Meta.seeWeapon(G.world, a, nw.r);
+            if (slot >= 0) G.equip.splice(slot, 0, nw.id); else if (G.equip.length < 3) G.equip.push(nw.id);
+            G.cur = Math.max(0, G.equip.indexOf(use.some(x => x.id === curId) ? nw.id : curId)); playerStats();
+            return `升階成功！得到了${RARITY[nw.r].n}「${weaponName(nw)}」！`; } }); }
+        listNav(ctl, acts.map(x => x.r), { onBack: () => ctl.done(), onPick: async i => { const A = acts[i]; if (!A.ok) { Sound.sfx('bump'); return; } const m = await A.run(); if (!m) return; Sound.sfx('badge'); await say(m); autosave(); render(); } });
+      };
+      render();
     });
   },
 };
@@ -153,7 +197,7 @@ const WeaponPick = {
       ctl.box.innerHTML = `<h2>選擇你的第一件武器</h2><div class="cards"></div>` + footKeys('←→ 選擇　A 決定');
       const wrap = $('.cards', ctl.box);
       const cards = STARTER_ARCHS.map(a => { const c = h('div', 'card'); const hold = h('div', 'cardpic'); hold.appendChild(GFX.el(GFX.weapon(a, W.theme), 3)); c.appendChild(hold);
-        c.insertAdjacentHTML('beforeend', `<h3>${esc(weaponName(a))}</h3><div class="desc">${esc(W.weapons[a][1])}</div><div class="desc"><b>擅長：</b>${ARCH[a].cats.map(chip).join('')}</div><div class="desc"><b>招式：</b>${ARCH[a].skills.slice(0, 2).map(s => esc(s[0])).join('、')}…</div>`); wrap.appendChild(c); return c; });
+        c.insertAdjacentHTML('beforeend', `<h3>${esc(weaponName(a))}</h3><div class="desc">${esc(W.weapons[a][1])}</div><div class="desc"><b>擅長：</b>${catChips(a)}</div><div class="desc"><b>招式：</b>${ARCH[a].skills.slice(0, 2).map(s => esc(s[0])).join('、')}…</div>`); wrap.appendChild(c); return c; });
       let sel = 0; const paint = () => cards.forEach((c, i) => c.classList.toggle('sel', i === sel));
       const choose = async () => { Sound.sfx('ok'); if (await UI.yesno(`確定要選擇「${weaponName(STARTER_ARCHS[sel])}」嗎？\n（之後還能取得其他武器）`)) ctl.done(STARTER_ARCHS[sel]); };
       cards.forEach((c, i) => c.addEventListener('pointerdown', e => { e.preventDefault(); if (sel === i) choose(); else { sel = i; Sound.sfx('cursor'); paint(); } }));
@@ -169,8 +213,8 @@ const Armory = {
       ctl.box.innerHTML = `<h2>兵器譜．${esc(W.name)}　<span class="small muted">${got} / ${ARCH_ORDER.length}　（三世界合計 ${all} / ${ARCH_ORDER.length * 3}）</span></h2><div class="armory"></div>` + footKeys('B 返回');
       const wrap = $('.armory', ctl.box);
       for (const a of ARCH_ORDER) { const seen = Meta.d.armory[G.world + ':' + a]; const c = h('div', 'arm' + (seen ? '' : ' unk'));
-        const pic = GFX.el(GFX.weapon(a, W.theme), 1.6); if (!seen) pic.style.filter = 'brightness(0) opacity(.35)'; c.appendChild(pic);
-        c.insertAdjacentHTML('beforeend', `<div><b>${seen ? esc(weaponName(a)) : '？？？'}</b><div class="small muted">${seen ? ARCH[a].cats.join('、') : '尚未取得'}</div></div>`); wrap.appendChild(c); }
+        const pic = wIcon(a, seen ? seen - 1 : 0, 1.6); if (!seen) pic.style.filter = 'brightness(0) opacity(.35)'; c.appendChild(pic);
+        c.insertAdjacentHTML('beforeend', `<div><b>${seen ? esc(weaponName(a)) : '？？？'}</b><div class="small muted">${seen ? '最高：' + RARITY[seen - 1].n : '尚未取得'}</div></div>`); wrap.appendChild(c); }
       closeOnAB(ctl);
     });
   },
@@ -285,45 +329,22 @@ const Records = {
 const SettingsPanel = {
   open() {
     return UI.panel(ctl => {
-      const F = [{ k: 'music', label: '音樂音量' }, { k: 'sfx', label: '音效音量' }, { k: 'speed', label: '文字速度' }, { k: 'hud', label: '地圖狀態列' }];
+      const F = [{ k: 'music', label: '音樂音量' }, { k: 'sfx', label: '音效音量' }, { k: 'speed', label: '文字速度' }, { k: 'hud', label: '地圖狀態列' }, { k: 'help', label: '遊戲說明' }];
       ctl.box.innerHTML = `<h2>設定</h2><div class="fields"></div>` + footKeys('↑↓ 選擇　←→ 調整　B 返回');
       const wrap = $('.fields', ctl.box); const els = F.map(() => { const d = h('div', 'field'); wrap.appendChild(d); return d; });
       let sel = 0;
-      const val = k => k === 'speed' ? ['慢', '中', '快'][Settings.speed] : k === 'hud' ? (Settings.hud ? '顯示' : '隱藏') : '■'.repeat(Settings[k]) + '<span class="muted">' + '□'.repeat(10 - Settings[k]) + '</span>';
+      const val = k => k === 'help' ? '<span class="muted">按 A 查看</span>' : k === 'speed' ? ['慢', '中', '快'][Settings.speed] : k === 'hud' ? (Settings.hud ? '顯示' : '隱藏') : '■'.repeat(Settings[k]) + '<span class="muted">' + '□'.repeat(10 - Settings[k]) + '</span>';
       const paint = () => F.forEach((f, i) => { els[i].classList.toggle('sel', i === sel); els[i].innerHTML = `<label>${f.label}</label><div class="val"><span class="arrow">◀</span>${val(f.k)}<span class="arrow">▶</span></div>`; });
-      const change = (k, d) => { if (k === 'speed') Settings.speed = clamp(Settings.speed + d, 0, 2); else if (k === 'hud') Settings.hud = !Settings.hud; else Settings[k] = clamp(Settings[k] + d, 0, 10); Sound.applyVol(); saveSettings(); Sound.sfx('cursor'); paint(); };
-      els.forEach((d, i) => d.addEventListener('pointerdown', e => { e.preventDefault(); sel = i; change(F[i].k, e.target === d.querySelector('.arrow') ? -1 : 1); }));
-      ctl.update = () => { const d = Input.dir(); if (d === 'up' && sel > 0) { sel--; paint(); } if (d === 'down' && sel < F.length - 1) { sel++; paint(); } if (d === 'left' || d === 'right') change(F[sel].k, d === 'left' ? -1 : 1); if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } };
+      const change = (k, d) => { if (k === 'help') return; if (k === 'speed') Settings.speed = clamp(Settings.speed + d, 0, 2); else if (k === 'hud') Settings.hud = !Settings.hud; else Settings[k] = clamp(Settings[k] + d, 0, 10); Sound.applyVol(); saveSettings(); Sound.sfx('cursor'); paint(); };
+      els.forEach((d, i) => d.addEventListener('pointerdown', e => { e.preventDefault(); sel = i; if (F[i].k === 'help') { Help.open(); return; } change(F[i].k, e.target === d.querySelector('.arrow') ? -1 : 1); }));
+      ctl.update = () => { const d = Input.dir(); if (d === 'up' && sel > 0) { sel--; paint(); } if (d === 'down' && sel < F.length - 1) { sel++; paint(); } if (d === 'left' || d === 'right') change(F[sel].k, d === 'left' ? -1 : 1);
+        if (Input.p('A') && F[sel].k === 'help') { Sound.sfx('ok'); Help.open(); return; } if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } };
       paint();
     });
   },
 };
 
 /* ============ 世界觀選擇、角色生成 ============ */
-function worldPreview(wid) {
-  const Wd = WORLDS[wid]; const cv = document.createElement('canvas'); cv.width = 96; cv.height = 48; const g = cv.getContext('2d');
-  [['T', 'T', 'T', 'T', 'T', 'T'], ['R', 'R', '.', '.', 'g', 'g'], ['#', 'D', ',', ',', 'g', 'g']].forEach((r, y) => r.forEach((c, x) => g.drawImage(GFX.tile(Wd.theme, c), x * 16, y * 16)));
-  g.drawImage(GFX.person({ style: Wd.style, hair: '#302020', cloth: wid === 'school' ? '#f8f8f8' : wid === 'literati' ? '#88a0c8' : '#a84040', cloth2: '#3a58a0' }, 'right', 0), 36, 26);
-  g.drawImage(GFX.weapon('brush', Wd.theme), 50, 30, 10, 10); g.drawImage(GFX.creature('cuozi'), 66, 22, 20, 20);
-  return cv;
-}
-const WorldSelect = {
-  open(opt = {}) {
-    return UI.panel(ctl => {
-      ctl.box.innerHTML = `<h2>${opt.title || '選擇你的世界觀'}</h2><div class="cards"></div>` + footKeys('←→ 選擇　A 決定　B 返回');
-      const wrap = $('.cards', ctl.box);
-      const cards = WORLD_ORDER.map(id => { const Wd = WORLDS[id]; const c = h('div', 'card'); const pv = worldPreview(id); pv.className = 'pix'; c.appendChild(pv);
-        const cl = Meta.d.cleared[id]; if (opt.exclude === id) c.classList.add('dis');
-        c.insertAdjacentHTML('beforeend', `<h3>${Wd.icon} ${esc(Wd.name)}${cl ? ' <span class="clr">✓ 已通關</span>' : ''}</h3><div class="desc">${esc(Wd.tagline)}</div><div class="desc"><b>武器：</b>${STARTER_ARCHS.map(a => esc(Wd.weapons[a][0])).join('、')}</div><div class="desc"><b>第一關主：</b>${esc(Wd.roles.gym1.name)}</div>`); wrap.appendChild(c); return c; });
-      let sel = WORLD_ORDER.findIndex(w => w !== opt.exclude); const paint = () => cards.forEach((c, i) => c.classList.toggle('sel', i === sel));
-      const ok = i => { if (WORLD_ORDER[i] === opt.exclude) { Sound.sfx('bump'); return; } Sound.sfx('ok'); ctl.done(WORLD_ORDER[i]); };
-      cards.forEach((c, i) => c.addEventListener('pointerdown', e => { e.preventDefault(); if (sel === i) ok(i); else { sel = i; Sound.sfx('cursor'); paint(); } }));
-      ctl.update = () => { const d = Input.dir(); if (d === 'left' && sel > 0) { sel--; Sound.sfx('cursor'); paint(); } if (d === 'right' && sel < 2) { sel++; Sound.sfx('cursor'); paint(); }
-        if (Input.p('A')) ok(sel); else if (Input.p('B')) { Sound.sfx('back'); ctl.done(null); } };
-      paint();
-    });
-  },
-};
 const HAIRS = ['#2a2228', '#5a3a24', '#a86a38', '#d8b060', '#7a3a58', '#3a4a7a'];
 const CLOTHES = { school: ['#f8f8f8', '#e8f0ff', '#fff4e0', '#f0f0f0'], literati: ['#88a0c8', '#a8c8a0', '#d8a8b8', '#e8e0c8', '#8a7ab0'], wuxia: ['#a84040', '#3a5a8a', '#3a7a4a', '#303038', '#e8e0d0'] };
 const CLOTH2 = { school: ['#3a58a0', '#2e6a4a', '#8a3040', '#404048'], literati: ['#384870', '#4a6a40', '#8a4058', '#8a7040', '#4a3a6a'], wuxia: ['#e0c050', '#c8c8d8', '#d8a040', '#c83838', '#6a4a2a'] };
@@ -387,7 +408,7 @@ const ChapterEnd = {
     Sound.play('victory');
     await UI.panel(ctl => {
       ctl.box.innerHTML = `<h2>🏮 ${esc(W.chapterName)}　完成！</h2><div class="scroll result">
-        <div class="bigstat"><div><b>${c.t}</b><span>本章答題</span></div><div><b>${c.t ? Math.round(c.r / c.t * 100) : 0}%</b><span>答對率</span></div><div><b>Lv.${G.lv}</b><span>目前等級</span></div><div><b>${ARCH_ORDER.filter(a => G.weapons[a]).length}</b><span>擁有武器</span></div></div>
+        <div class="bigstat"><div><b>${c.t}</b><span>本章答題</span></div><div><b>${c.t ? Math.round(c.r / c.t * 100) : 0}%</b><span>答對率</span></div><div><b>Lv.${G.lv}</b><span>目前等級</span></div><div><b>${G.weapons.length}</b><span>擁有武器</span></div></div>
         <div style="margin-top:${U(3)}">取得徽章：${G.badges.map(b => `<span class="seal">${esc(b)}</span>`).join(' ')}</div>
         <div class="small muted" style="margin-top:${U(2)}">進度已自動儲存。</div></div>` + footKeys('A 繼續');
       closeOnAB(ctl);
@@ -520,6 +541,8 @@ const Help = {
         <b>🎯 弱點</b>：每個敵人都有弱點題型，打中弱點傷害兩倍。換上擅長該題型的武器吧！<br>
         <b>✨ 文氣與必殺技</b>：每答對一題累積 1 格文氣，集滿 5 格就能施展必殺技（必定命中）。<br>
         <b>🗡 武器熟練度</b>：用武器答對題目會提升熟練度，升級後學會新招式。最多攜帶 3 件武器。<br>
+        <b>⚒ 碎片與鍛造</b>：野生怪物是武器幻化的「武器妖」，打倒後有機會掉落該武器的碎片，集滿 5 片可合成武器；同名同階武器可以升階。<br>
+        <b>💎 稀有度</b>：凡品（白）→ 良品（綠）→ 精品（藍）→ 珍品（紫）→ 絕品（金）→ 神品（紅）→ 守護神器（彩，只能由劇情取得）。<br>
         <b>👀 看得見的敵人</b>：敵人在地圖上走動，靠近會追過來；不想打可以繞路。<br>
         <b>💾 存檔</b>：共 3 個欄位，切換地圖、戰鬥後會自動存檔；也能匯出存檔檔案帶到其他電腦。<br>
         <b>📖 錯題本</b>：答錯的題目會自動收錄，隨時可以複習。</div>` + footKeys('B 返回');

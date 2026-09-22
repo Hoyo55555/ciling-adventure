@@ -31,7 +31,7 @@ const Input = (() => {
     ArrowUp: ['up'], ArrowDown: ['down'], ArrowLeft: ['left'], ArrowRight: ['right'],
     KeyW: ['up'], KeyS: ['down'], KeyA: ['left'], KeyD: ['right'],
     KeyZ: ['A'], Space: ['A'], Enter: ['A', 'START'], NumpadEnter: ['A', 'START'],
-    KeyX: ['B'], Escape: ['B'], ShiftLeft: ['B'], ShiftRight: ['B'], Backspace: ['B'], KeyM: ['START'],
+    KeyX: ['B'], Escape: ['B'], ShiftLeft: ['B'], ShiftRight: ['B'], Backspace: ['B'], KeyM: ['START'], KeyH: ['HOME'],
   };
   const typing = e => { const t = e.target; return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable); };
   const codeOf = e => { if (e.code) return e.code; const k = e.key || ''; if (k.length === 1 && /[a-z]/i.test(k)) return 'Key' + k.toUpperCase(); if (k === ' ') return 'Space'; if (k === 'Shift') return 'ShiftLeft'; if (k === 'Esc') return 'Escape'; return k; };
@@ -39,7 +39,7 @@ const Input = (() => {
     if (typing(e)) return;
     const ks = KEYMAP[codeOf(e)]; if (!ks) return;
     e.preventDefault(); Sound.unlock();
-    for (const k of ks) { if (e.repeat && (k === 'A' || k === 'B' || k === 'START')) continue; queue.add(k); held.add(k); }
+    for (const k of ks) { if (e.repeat && (k === 'A' || k === 'B' || k === 'START' || k === 'HOME')) continue; queue.add(k); held.add(k); }
   });
   addEventListener('keyup', e => { const ks = KEYMAP[codeOf(e)]; if (ks) ks.forEach(k => held.delete(k)); });
   addEventListener('blur', () => held.clear());
