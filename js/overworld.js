@@ -59,8 +59,9 @@ const OW = {
     this.npcs = this.npcs.filter(n => n.role.kind !== 'roamer');
     if (!G.ng || this.L.indoor) return;
     const left = GUARDIAN_FIRST.filter(k => !ownsArch(k));
-    if (!left.length) return;
-    if (Math.random() > 0.35) return;                       // 每次進入地圖有機率出現
+    if (!left.length) { G.roamAt = null; return; }
+    if (!G.roamAt || !LAYOUTS[G.roamAt]) rerollRoam();
+    if (this.id !== G.roamAt) return;                        // 只會出現在「指引」說的那張地圖
     const spots = [];
     for (let y = 1; y < this.L.rows.length - 1; y++) for (let x = 1; x < this.L.rows[0].length - 1; x++)
       if (!SOLID.has(this.tile(x, y)) && !this.chestAt(x, y) && !this.npcAt(x, y) && Math.abs(x - this.p.x) + Math.abs(y - this.p.y) > 4) spots.push([x, y]);
@@ -323,6 +324,7 @@ async function talkTo(n) {
     case 'bus': return busTalk(n);
     case 'quest2': return sideQuestTalk(n);
     case 'roamer': return roamerTalk(n);
+    case 'roam': return roamHintTalk(n);
     case 'guide': { const L = R.lines[Math.min(storyStage(), R.lines.length - 1)]; await say(L.join('\n\n'), R.name); return; }
     case 'healer': {
       Sound.sfx('door'); await say(R.text); G.hp = G.maxhp;
@@ -369,6 +371,17 @@ async function sideQuestTalk(n) {
   await say(`得到了 ${P.money} ${W.money}${P.items ? '、' + Object.entries(P.items).map(([id, c]) => `「${itemName(id)}」×${c}`).join('、') : ''}！`);
   autosave();
 }
+/* 器靈現在會待在某一張地圖，鎮上的小孩會告訴你在哪 */
+const ROAM_MAPS = ['chendu', 'r1', 'zhuyin', 'r2', 'chaoshu', 'r3', 'dianji', 'r4', 'tingyu', 'huanan', 'r5', 'beilin', 'r6', 'moquan', 'zhongta'];
+function rerollRoam() { const pool = ROAM_MAPS.filter(m => m !== OW.id); G.roamAt = pick(pool.length ? pool : ROAM_MAPS); }
+async function roamHintTalk(n) {
+  const R = n.role;
+  if (!G.ng) { await say(pick(R.idle), R.name); return; }
+  const left = GUARDIAN_FIRST.filter(k => !ownsArch(k));
+  if (!left.length) { await say(R.none, R.name); return; }
+  if (!G.roamAt || !LAYOUTS[G.roamAt]) rerollRoam();
+  await say(R.found.replace('{map}', W.mapNames[G.roamAt] || G.roamAt), R.name);
+}
 /* 二週目：在城鎮與路線上漫遊的器靈（筆靈／紙靈／墨靈） */
 async function roamerTalk(n) {
   const a = n.arch;
@@ -380,7 +393,8 @@ async function roamerTalk(n) {
       moves: [['器靈之威', ALL_CATS, 56], ['文心一擊', ALL_CATS, 60]] }, potions: 1 };
   const res = await Battle.start({ kind: 'gym', foe: makePersonFoe(role), role, cats: ALL_CATS });
   OW.npcs = OW.npcs.filter(x => x !== n);
-  if (res !== 'win') { await say(`（${weaponName(a)}消失在空氣裡……牠還會再出現。）`); OW.roamCd = 900; autosave(); return; }
+  rerollRoam();
+  if (res !== 'win') { await say(`（${weaponName(a)}消失在空氣裡……牠跑到別的地方去了。）`); autosave(); return; }
   await Guardian.give(a);
   if (G.ng > 0 && !G.flags.stoneAwake && GUARDIAN_FIRST.every(k => ownsArch(k)))
     await say('（筆、紙、墨三隻器靈都在你身上了……小墨說過，要帶著牠們去墨泉鄉的泉眼。）');
@@ -501,6 +515,7 @@ async function trainerTalk(n) {
   if (((R.kind === 'rival' && !R.choice) || R.leaves) && W.story) { G.flags['gone:' + n.key] = true; await Anim.run(0.4, k2 => n.oy = -8 * k2); OW.npcs = OW.npcs.filter(x => x !== n); }
   if (R.kind === 'gym') {
     G.badges.push(R.badge); Sound.play('victory'); Sound.sfx('badge');
+    if (G.ng > 0 && W.ngLines && W.ngLines[G.badges.length]) for (const t of W.ngLines[G.badges.length]) await say(t);
     await say(`${G.player.name} 拿回了「${R.badge}」！（${G.badges.length} / ${W.story ? 5 : 3}）`);
     if (R.rewardWeapon) { const w = giveWeapon(R.rewardWeapon, R.rewardRarity == null ? 2 : R.rewardRarity); await say(`${R.name} 還給了你武器「${weaponName(w)}」（${RARITY[w.r].n}）！${w.toBox ? '\n（背包滿了，已自動存進「電腦」）' : ''}`); }
     if (!W.story) { await say(R.after, R.name); await ChapterEnd.play(); }

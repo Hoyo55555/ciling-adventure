@@ -45,7 +45,7 @@ const NEW_MAPS = {
     }
    },
    "15,4": {
-    "to": "store",
+    "to": "store_h",
     "tx": 4,
     "ty": 5,
     "dir": "up",
@@ -55,7 +55,7 @@ const NEW_MAPS = {
     }
    },
    "7,10": {
-    "to": "clinic",
+    "to": "clinic_h",
     "tx": 4,
     "ty": 5,
     "dir": "up",
@@ -93,6 +93,12 @@ const NEW_MAPS = {
     "y": 6,
     "dir": "down",
     "wander": 1
+   },
+   {
+    "role": "roamHint",
+    "x": 8,
+    "y": 6,
+    "dir": "down"
    }
   ],
   "chests": [
@@ -229,7 +235,7 @@ const NEW_MAPS = {
   ],
   "doorWarps": {
    "6,5": {
-    "to": "clinic",
+    "to": "clinic_h",
     "tx": 4,
     "ty": 5,
     "dir": "up",
@@ -270,11 +276,10 @@ const NEW_MAPS = {
     "dir": "down"
    },
    {
-    "role": "townTip1",
+    "role": "roamHint",
     "x": 17,
     "y": 4,
-    "dir": "left",
-    "wander": 1
+    "dir": "down"
    }
   ],
   "chests": [
@@ -415,7 +420,7 @@ const NEW_MAPS = {
   ],
   "doorWarps": {
    "4,3": {
-    "to": "store",
+    "to": "store_h",
     "tx": 4,
     "ty": 5,
     "dir": "up",
@@ -425,7 +430,7 @@ const NEW_MAPS = {
     }
    },
    "9,3": {
-    "to": "clinic",
+    "to": "clinic_h",
     "tx": 4,
     "ty": 5,
     "dir": "up",
@@ -435,15 +440,14 @@ const NEW_MAPS = {
     }
    },
    "4,9": {
-    "to": "store",
+    "to": "forge",
     "tx": 4,
     "ty": 5,
     "dir": "up",
     "ret": {
      "x": 4,
      "y": 10
-    },
-    "forge": 1
+    }
    }
   },
   "shop": [
@@ -463,17 +467,23 @@ const NEW_MAPS = {
     "dir": "down"
    },
    {
-    "role": "smith",
-    "x": 5,
-    "y": 10,
-    "dir": "down"
-   },
-   {
     "role": "townTip2",
     "x": 15,
     "y": 6,
     "dir": "left",
     "wander": 1
+   },
+   {
+    "role": "forgeTip",
+    "x": 5,
+    "y": 10,
+    "dir": "down"
+   },
+   {
+    "role": "roamHint",
+    "x": 16,
+    "y": 12,
+    "dir": "down"
    }
   ],
   "chests": [
@@ -611,7 +621,7 @@ const NEW_MAPS = {
   ],
   "doorWarps": {
    "4,7": {
-    "to": "clinic",
+    "to": "clinic_c",
     "tx": 4,
     "ty": 5,
     "dir": "up",
@@ -621,7 +631,7 @@ const NEW_MAPS = {
     }
    },
    "19,7": {
-    "to": "store",
+    "to": "store_c",
     "tx": 4,
     "ty": 5,
     "dir": "up",
@@ -677,11 +687,10 @@ const NEW_MAPS = {
     "dir": "down"
    },
    {
-    "role": "townTip3",
+    "role": "roamHint",
     "x": 19,
     "y": 10,
-    "dir": "left",
-    "wander": 1
+    "dir": "down"
    }
   ],
   "chests": [
@@ -812,8 +821,8 @@ const NEW_MAPS = {
    "T.....,,,,,,,,,,,,...T",
    "T,,,,,,..............T",
    "T.....,...~~~~.......T",
-   "T.AA..,...~~~~..RRRR T",
-   "T.AA..,...~~~~..#WDW T",
+   "T.AA..,...~~~~..RRRR.T",
+   "T.AA..,...~~~~..#WDW.T",
    "T.....,..............T",
    "T.YY..,,,,,,,,,,,....T",
    "T.YY..,.........,....T",
@@ -832,7 +841,7 @@ const NEW_MAPS = {
   ],
   "doorWarps": {
    "18,8": {
-    "to": "clinic",
+    "to": "clinic_o",
     "tx": 4,
     "ty": 5,
     "dir": "up",
@@ -870,6 +879,18 @@ const NEW_MAPS = {
     "y": 5,
     "dir": "right",
     "wander": 1
+   },
+   {
+    "role": "sparring2",
+    "x": 15,
+    "y": 6,
+    "dir": "left"
+   },
+   {
+    "role": "roamHint",
+    "x": 3,
+    "y": 12,
+    "dir": "down"
    }
   ],
   "chests": [
@@ -929,7 +950,7 @@ const NEW_MAPS = {
   ],
   "doorWarps": {
    "6,3": {
-    "to": "clinic",
+    "to": "clinic_c",
     "tx": 4,
     "ty": 5,
     "dir": "up",
@@ -939,7 +960,7 @@ const NEW_MAPS = {
     }
    },
    "20,3": {
-    "to": "store",
+    "to": "store_c",
     "tx": 4,
     "ty": 5,
     "dir": "up",
@@ -950,16 +971,16 @@ const NEW_MAPS = {
    },
    "11,10": {
     "to": "yard",
-    "tx": 10,
-    "ty": 1,
+    "tx": 7,
+    "ty": 10,
     "dir": "up",
     "need": 2,
     "gate": "need2"
    },
    "12,10": {
     "to": "yard",
-    "tx": 10,
-    "ty": 1,
+    "tx": 8,
+    "ty": 10,
     "dir": "up",
     "need": 2,
     "gate": "need2"
@@ -990,11 +1011,10 @@ const NEW_MAPS = {
     "dir": "down"
    },
    {
-    "role": "townTip5",
+    "role": "roamHint",
     "x": 18,
     "y": 6,
-    "dir": "left",
-    "wander": 1
+    "dir": "down"
    }
   ],
   "chests": [
@@ -1134,7 +1154,7 @@ const NEW_MAPS = {
   ],
   "doorWarps": {
    "9,6": {
-    "to": "clinic",
+    "to": "clinic_o",
     "tx": 4,
     "ty": 5,
     "dir": "up",
@@ -1144,7 +1164,7 @@ const NEW_MAPS = {
     }
    },
    "16,6": {
-    "to": "store",
+    "to": "store_o",
     "tx": 4,
     "ty": 5,
     "dir": "up",
@@ -1200,6 +1220,12 @@ const NEW_MAPS = {
     "y": 4,
     "dir": "left",
     "wander": 1
+   },
+   {
+    "role": "roamHint",
+    "x": 19,
+    "y": 8,
+    "dir": "down"
    }
   ],
   "chests": [
@@ -1360,7 +1386,7 @@ const NEW_MAPS = {
   ],
   "doorWarps": {
    "4,7": {
-    "to": "clinic",
+    "to": "clinic_o",
     "tx": 4,
     "ty": 5,
     "dir": "up",
@@ -1370,7 +1396,7 @@ const NEW_MAPS = {
     }
    },
    "18,7": {
-    "to": "store",
+    "to": "store_o",
     "tx": 4,
     "ty": 5,
     "dir": "up",
@@ -1419,6 +1445,12 @@ const NEW_MAPS = {
     "role": "ngHint",
     "x": 10,
     "y": 9,
+    "dir": "down"
+   },
+   {
+    "role": "roamHint",
+    "x": 10,
+    "y": 12,
     "dir": "down"
    }
   ],
@@ -1486,7 +1518,7 @@ const NEW_MAPS = {
     "gate": "need4"
    },
    "5,10": {
-    "to": "clinic",
+    "to": "clinic_c",
     "tx": 4,
     "ty": 5,
     "dir": "up",
@@ -1496,7 +1528,7 @@ const NEW_MAPS = {
     }
    },
    "17,10": {
-    "to": "store",
+    "to": "store_c",
     "tx": 4,
     "ty": 5,
     "dir": "up",
@@ -1529,6 +1561,12 @@ const NEW_MAPS = {
     "x": 10,
     "y": 6,
     "dir": "down"
+   },
+   {
+    "role": "roamHint",
+    "x": 16,
+    "y": 6,
+    "dir": "down"
    }
   ],
   "chests": [
@@ -1546,6 +1584,814 @@ const NEW_MAPS = {
    "3,13": "sign_zhongta",
    "18,13": "sign_zhongta2"
   }
+ },
+ "clinic_h": {
+  "music": "town",
+  "qlv": 1,
+  "indoor": 1,
+  "theme": "t_dawn",
+  "rows": [
+   "wwwwwwwwww",
+   "wb_kkk__bw",
+   "w________w",
+   "wtttt____w",
+   "w_p____p_w",
+   "w________w",
+   "wwww__wwww"
+  ],
+  "warps": [
+   {
+    "x": 4,
+    "y": 6,
+    "to": "@ret"
+   },
+   {
+    "x": 5,
+    "y": 6,
+    "to": "@ret"
+   }
+  ],
+  "npcs": [
+   {
+    "role": "healer",
+    "x": 2,
+    "y": 2,
+    "dir": "down"
+   }
+  ]
+ },
+ "store_h": {
+  "music": "town",
+  "qlv": 1,
+  "indoor": 1,
+  "theme": "t_dawn",
+  "rows": [
+   "wwwwwwwwww",
+   "wkkkk_kkkw",
+   "w________w",
+   "w__ttt___w",
+   "w________w",
+   "wp__rr__pw",
+   "wwww__wwww"
+  ],
+  "warps": [
+   {
+    "x": 4,
+    "y": 6,
+    "to": "@ret"
+   },
+   {
+    "x": 5,
+    "y": 6,
+    "to": "@ret"
+   }
+  ],
+  "npcs": [
+   {
+    "role": "clerk",
+    "x": 4,
+    "y": 2,
+    "dir": "down"
+   }
+  ]
+ },
+ "clinic_c": {
+  "music": "town",
+  "qlv": 1,
+  "indoor": 1,
+  "theme": "t_city",
+  "rows": [
+   "wwwwwwwwwwww",
+   "wbb_kkkk__bw",
+   "w__________w",
+   "wtttt___tttw",
+   "w_p______p_w",
+   "w__________w",
+   "wwwww__wwwww"
+  ],
+  "warps": [
+   {
+    "x": 5,
+    "y": 6,
+    "to": "@ret"
+   },
+   {
+    "x": 6,
+    "y": 6,
+    "to": "@ret"
+   }
+  ],
+  "npcs": [
+   {
+    "role": "healer",
+    "x": 3,
+    "y": 2,
+    "dir": "down"
+   }
+  ]
+ },
+ "store_c": {
+  "music": "town",
+  "qlv": 1,
+  "indoor": 1,
+  "theme": "t_port",
+  "rows": [
+   "wwwwwwwwwwww",
+   "wkkkkk_kkkkw",
+   "w__________w",
+   "w__tttt____w",
+   "w____rr____w",
+   "wp________pw",
+   "wwwww__wwwww"
+  ],
+  "warps": [
+   {
+    "x": 5,
+    "y": 6,
+    "to": "@ret"
+   },
+   {
+    "x": 6,
+    "y": 6,
+    "to": "@ret"
+   }
+  ],
+  "npcs": [
+   {
+    "role": "clerk",
+    "x": 5,
+    "y": 2,
+    "dir": "down"
+   }
+  ]
+ },
+ "clinic_o": {
+  "music": "town",
+  "qlv": 1,
+  "indoor": 1,
+  "theme": "t_stele",
+  "rows": [
+   "wwwwwwwwww",
+   "wb_ttt__bw",
+   "w________w",
+   "wk_____k_w",
+   "w_p____p_w",
+   "w________w",
+   "wwww__wwww"
+  ],
+  "warps": [
+   {
+    "x": 4,
+    "y": 6,
+    "to": "@ret"
+   },
+   {
+    "x": 5,
+    "y": 6,
+    "to": "@ret"
+   }
+  ],
+  "npcs": [
+   {
+    "role": "healer",
+    "x": 2,
+    "y": 2,
+    "dir": "down"
+   }
+  ]
+ },
+ "store_o": {
+  "music": "town",
+  "qlv": 1,
+  "indoor": 1,
+  "theme": "t_stele",
+  "rows": [
+   "wwwwwwwwww",
+   "wkk_kk_kkw",
+   "w________w",
+   "w_tt__tt_w",
+   "w___rr___w",
+   "wp______pw",
+   "wwww__wwww"
+  ],
+  "warps": [
+   {
+    "x": 4,
+    "y": 6,
+    "to": "@ret"
+   },
+   {
+    "x": 5,
+    "y": 6,
+    "to": "@ret"
+   }
+  ],
+  "npcs": [
+   {
+    "role": "clerk",
+    "x": 4,
+    "y": 2,
+    "dir": "down"
+   }
+  ]
+ },
+ "forge": {
+  "music": "town",
+  "qlv": 1,
+  "indoor": 1,
+  "theme": "t_alley",
+  "rows": [
+   "wwwwwwwwwwww",
+   "wkk_ttt__kkw",
+   "w__________w",
+   "w_t_____t__w",
+   "w__r____r__w",
+   "wp________pw",
+   "wwwww__wwwww"
+  ],
+  "warps": [
+   {
+    "x": 5,
+    "y": 6,
+    "to": "@ret"
+   },
+   {
+    "x": 6,
+    "y": 6,
+    "to": "@ret"
+   }
+  ],
+  "npcs": [
+   {
+    "role": "smith",
+    "x": 5,
+    "y": 2,
+    "dir": "down"
+   }
+  ]
+ },
+ "c1a": {
+  "music": "hall",
+  "qlv": 1,
+  "indoor": 1,
+  "theme": "t_slope",
+  "rows": [
+   "wwwwBBBBBBww",
+   "w__________w",
+   "w_tt_rr_tt_w",
+   "w__________w",
+   "w_tt_rr_tt_w",
+   "w__________w",
+   "wp_tt__tt_pw",
+   "w__________w",
+   "wwwww__wwwww"
+  ],
+  "warps": [
+   {
+    "x": 5,
+    "y": 8,
+    "to": "zhuyin",
+    "tx": 12,
+    "ty": 12,
+    "dir": "down"
+   },
+   {
+    "x": 6,
+    "y": 8,
+    "to": "zhuyin",
+    "tx": 13,
+    "ty": 12,
+    "dir": "down"
+   }
+  ],
+  "npcs": [
+   {
+    "role": "boss1",
+    "x": 5,
+    "y": 1,
+    "dir": "down"
+   },
+   {
+    "role": "c1aTip",
+    "x": 2,
+    "y": 5,
+    "dir": "right"
+   }
+  ],
+  "chests": [
+   {
+    "id": "c1a1",
+    "x": 10,
+    "y": 7,
+    "items": {
+     "heal": 2,
+     "hint": 1
+    }
+   }
+  ],
+  "devices": {
+   "4,0": {
+    "group": "bb",
+    "flag": "bb1",
+    "cat": "字形",
+    "label": "錯字黑板",
+    "text": "黑板上浮著扭曲的錯字，正一個個滴下黑墨……\\n（找出正確的寫法，就能淨化它！）",
+    "ok": "錯字被擦掉了，黑板恢復了乾淨！",
+    "allText": "三塊黑板都被淨化了！小老師身上的錯字怨念淡了許多。"
+   },
+   "6,0": {
+    "group": "bb",
+    "flag": "bb2",
+    "cat": "字形",
+    "label": "錯字黑板",
+    "text": "第二塊黑板上的錯字正在發抖。",
+    "ok": "錯字被擦掉了！",
+    "allText": "三塊黑板都被淨化了！"
+   },
+   "8,0": {
+    "group": "bb",
+    "flag": "bb3",
+    "cat": "字形",
+    "label": "錯字黑板",
+    "text": "最後一塊黑板寫滿了形近字。",
+    "ok": "錯字被擦掉了！",
+    "allText": "三塊黑板都被淨化了！小老師身上的錯字怨念淡了許多。",
+    "onAll": "bbAll"
+   }
+  }
+ },
+ "lib": {
+  "music": "hall",
+  "qlv": 2,
+  "indoor": 1,
+  "theme": "t_port",
+  "rows": [
+   "wwwwwwwwwwwwwwww",
+   "wkk____t_____kkw",
+   "wkkkkkkkkkkkkkkw",
+   "w_QQ__k__kk_QQ_w",
+   "w____k______k__w",
+   "wQQ__k_kkkk_k_Qw",
+   "w____k____k____w",
+   "w_kkkk_kk_kkkk_w",
+   "w__QQ______QQ__w",
+   "wp____kkkk____pw",
+   "w______________w",
+   "wwwwwww__wwwwwww"
+  ],
+  "warps": [
+   {
+    "x": 7,
+    "y": 11,
+    "to": "dianji",
+    "tx": 11,
+    "ty": 13,
+    "dir": "down"
+   },
+   {
+    "x": 8,
+    "y": 11,
+    "to": "dianji",
+    "tx": 12,
+    "ty": 13,
+    "dir": "down"
+   }
+  ],
+  "npcs": [
+   {
+    "role": "boss2",
+    "x": 8,
+    "y": 1,
+    "dir": "down"
+   }
+  ],
+  "chests": [
+   {
+    "id": "lib1",
+    "x": 1,
+    "y": 10,
+    "items": {
+     "hint": 2,
+     "dodgeup": 1
+    },
+    "frags": {
+     "tome": 2
+    }
+   }
+  ],
+  "devices": {
+   "2,3": {
+    "group": "bk",
+    "flag": "bk1",
+    "cat": "成語",
+    "label": "飛舞的成語辭典",
+    "text": "一本成語辭典在書箱上飛來飛去，書頁上缺了一個字……",
+    "ok": "辭典安靜地飛回了書架！",
+    "allText": "三本辭典都歸位了——中央的書架緩緩讓開，露出通往股長的路！",
+    "open": [
+     [
+      7,
+      2
+     ],
+     [
+      8,
+      2
+     ]
+    ]
+   },
+   "11,3": {
+    "group": "bk",
+    "flag": "bk2",
+    "cat": "成語",
+    "label": "飛舞的成語辭典",
+    "text": "第二本辭典在你頭上盤旋。",
+    "ok": "辭典飛回了書架！",
+    "allText": "三本辭典都歸位了！",
+    "open": [
+     [
+      7,
+      2
+     ],
+     [
+      8,
+      2
+     ]
+    ]
+   },
+   "7,7": {
+    "group": "bk",
+    "flag": "bk3",
+    "cat": "成語",
+    "label": "飛舞的成語辭典",
+    "text": "最後一本辭典夾在書箱縫隙中。",
+    "ok": "辭典回到了原位！",
+    "allText": "三本辭典都歸位了——中央的書架緩緩讓開！",
+    "open": [
+     [
+      7,
+      2
+     ],
+     [
+      8,
+      2
+     ]
+    ],
+    "onAll": "bkAll"
+   }
+  }
+ },
+ "yard": {
+  "music": "hall",
+  "qlv": 2,
+  "indoor": 1,
+  "theme": "t_flower",
+  "rows": [
+   "wwwwwwwwwwwwwwww",
+   "w____t____t____w",
+   "w_FF________FF_w",
+   "w______rr______w",
+   "w_~~~__rr__~~~_w",
+   "w_~~~__rr__~~~_w",
+   "w______rr______w",
+   "w_FF___rr___FF_w",
+   "w______rr______w",
+   "wp____A__A____pw",
+   "w______________w",
+   "wwwwwww__wwwwwww"
+  ],
+  "warps": [
+   {
+    "x": 7,
+    "y": 11,
+    "to": "huanan",
+    "tx": 11,
+    "ty": 11,
+    "dir": "down"
+   },
+   {
+    "x": 8,
+    "y": 11,
+    "to": "huanan",
+    "tx": 12,
+    "ty": 11,
+    "dir": "down"
+   }
+  ],
+  "npcs": [
+   {
+    "role": "boss3",
+    "x": 7,
+    "y": 1,
+    "dir": "down"
+   }
+  ],
+  "chests": [
+   {
+    "id": "yard1",
+    "x": 14,
+    "y": 10,
+    "items": {
+     "heal2": 1,
+     "cure": 1
+    }
+   }
+  ],
+  "devices": {
+   "2,2": {
+    "group": "fl",
+    "flag": "fl1",
+    "cat": "修辭",
+    "label": "枯萎的花",
+    "text": "一盆花因為墨塵而低著頭。\\n（用心感受文字，也許它會重新綻放。）",
+    "ok": "花瓣舒展開來，散發出淡淡的香氣！",
+    "allText": "三盆花都開了，花室恢復了生氣——助教的氣勢也弱了下來。"
+   },
+   "13,2": {
+    "group": "fl",
+    "flag": "fl2",
+    "cat": "閱讀",
+    "label": "枯萎的花",
+    "text": "第二盆花的葉子上積了一層黑墨。",
+    "ok": "黑墨散去，花開了！",
+    "allText": "三盆花都開了！"
+   },
+   "2,7": {
+    "group": "fl",
+    "flag": "fl3",
+    "cat": "修辭",
+    "label": "枯萎的花",
+    "text": "最後一盆花只剩下花苞。",
+    "ok": "花苞綻放了！",
+    "allText": "三盆花都開了，花室恢復了生氣！",
+    "onAll": "flAll"
+   }
+  }
+ },
+ "hist": {
+  "music": "hall",
+  "qlv": 3,
+  "indoor": 1,
+  "theme": "t_stele",
+  "rows": [
+   "wwwwwwwwwwwwww",
+   "wkk___t____kkw",
+   "w____________w",
+   "wkkk_kkkk_kkkw",
+   "w____________w",
+   "w_p________p_w",
+   "wwwwwMMMMwwwww",
+   "w____________w",
+   "wk__OO__OO__kw",
+   "w____________w",
+   "w____________w",
+   "wwwwww__wwwwww"
+  ],
+  "warps": [
+   {
+    "x": 6,
+    "y": 11,
+    "to": "beilin",
+    "tx": 11,
+    "ty": 12,
+    "dir": "down"
+   },
+   {
+    "x": 7,
+    "y": 11,
+    "to": "beilin",
+    "tx": 12,
+    "ty": 12,
+    "dir": "down"
+   }
+  ],
+  "npcs": [
+   {
+    "role": "boss4",
+    "x": 7,
+    "y": 1,
+    "dir": "down"
+   }
+  ],
+  "chests": [
+   {
+    "id": "hist1",
+    "x": 1,
+    "y": 10,
+    "items": {
+     "heal2": 2,
+     "atkup": 1
+    },
+    "frags": {
+     "classic": 2
+    }
+   }
+  ],
+  "devices": {
+   "5,6": {
+    "group": "st",
+    "flag": "st1",
+    "cat": "文言",
+    "label": "古文石碑",
+    "text": "石碑上刻著一段古文，字跡被墨塵遮住了一半……\\n（讀懂它，石碑就會亮起。）",
+    "ok": "石碑亮起了柔和的光！",
+    "allText": "三座石碑同時亮起，擋路的石碑緩緩沉入地面，通往檔案室的路開了！",
+    "open": [
+     [
+      5,
+      6
+     ],
+     [
+      6,
+      6
+     ],
+     [
+      7,
+      6
+     ],
+     [
+      8,
+      6
+     ]
+    ]
+   },
+   "6,6": {
+    "group": "st",
+    "flag": "st2",
+    "cat": "文言",
+    "label": "古文石碑",
+    "text": "第二座石碑記載著校史與古語。",
+    "ok": "石碑亮起來了！",
+    "allText": "三座石碑同時亮起，路開了！",
+    "open": [
+     [
+      5,
+      6
+     ],
+     [
+      6,
+      6
+     ],
+     [
+      7,
+      6
+     ],
+     [
+      8,
+      6
+     ]
+    ]
+   },
+   "7,6": {
+    "group": "st",
+    "flag": "st3",
+    "cat": "常識",
+    "label": "古文石碑",
+    "text": "最後一座石碑上是一段國學常識。",
+    "ok": "石碑亮起來了！",
+    "allText": "三座石碑同時亮起，路開了！",
+    "open": [
+     [
+      5,
+      6
+     ],
+     [
+      6,
+      6
+     ],
+     [
+      7,
+      6
+     ],
+     [
+      8,
+      6
+     ]
+    ],
+    "onAll": "stAll"
+   }
+  }
+ },
+ "aud": {
+  "music": "hall",
+  "qlv": 3,
+  "indoor": 1,
+  "theme": "t_tower",
+  "rows": [
+   "wwwwwBBBBBBwwwww",
+   "w______________w",
+   "wtttttt__ttttttw",
+   "w______rr______w",
+   "w_tt_V_rr_t_tt_w",
+   "w______rr______w",
+   "w_tt_t_rr_t_tt_w",
+   "w______rr______w",
+   "w_tt_t_rr_V_tt_w",
+   "w______rr______w",
+   "wV_t_t_rr_t_tt_w",
+   "w______rr______w",
+   "wwwwwww__wwwwwww"
+  ],
+  "warps": [
+   {
+    "x": 7,
+    "y": 12,
+    "to": "zhongta",
+    "tx": 10,
+    "ty": 5,
+    "dir": "down"
+   },
+   {
+    "x": 8,
+    "y": 12,
+    "to": "zhongta",
+    "tx": 11,
+    "ty": 5,
+    "dir": "down"
+   }
+  ],
+  "npcs": [
+   {
+    "role": "e1",
+    "x": 1,
+    "y": 9,
+    "dir": "right",
+    "sight": 14
+   },
+   {
+    "role": "e2",
+    "x": 14,
+    "y": 7,
+    "dir": "left",
+    "sight": 14
+   },
+   {
+    "role": "e3",
+    "x": 1,
+    "y": 5,
+    "dir": "right",
+    "sight": 14
+   },
+   {
+    "role": "moGuard",
+    "x": 4,
+    "y": 11,
+    "dir": "right"
+   },
+   {
+    "role": "boss5",
+    "x": 7,
+    "y": 1,
+    "dir": "down"
+   }
+  ],
+  "chests": [
+   {
+    "id": "aud1",
+    "x": 1,
+    "y": 1,
+    "items": {
+     "heal2": 2,
+     "cure": 2,
+     "dodgeup": 1
+    }
+   },
+   {
+    "id": "aud2",
+    "x": 14,
+    "y": 1,
+    "items": {
+     "atkup": 2,
+     "defup": 2
+    }
+   }
+  ],
+  "devices": {
+   "5,4": {
+    "group": "ad",
+    "flag": "ad1",
+    "cat": "閱讀",
+    "label": "准考證感應台",
+    "text": "講台前的感應台亮著微光，上面寫著：「答對即可凝聚文氣。」",
+    "ok": "感應台亮起，一股文氣湧入你的身體！（下場戰鬥文氣 +1）"
+   },
+   "10,8": {
+    "group": "ad",
+    "flag": "ad2",
+    "cat": "成語",
+    "label": "准考證感應台",
+    "text": "第二座感應台等著你。",
+    "ok": "文氣再度凝聚！（下場戰鬥文氣 +1）"
+   },
+   "1,10": {
+    "group": "ad",
+    "flag": "ad3",
+    "cat": "文言",
+    "label": "准考證感應台",
+    "text": "最後一座感應台散發著沉穩的光。",
+    "ok": "文氣滿溢！（下場戰鬥文氣 +1）",
+    "allText": "三座感應台全部亮起，整座禮堂被文氣照亮了！"
+   }
+  }
  }
 };
 Object.assign(LAYOUTS, NEW_MAPS);
@@ -1561,6 +2407,7 @@ const INTERIOR_LINKS = {
   aud:  [{ x: 7, y: 12, to: 'zhongta', tx: 10, ty: 5, dir: 'down' }, { x: 8, y: 12, to: 'zhongta', tx: 11, ty: 5, dir: 'down' }],
   inkpool: [{ x: 7, y: 11, to: 'moquan', tx: 16, ty: 12, dir: 'down' }, { x: 8, y: 11, to: 'moquan', tx: 16, ty: 12, dir: 'down' }],
 };
-for (const [k, w] of Object.entries(INTERIOR_LINKS)) if (LAYOUTS[k]) LAYOUTS[k].warps = w;
+for (const [k, w] of Object.entries(INTERIOR_LINKS)) if (LAYOUTS[k] && !NEW_MAPS[k]) LAYOUTS[k].warps = w;
 /* 道館室內不再需要舊的關卡限制 */
 for (const k of ['c1a', 'lib', 'yard', 'hist', 'aud']) if (LAYOUTS[k]) { delete LAYOUTS[k].gates; delete LAYOUTS[k].doorWarps; }
+for (const k of ['clinic', 'store']) delete LAYOUTS[k];      // 改用各城鎮風格的室內
