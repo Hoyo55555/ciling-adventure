@@ -34,6 +34,26 @@ const bondText = w => { const lv = bondLv(w), nx = BOND_STEPS[lv]; return lv ? `
 const closeOnAB = ctl => { ctl.update = () => { if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } }; };
 
 /* ============ 存檔畫面 ============ */
+/* 讀取存檔後的選單：繼續遊戲／練習錯題本／觀看學習紀錄 */
+const LoadMenu = {
+  async open(n) {
+    const g = Slots.read(n); if (!g) return null;
+    const keepG = G, keepW = W;
+    G = g; W = WORLDS[g.world];                       // 暫時載入這個存檔，讓錯題本與紀錄能顯示
+    try {
+      while (true) {
+        const wrong = (g.wrong || []).length;
+        const opts = ['繼續遊戲', `練習錯題本（${wrong} 題）`, '觀看學習紀錄', '返回'];
+        const k = await UI.choose(opts, { pos: { left: '50%', bottom: U(6), transform: 'translateX(-50%)' }, cls: 'titlemenu', cancel: false });
+        if (k === 0) return 'play';
+        if (k === 1) { if (!wrong) { await say('目前沒有錯題，先去冒險吧！'); continue; } await WrongBook.open(); Slots.write(n, G); }
+        if (k === 2) await Records.open();
+        if (k === 3 || k < 0) return null;
+      }
+    } finally { G = keepG; W = keepW; }
+  },
+};
+
 const SlotScreen = {
   open(mode) {   // mode: load / new / rebirth
     return UI.panel(ctl => {
@@ -82,19 +102,18 @@ const BookMenu = {
   async open() {
     let sel = 0;
     while (true) {
-      const opts = ['角色', '武器', '鍛造', '道具', '兵器譜', '妖怪圖鑑', '稱號', '任務', '錯題本', '學習紀錄', '存檔', '設定'].concat(Cloud.user ? ['登出'] : [], ['回到主畫面', '關閉']);
+      const opts = ['角色', '武器', '電腦', '鍛造', '道具', '兵器譜', '妖怪圖鑑', '稱號', '任務', '存檔', '設定'].concat(Cloud.user ? ['登出'] : [], ['回到主畫面', '關閉']);
       const i = await UI.choose(opts, { pos: {}, cls: 'bookmenu', start: sel });
       const L = opts[i]; if (i < 0 || L === '關閉') return; sel = i;
       if (L === '角色') await CharPanel.open();
       if (L === '武器') await WeaponMenu.open();
+      if (L === '電腦') await Storage.open();
       if (L === '鍛造') await Forge.open();
       if (L === '道具') await Bag.open({});
       if (L === '兵器譜') await Armory.open();
       if (L === '妖怪圖鑑') await MonDex.open();
       if (L === '稱號') await TitleMenu.open();
       if (L === '任務') await Quests.open();
-      if (L === '錯題本') await WrongBook.open();
-      if (L === '學習紀錄') await Records.open();
       if (L === '存檔') { autosave(); Sound.sfx('badge'); await say(`已儲存到欄位 ${G.slot}！（${fmtDate(G.savedAt)}）`); }
       if (L === '設定') await SettingsPanel.open();
       if (L === '登出') { if (await Cloud.logoutFlow()) { await fade(1, 0.3); titleScreen(); await fade(0, 0.3); return; } }
@@ -179,7 +198,7 @@ const Forge = {
         for (const a of fr) { const n = G.frags[a], ok = n >= FRAG_N; const r = h('div', 'row' + (ok ? '' : ' dis')); r.appendChild(wIcon(a, 0));
           r.insertAdjacentHTML('beforeend', `<div class="grow"><b>${esc(weaponName(a))}碎片</b>　${n} / ${FRAG_N}<div class="small muted">${ok ? '可以合成一件凡品「' + esc(weaponName(a)) + '」' : '還差 ' + (FRAG_N - n) + ' 片'}</div></div>`);
           sc.appendChild(r); acts.push({ r, ok, run: () => { G.frags[a] -= FRAG_N; const w = giveWeapon(a, 0); w.affix = rollAffix();
-            return `合成成功！得到了「${weaponName(w)}」（凡品）！${w.affix ? `\n${AFFIX[w.affix.k].good ? '✦ 附加效果' : '✧ 附加效果（負面）'}：${AFFIX[w.affix.k].name}——${AFFIX[w.affix.k].desc}（機率 ${Math.round(w.affix.rate * 100)}%）` : ''}`; } }); }
+            return `合成成功！得到了「${weaponName(w)}」（凡品）！${w.toBox ? '\n（背包滿了，已自動存進「電腦」）' : ''}${w.affix ? `\n${AFFIX[w.affix.k].good ? '✦ 附加效果' : '✧ 附加效果（負面）'}：${AFFIX[w.affix.k].name}——${AFFIX[w.affix.k].desc}（機率 ${Math.round(w.affix.rate * 100)}%）` : ''}`; } }); }
         sc.insertAdjacentHTML('beforeend', '<div class="qsec">升階合成</div>');
         const groups = {}; for (const w of G.weapons) if (w.r < 5 && !ARCH[w.arch].guardian) (groups[w.arch + ':' + w.r] || (groups[w.arch + ':' + w.r] = [])).push(w);
         const keys = Object.keys(groups).sort((x, y) => ARCH_ORDER.indexOf(x.split(':')[0]) - ARCH_ORDER.indexOf(y.split(':')[0]) || +x.split(':')[1] - +y.split(':')[1]);
@@ -195,7 +214,7 @@ const Forge = {
             nw.affix = mergeAffix(use) || rollAffix();
             const curId = G.equip[G.cur]; let slot = -1;
             for (const x of use) { const i = G.equip.indexOf(x.id); if (i >= 0) { if (slot < 0) slot = i; G.equip.splice(i, 1); } G.weapons.splice(G.weapons.indexOf(x), 1); }
-            G.weapons.push(nw); Meta.seeWeapon(G.world, a, nw.r);
+            addWeapon(nw); Meta.seeWeapon(G.world, a, nw.r);
             if (slot >= 0) G.equip.splice(slot, 0, nw.id); else if (G.equip.length < 3) G.equip.push(nw.id);
             G.cur = Math.max(0, G.equip.indexOf(use.some(x => x.id === curId) ? nw.id : curId)); playerStats();
             const fxN = use.filter(x => x.affix).length;
@@ -281,6 +300,52 @@ const TitleMenu = {
           else { if (G.titles.length >= TITLE_SLOTS) { await say(`最多只能同時配戴 ${TITLE_SLOTS} 個稱號，先取下一個吧。`); return; } G.titles.push(it.t.id); }
           Sound.sfx('ok'); playerStats(); autosave(); render();
         } });
+      };
+      render();
+    });
+  },
+};
+
+/* ============ 電腦：武器倉庫（背包最多 6 把，戰鬥中無法使用） ============ */
+const Storage = {
+  open() {
+    return UI.panel(ctl => {
+      let side = 0;       // 0=背包 1=電腦
+      const render = () => {
+        G.storage = G.storage || [];
+        const bag = G.weapons, box = G.storage;
+        const list = side ? box : bag;
+        ctl.box.innerHTML = `<h2>💻 電腦．武器倉庫　<span class="small muted">背包 ${bag.length} / ${BAG_MAX}．電腦 ${box.length}</span></h2>
+          <div class="row" style="gap:${U(4)}"><b class="${side ? 'muted' : 'good'}">［背包］</b><b class="${side ? 'good' : 'muted'}">［電腦］</b><span class="small muted">←→ 切換</span></div>
+          <div class="scroll"></div>` + footKeys(side ? 'A 取出到背包　←→ 切換　B 返回' : 'A 存進電腦　←→ 切換　B 返回');
+        const sc = $('.scroll', ctl.box);
+        if (!list.length) sc.innerHTML = `<div class="muted">${side ? '電腦裡沒有武器。' : '背包裡沒有武器。'}</div>`;
+        const rows = list.map(w => {
+          const slot = G.equip.indexOf(w.id);
+          const r = h('div', 'row'); r.appendChild(wIcon(w.arch, w.r));
+          r.insertAdjacentHTML('beforeend', `<div class="grow"><b class="rtxt r${w.r}">${esc(weaponName(w))}</b> ${rarChip(w.r)} <span class="small">Lv.${weaponLv(w)}</span>
+            <div class="small muted">熟練度 ${w.mastery}　親密度 ${bondHearts(w)}${w.affix ? `　<span class="affix ${AFFIX[w.affix.k].good ? '' : 'bad'}">${AFFIX[w.affix.k].name}</span>` : ''}</div></div>
+            <span class="small">${slot >= 0 ? (slot === G.cur ? '<b class="good">★ 使用中</b>' : '攜帶 ' + (slot + 1)) : ''}</span>`);
+          sc.appendChild(r); return r;
+        });
+        listNav(ctl, rows, { onBack: () => ctl.done(), onPick: async i => {
+          const w = list[i];
+          if (!side) {
+            if (G.weapons.length <= 1) { await say('背包裡至少要留一把武器。'); return; }
+            const slot = G.equip.indexOf(w.id);
+            if (slot >= 0 && G.equip.length <= 1) { await say('攜帶欄至少要有一把武器，先換一把再存。'); return; }
+            if (slot >= 0) { const cur = G.equip[G.cur]; G.equip.splice(slot, 1); G.cur = Math.max(0, G.equip.indexOf(cur === w.id ? G.equip[0] : cur)); }
+            G.weapons = G.weapons.filter(x => x !== w); G.storage.push(w);
+            Sound.sfx('ok'); playerStats();
+          } else {
+            if (G.weapons.length >= BAG_MAX) { await say(`背包最多只能放 ${BAG_MAX} 把武器，先存一把進電腦吧。`); return; }
+            G.storage = G.storage.filter(x => x !== w); G.weapons.push(w);
+            Sound.sfx('ok'); playerStats();
+          }
+          autosave(); render();
+        } });
+        const inner = ctl.update;                       // 左右切換背包／電腦
+        ctl.update = () => { const d = Input.dir(); if (d === 'left' && side) { side = 0; Sound.sfx('cursor'); render(); return; } if (d === 'right' && !side) { side = 1; Sound.sfx('cursor'); render(); return; } inner(); };
       };
       render();
     });
@@ -380,10 +445,10 @@ const Quests = {
       out.push(nt ? `妖怪圖鑑收集（${n} / ${MON_KEYS.length}）<span class="muted">．再 ${nt.n - n} 種可解鎖稱號「${esc(nt.name)}」</span>`
         : `<s>妖怪圖鑑收集</s>　<b class="good">全部稱號已解鎖</b>`);
       if (G.ng > 0) {
-        const got = G.weapons.some(w => w.arch === 'g_stone');
+        const got = ownsArch('g_stone');
         out.push(got ? '<s>在「硯海墨池」擊敗硯海龍君</s>　<b class="good">已取得</b>'
           : '在校園牆角的墨漬進入「硯海墨池」，找到並擊敗硯海龍君<span class="muted">．答對題目才能挑戰，牠會換位置</span>');
-        const n4 = GUARDIAN_KEYS.filter(k => G.weapons.some(w => w.arch === k)).length;
+        const n4 = GUARDIAN_KEYS.filter(k => ownsArch(k)).length;
         out.push(n4 >= 4 ? '<s>集齊文房四寶</s>　<b class="good">已完成</b>' : `集齊文房四寶（${n4} / 4）<span class="muted">．每一週目可獲得一隻</span>`);
       }
       const wn = G.wrong.length;
@@ -594,24 +659,34 @@ const ChapterEnd = {
 const Guardian = {
   /* 把器靈交給玩家（一週目三選一隨機、二週目硯靈） */
   async give(a) {
-    if (G.weapons.some(w => w.arch === a)) return null;
+    if (ownsArch(a)) return null;
     Sound.sfx('badge'); s_flash();
-    const w = newWeapon(a, 6); G.weapons.push(w); Meta.seeWeapon(G.world, a, 6);
+    const w = newWeapon(a, 6); addWeapon(w); Meta.seeWeapon(G.world, a, 6);
     await say(`${G.player.name} 得到了守護器靈「${weaponName(a)}」！`);
     await say(`${ARCH[a].gdesc || ''}`);
     await say(`守護能力：${passiveList(a).map(p => `「${PASSIVES[p].name}」${PASSIVES[p].desc}`).join('\n')}\n（放進攜帶欄就會生效）`);
-    if (G.equip.length < 3) G.equip.push(w.id);
+    if (!w.toBox && G.equip.length < 3) G.equip.push(w.id);
+    if (w.toBox) await say('（背包滿了，牠先待在「電腦」裡，可以在選單的「電腦」取出。）');
     autosave(); return w;
   },
   /* 一週目：決戰前的對話選擇，三隻器靈隨機出現一隻 */
   async firstMeet() {
-    if (G.flags.guardianGot) return;
-    const pool = GUARDIAN_FIRST.filter(k => !G.weapons.some(w => w.arch === k));
-    const a = pick(pool.length ? pool : GUARDIAN_FIRST);
+    const owned = GUARDIAN_FIRST.filter(k => ownsArch(k));
+    if (owned.length) return 'has';
+    const a = G.flags.guardianGot || pick(GUARDIAN_FIRST);
     G.flags.guardianGot = a;
     await say('（你手上的文具同時亮了起來，一道光在空中凝成形體……）');
     await say(`（文房四寶之一——「${weaponName(a)}」現身了！）`);
+    await say(ARCH[a].gdesc || '');
+    await say('（牠沒有要直接跟你走的意思——牠在等你證明自己。）');
+    const role = { kind: 'gym', name: weaponName(a), look: { sprite: 'stone' }, reward: 800,
+      win: `（${weaponName(a)}收起光芒，輕輕落在你手上。）`,
+      foe: { lv: clamp(G.lv, 16, 28), hpMul: 1.5, el: 'none', race: ARCH[a].race, cats: ALL_CATS,
+        moves: [['器靈之威', ALL_CATS, 54], ['文心一擊', ALL_CATS, 58]] }, potions: 1 };
+    const res = await Battle.start({ kind: 'gym', foe: makePersonFoe(role), role, cats: ALL_CATS });
+    if (res !== 'win') { await say('（器靈的光暗了下來……牠還會再給你機會。）'); return 'lose'; }
     await Guardian.give(a);
+    return 'win';
   },
   async grant(story) { return Guardian.firstMeet(); },
 };
@@ -624,7 +699,7 @@ const StoryEnding = {
     for (const t of W.ending) await say(t);
     if (G.route) await say(W.routeEnd[G.route]);
     s_flash(); await say(W.finale);
-    const gotStone = G.weapons.some(w => w.arch === 'g_stone');
+    const gotStone = ownsArch('g_stone');
     if (ng > 0) {
       await say(gotStone
         ? '（筆、紙、墨、硯——文房四寶都在你手上了。這一次，你是真的把整座校園都讀懂了。）'

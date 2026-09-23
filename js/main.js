@@ -151,7 +151,13 @@ async function titleScreen() {
     const i = await UI.choose(labels, { pos: { left: '50%', bottom: U(6), transform: 'translateX(-50%)' }, cancel: false, start: Math.min(sel, labels.length - 1), cls: 'titlemenu', cols: labels.length > 3 ? 2 : 1 });
     sel = i; const L = labels[i];
     logo.style.display = 'none';
-    if (L === '繼續冒險') { const n = await SlotScreen.open('load'); if (n) { logo.remove(); tlink.remove(); return Flow.load(n); } }
+    if (L === '繼續冒險') {
+      const n = await SlotScreen.open('load');
+      if (n) {
+        const act = await LoadMenu.open(n);            // 繼續遊戲／練習錯題本／觀看學習紀錄
+        if (act === 'play') { logo.remove(); tlink.remove(); return Flow.load(n); }
+      }
+    }
     if (L === '新的冒險') { const n = await SlotScreen.open('new'); if (n) { logo.remove(); const ok = await Flow.newGame(n); if (ok) return; return titleScreen(); } }
     if (L === '登出' || L === '登入帳號') {
       if (L === '登出' && !(await Cloud.logoutFlow())) { logo.style.display = ''; continue; }
@@ -166,9 +172,9 @@ async function titleScreen() {
 
 /* ---------- 存檔資料 ---------- */
 function freshState(world, player, slot) {
-  return { v: 2, slot, world, player, map: 'town1', x: 6, y: 5, lv: 3, exp: 0, hp: null, weapons: [], equip: [], cur: 0, wenqi: 0,
-    bag: { heal: 0, heal2: 0, wenqi: 0, hint: 0, atkup: 0, defup: 0, dodgeup: 0, cure: 0 }, frags: {}, money: 300, chapter: 1, badges: [], flags: {}, defeated: {}, chests: {}, quests: {}, opened: {}, titles: [],
-    stats: {}, chStats: {}, wrong: [], seen: {}, weakKnown: {}, lastHeal: { map: 'town1', x: 6, y: 5 }, ret: { map: 'town1', x: 6, y: 5 }, time: 0, streak: 0, bestStreak: 0, answered: 0, ng: 0 };
+  return { v: 3, slot, world, player, map: 'chendu', x: 16, y: 11, lv: 3, exp: 0, hp: null, weapons: [], equip: [], cur: 0, wenqi: 0,
+    bag: { heal: 0, heal2: 0, wenqi: 0, hint: 0, atkup: 0, defup: 0, dodgeup: 0, cure: 0 }, frags: {}, money: 300, chapter: 1, badges: [], flags: {}, defeated: {}, chests: {}, quests: {}, opened: {}, titles: [], storage: [], visited: {},
+    stats: {}, chStats: {}, wrong: [], seen: {}, weakKnown: {}, lastHeal: { map: 'chendu', x: 16, y: 11 }, ret: { map: 'chendu', x: 16, y: 11 }, time: 0, streak: 0, bestStreak: 0, answered: 0, ng: 0 };
 }
 const Flow = {
   async load(n) {
@@ -179,7 +185,19 @@ const Flow = {
       for (const a in old) { const w = newWeapon(a, 0); w.mastery = old[a].mastery || 0; G.weapons.push(w); map[a] = w.id; }
       G.equip = G.equip.map(a => map[a]).filter(Boolean); G.cur = 0;
     }
-    if (G.map === 'town2' && !LAYOUTS.town2.rows[G.y]) { G.x = 11; G.y = 12; }
+    if (!Array.isArray(G.storage)) G.storage = [];
+    while (G.weapons.length > BAG_MAX) {                       // 舊存檔：超過背包上限的先移到電腦
+      const spare = G.weapons.find(w => !G.equip.includes(w.id)) || G.weapons[G.weapons.length - 1];
+      G.weapons = G.weapons.filter(w => w !== spare); G.storage.push(spare);
+      G.equip = G.equip.filter(id => id !== spare.id);
+    }
+    if (!G.equip.length && G.weapons.length) G.equip.push(G.weapons[0].id);
+    G.cur = Math.max(0, Math.min(G.cur, G.equip.length - 1));
+    if (!G.visited) G.visited = {};
+    if (!LAYOUTS[G.map]) { const H0 = W.homeTown || { map: 'chendu', x: 16, y: 11 }; G.map = H0.map; G.x = H0.x; G.y = H0.y; }   // 舊存檔的地圖已移除
+    if (!LAYOUTS[G.lastHeal && G.lastHeal.map]) G.lastHeal = { map: 'chendu', x: 16, y: 11 };
+    if (!LAYOUTS[G.ret && G.ret.map]) G.ret = { map: 'chendu', x: 16, y: 11 };
+    for (const k of Object.keys(G.defeated || {})) if (/^(hallway|campus|town1|route1|town2|gym1):/.test(k)) delete G.defeated[k];
     for (const id of ITEM_ORDER) if (G.bag[id] == null) G.bag[id] = 0;        // 舊存檔補上新道具欄位
     if (!Array.isArray(G.titles)) G.titles = [];
     for (const w of G.weapons) {
@@ -215,7 +233,7 @@ const Flow = {
     const keep = { prologue: true, tut: 'skip', cleared: true };
     G.flags = keep;
     G.hp = G.maxhp; G.wenqi = 0;
-    const S0 = { map: 'campus', x: 15, y: 6 };
+    const S0 = { map: 'chendu', x: 16, y: 11 };
     G.lastHeal = { map: S0.map, x: S0.x, y: S0.y }; G.ret = Object.assign({}, S0);
     autosave();
     await fade(1, 0.4); UI.clear(); Game.scene = 'overworld'; OW.load(S0.map, S0.x, S0.y, 'down'); await fade(0, 0.4);
@@ -243,8 +261,8 @@ const Flow = {
     }
   },
   async start() {
-    const S0 = W.story ? W.start : { map: 'town1', x: 6, y: 5, dir: 'down' };
-    G.map = S0.map; G.lastHeal = W.story ? { map: 'campus', x: 3, y: 16 } : G.lastHeal;
+    const S0 = W.story ? W.start : { map: 'chendu', x: 16, y: 11, dir: 'down' };
+    G.map = S0.map; G.lastHeal = W.story ? { map: 'chendu', x: 16, y: 11 } : G.lastHeal;
     await fade(1, 0.4); UI.clear(); Game.scene = 'overworld'; OW.load(S0.map, S0.x, S0.y, S0.dir); autosave(); await fade(0, 0.4);
     await sleep(200); showBanner(W.chapterName);
     if (W.story) { if (!G.flags.prologue) OW.run(() => storyPrologue()); }

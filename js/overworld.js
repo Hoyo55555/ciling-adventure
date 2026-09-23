@@ -8,6 +8,7 @@ const OW = {
   p: { x: 0, y: 0, dir: 'down', moving: false, t: 0, tx: 0, ty: 0, dur: 0.22, step: 0, turnWait: 0, cont: false },
 
   load(id, x, y, dir) {
+    if (!LAYOUTS[id]) { const H0 = (W && W.homeTown) || { map: 'chendu', x: 16, y: 11 }; id = H0.map; x = H0.x; y = H0.y; }   // 防呆：地圖不存在就回起點城鎮
     this.id = id; this.L = LAYOUTS[id];
     Object.assign(this.p, { x, y, dir: dir || this.p.dir, moving: false, t: 0 });
     this.npcs = (this.L.npcs || []).concat((G.flags.cleared && W.postNpcs && W.postNpcs[id]) || []).map(s => {
@@ -19,7 +20,9 @@ const OW = {
     }).filter(Boolean);
     this.spawnFoes();
     if (id === 'inkpool') this.spawnSpirit();
+    else this.spawnRoamer();
     G.map = id; G.x = x; G.y = y;
+    if (!this.L.indoor && !/^r\d/.test(id)) { G.visited = G.visited || {}; G.visited[id] = 1; }
     Sound.play(W.music[this.L.music] || this.L.music); Cloud.paint();
     showBanner(W.mapNames[id]);
   },
@@ -51,10 +54,25 @@ const OW = {
       this.foes.push({ sp, lv: rnd(F.lv[0], F.lv[1]) + (F.scale || 0) * st + (G.ng || 0) * 4, x: s[0], y: s[1], hx: s[0], hy: s[1], ox: 0, oy: 0, t: Math.random() * 1.5, cool: 0, moving: false });
     }
   },
+  /* 二週目：筆靈／紙靈／墨靈會在城鎮與路線上隨機現身 */
+  spawnRoamer() {
+    this.npcs = this.npcs.filter(n => n.role.kind !== 'roamer');
+    if (!G.ng || this.L.indoor) return;
+    const left = GUARDIAN_FIRST.filter(k => !ownsArch(k));
+    if (!left.length) return;
+    if (Math.random() > 0.35) return;                       // 每次進入地圖有機率出現
+    const spots = [];
+    for (let y = 1; y < this.L.rows.length - 1; y++) for (let x = 1; x < this.L.rows[0].length - 1; x++)
+      if (!SOLID.has(this.tile(x, y)) && !this.chestAt(x, y) && !this.npcAt(x, y) && Math.abs(x - this.p.x) + Math.abs(y - this.p.y) > 4) spots.push([x, y]);
+    if (!spots.length) return;
+    const [sx, sy] = pick(spots), a = pick(left);
+    const role = { kind: 'roamer', name: weaponName(a), look: { sprite: 'stone' } };
+    this.npcs.push({ key: this.id + ':roamer', role, arch: a, x: sx, y: sy, dir: 'down', home: 'down', sight: 0, ox: 0, oy: 0, fr: 0, look: role.look });
+  },
   /* 二週目：硯海龍君在墨池裡隨機現身 */
   spawnSpirit() {
     this.npcs = this.npcs.filter(n => n.key !== 'inkpool:stoneSpirit');
-    if (!G.ng || G.weapons.some(w => w.arch === 'g_stone')) return;
+    if (!G.ng || ownsArch('g_stone')) return;
     const spots = [];
     for (let y = 1; y < this.L.rows.length - 1; y++) for (let x = 1; x < this.L.rows[0].length - 1; x++)
       if (!SOLID.has(this.tile(x, y)) && !this.chestAt(x, y) && Math.abs(x - this.p.x) + Math.abs(y - this.p.y) > 3) spots.push([x, y]);
@@ -225,7 +243,13 @@ function drawMark(g, x, y, type, now) {
   g.globalAlpha = 1;
 }
 const wenqiDots = () => `<span class="wq">${Array.from({ length: ULT_COST }, (_, i) => `<i class="${i < G.wenqi ? 'on' : ''}"></i>`).join('')}</span>`;
-function gateOpen(gate) { if (gate === 'needWeapon') return G.equip.length > 0; const m = /^need(\d)$/.exec(gate); if (m) return G.badges.length >= +m[1]; return false; }
+function gateOpen(gate) {
+  if (gate === 'needWeapon') return G.equip.length > 0;
+  if (gate === 'sideA') return ['r4:m1', 'r4:m2', 'r4:m3'].every(k => G.defeated[k]);
+  if (gate === 'sideB') return !!G.flags.sideB;
+  const m = /^need(\d)$/.exec(gate); if (m) return G.badges.length >= +m[1];
+  return false;
+}
 
 /* ---------- 腳本 ---------- */
 async function warpTo(map, x, y, dir) {
@@ -237,8 +261,21 @@ async function warpTo(map, x, y, dir) {
   }
 }
 async function enterDoor(dw) {
-  if (dw.need === 'ng') { if (!G.ng) { Sound.sfx('bump'); await say('（牆角的墨漬看起來只是普通的污漬……好像還沒有什麼特別的。）'); return; }
-    if (!G.flags.inkpoolFound) { G.flags.inkpoolFound = true; await say('（牆角的墨漬突然漾開，露出一條通往地下的路——這裡是傳說中的「硯海墨池」！）'); } }
+  if (dw.need === 'stone') {
+    if (!G.flags.stoneAwake) {
+      const has = GUARDIAN_FIRST.every(k => ownsArch(k));
+      const carried = GUARDIAN_FIRST.every(k => G.equip.map(id => wById(id)).some(w => w && w.arch === k));
+      if (!G.ng) { Sound.sfx('bump'); await say(W.gates.stone); return; }
+      if (!has) { Sound.sfx('bump'); await say('（泉眼靜靜地冒著墨色的泡。）\n小墨的話又響起來：「要先把筆、紙、墨三隻器靈都收齊。」'); return; }
+      if (!carried) { Sound.sfx('bump'); await say('（泉眼微微震了一下，又安靜下來。）\n「……三隻器靈都要帶在身上才行。」（請到選單的「武器」把三隻器靈都放進攜帶欄）'); return; }
+      Sound.sfx('badge'); s_flash();
+      await say('（你把筆靈、紙靈、墨靈一起舉到泉眼前——三道光落進墨色的水裡。）');
+      await say('（泉水劇烈翻湧，從底下傳來一個很老很老的聲音。）');
+      await say('「……三寶齊聚，硯海當開。」');
+      G.flags.stoneAwake = true; autosave();
+      await say('（牆角的墨漬裂開了一條路。）');
+    }
+    if (!G.flags.inkpoolFound) { G.flags.inkpoolFound = true; await say('（泉眼下的墨漬漾開，露出一條通往地下的路——這裡就是傳說中的「硯海墨池」！）'); } }
   else if (dw.need && G.badges.length < dw.need) { Sound.sfx('bump'); await say(W.gates[dw.gate]); return; }
   if (dw.ret) G.ret = { map: OW.id, x: dw.ret.x, y: dw.ret.y };
   await warpTo(dw.to, dw.tx, dw.ty, dw.dir);
@@ -268,8 +305,11 @@ async function useDevice(d) {
 async function afterDevice(d) {
   const all = Object.values(OW.L.devices).filter(x => x.group === d.group);
   if (!all.every(x => G.flags[x.flag])) return;
-  await say(d.allText || '機關全部解開了！');
-  if (d.open) { for (const [x, y] of d.open) G.opened[OW.id + ':' + x + ',' + y] = '_'; Sound.sfx('badge'); OW.foes = OW.foes; }
+  const last = all.find(x => x.onAll) || d;                 // 整組完成的效果寫在其中一個機關上
+  await say(last.allText || d.allText || '機關全部解開了！');
+  const open = last.open || d.open;
+  if (open) { for (const [x, y] of open) G.opened[OW.id + ':' + x + ',' + y] = '_'; Sound.sfx('badge'); }
+  if (last.onAll) { G.flags[last.onAll] = true; autosave(); }
 }
 async function talkTo(n) {
   const R = n.role; n.dir = OPP[OW.p.dir];
@@ -280,6 +320,9 @@ async function talkTo(n) {
     case 'rematch': return rematchTalk(n);
     case 'guardian': return guardianTalk(n);
     case 'spirit': return spiritTalk(n);
+    case 'bus': return busTalk(n);
+    case 'quest2': return sideQuestTalk(n);
+    case 'roamer': return roamerTalk(n);
     case 'guide': { const L = R.lines[Math.min(storyStage(), R.lines.length - 1)]; await say(L.join('\n\n'), R.name); return; }
     case 'healer': {
       Sound.sfx('door'); await say(R.text); G.hp = G.maxhp;
@@ -290,19 +333,76 @@ async function talkTo(n) {
     default: await say(R.lines.join('\n\n'), R.name); n.dir = n.home;
   }
 }
+/* 公車站：可以直接前往已經到過的城鎮 */
+const BUS_STOPS = [
+  { map: 'chendu', x: 10, y: 13, name: '晨讀村' }, { map: 'zhuyin', x: 4, y: 9, name: '注音坡' },
+  { map: 'chaoshu', x: 14, y: 6, name: '抄書巷' }, { map: 'dianji', x: 6, y: 10, name: '典籍港' },
+  { map: 'tingyu', x: 6, y: 13, name: '聽雨亭' }, { map: 'huanan', x: 4, y: 13, name: '花南街' },
+  { map: 'beilin', x: 6, y: 9, name: '碑林關' }, { map: 'moquan', x: 6, y: 10, name: '墨泉鄉' },
+  { map: 'zhongta', x: 6, y: 13, name: '鐘塔台' },
+];
+async function busTalk(n) {
+  const R = n.role;
+  G.visited = G.visited || {}; G.visited[OW.id] = 1;
+  const list = BUS_STOPS.filter(b => G.visited[b.map] && b.map !== OW.id);
+  if (!list.length) { await say('（你還沒去過其他城鎮，先沿著路線走走看吧。）', R.name); return; }
+  await say(R.lines[0], R.name);
+  const k = await UI.ask('要去哪一個城鎮？', list.map(b => b.name).concat(['算了']));
+  if (k < 0 || k >= list.length) return;
+  const b = list[k];
+  Sound.sfx('door'); await say(`（搭上公車，前往${b.name}……）`);
+  await warpTo(b.map, b.x, b.y, 'down');
+  G.lastHeal = { map: b.map, x: b.x, y: b.y };
+  autosave();
+}
+/* 支線任務（分組報告、遺失的准考證） */
+async function sideQuestTalk(n) {
+  const R = n.role, key = 'sq:' + n.key;
+  const done = R.need ? R.need.every(k => G.defeated[k]) : !!G.flags[R.needFlag];
+  if (G.flags[key]) { await say(R.after, R.name); return; }
+  if (!done) { await say(G.flags[key + ':got'] ? R.progress : R.offer, R.name); G.flags[key + ':got'] = true; autosave(); return; }
+  G.flags[key] = true; Sound.sfx('badge');
+  await say(R.done, R.name);
+  const P = R.prize || {};
+  if (P.money) G.money += P.money;
+  if (P.items) for (const id in P.items) G.bag[id] += P.items[id];
+  await say(`得到了 ${P.money} ${W.money}${P.items ? '、' + Object.entries(P.items).map(([id, c]) => `「${itemName(id)}」×${c}`).join('、') : ''}！`);
+  autosave();
+}
+/* 二週目：在城鎮與路線上漫遊的器靈（筆靈／紙靈／墨靈） */
+async function roamerTalk(n) {
+  const a = n.arch;
+  await say(`（空氣突然安靜下來——${weaponName(a)}出現了！）`);
+  await say(ARCH[a].gdesc || '');
+  const role = { kind: 'gym', name: weaponName(a), look: { sprite: 'stone' }, reward: 900,
+    win: `（${weaponName(a)}輕輕落在你手上。）`,
+    foe: { lv: clamp(G.lv, 16, 30), hpMul: 1.5, el: 'none', race: ARCH[a].race, cats: ALL_CATS,
+      moves: [['器靈之威', ALL_CATS, 56], ['文心一擊', ALL_CATS, 60]] }, potions: 1 };
+  const res = await Battle.start({ kind: 'gym', foe: makePersonFoe(role), role, cats: ALL_CATS });
+  OW.npcs = OW.npcs.filter(x => x !== n);
+  if (res !== 'win') { await say(`（${weaponName(a)}消失在空氣裡……牠還會再出現。）`); OW.roamCd = 900; autosave(); return; }
+  await Guardian.give(a);
+  if (G.ng > 0 && !G.flags.stoneAwake && GUARDIAN_FIRST.every(k => ownsArch(k)))
+    await say('（筆、紙、墨三隻器靈都在你身上了……小墨說過，要帶著牠們去墨泉鄉的泉眼。）');
+  autosave();
+}
 /* 二週目：硯海龍君——先答題才能挑戰，戰鬥中牠有機率直接逃走 */
 async function spiritTalk(n) {
   const R = n.role;
   await say(R.appear);
   await say(R.quiz, R.name);
-  const q = QB.draw(R.foe.cats, 3, clamp(1 + (G.ng || 0), 1, 3));
-  if (q) {
+  let passed = false;
+  for (let t = 0; t < 2 && !passed; t++) {
+    const q = QB.draw(R.foe.cats, 3, clamp(1 + (G.ng || 0), 1, 3));
+    if (!q) { passed = true; break; }
     const r = await UI.question(q, { move: '硯海試煉', mode: 'device', hint: true });
-    if (!r.correct) { await say(R.wrong); await respawnSpirit(n); return; }
-    await say('（硯海龍君點了點頭。）');
+    if (r.correct) { passed = true; break; }
+    if (t === 0) await say('硯海龍君瞇起眼睛：「……再一題。」', R.name);   // 答錯給第二次機會
   }
+  if (!passed) { await say(R.wrong); await respawnSpirit(n); return; }
+  await say('（硯海龍君點了點頭。）');
   await say(R.intro, R.name);
-  const role = Object.assign({}, R, { foe: Object.assign({}, R.foe, { lv: Math.max(R.foe.lv, G.lv) }) });
+  const role = Object.assign({}, R, { foe: Object.assign({}, R.foe, { lv: clamp(G.lv, R.foe.lv, 34) }) });
   const res = await Battle.start({ kind: 'gym', foe: makePersonFoe(role), role, cats: role.foe.cats, fleeRate: R.fleeRate });
   if (res === 'flee') { await say(R.fleeMsg); await respawnSpirit(n); return; }
   if (res !== 'win') return;
@@ -322,11 +422,14 @@ async function respawnSpirit(n) {
 async function guardianTalk(n) {
   const R = n.role;
   if (G.defeated[n.key]) { await say(R.after, R.name); return; }
-  for (const t of R.lines) await say(fmt(t), R.name);
-  const k = await UI.ask(R.choice.q, R.choice.opts, { name: R.name, cancel: false });
-  await say(R.choice.replies[k], R.name);
-  G.guardianAnswer = k;
-  await Guardian.firstMeet();
+  if (!G.flags.guardianAsked) {
+    for (const t of R.lines) await say(fmt(t), R.name);
+    const k = await UI.ask(R.choice.q, R.choice.opts, { name: R.name, cancel: false });
+    await say(R.choice.replies[k], R.name);
+    G.guardianAnswer = k; G.flags.guardianAsked = true;
+  } else await say('（器靈還在等你。）', R.name);
+  const r = await Guardian.firstMeet();          // 打贏才能收服，輸了可以再挑戰
+  if (r === 'lose') { autosave(); return; }
   G.defeated[n.key] = true;
   await say(R.afterGive, R.name);
   autosave();
@@ -362,9 +465,10 @@ async function mentorTalk(n) {
   autosave();
 }
 function giveWeapon(arch, r = 0) {
-  const w = newWeapon(arch, r); G.weapons.push(w);
+  const w = newWeapon(arch, r);
   Meta.seeWeapon(G.world, arch, r);
-  if (G.equip.length < 3) G.equip.push(w.id);
+  addWeapon(w);
+  if (!w.toBox && G.equip.length < 3) G.equip.push(w.id);
   return w;
 }
 async function spotted(n) {
@@ -398,7 +502,7 @@ async function trainerTalk(n) {
   if (R.kind === 'gym') {
     G.badges.push(R.badge); Sound.play('victory'); Sound.sfx('badge');
     await say(`${G.player.name} 拿回了「${R.badge}」！（${G.badges.length} / ${W.story ? 5 : 3}）`);
-    if (R.rewardWeapon) { const w = giveWeapon(R.rewardWeapon, R.rewardRarity == null ? 2 : R.rewardRarity); await say(`${R.name} 還給了你武器「${weaponName(w)}」（${RARITY[w.r].n}）！`); }
+    if (R.rewardWeapon) { const w = giveWeapon(R.rewardWeapon, R.rewardRarity == null ? 2 : R.rewardRarity); await say(`${R.name} 還給了你武器「${weaponName(w)}」（${RARITY[w.r].n}）！${w.toBox ? '\n（背包滿了，已自動存進「電腦」）' : ''}`); }
     if (!W.story) { await say(R.after, R.name); await ChapterEnd.play(); }
     else if (R.final) { G.chapter = 6; await StoryEnding.play(); }
     else { G.chapter = G.badges.length + 1; Sound.play(W.music[OW.L.music] || OW.L.music); await sleep(200); showBanner(W.chapterName); await say(`【${W.chapterName}】\n${W.stages[storyStage()].text}`); }
@@ -440,7 +544,7 @@ async function foeBattle(f) {
 async function openChest(c) {
   if (G.chests[c.id]) { await say('寶箱是空的。'); return; }
   G.chests[c.id] = true; Sound.sfx('catch');
-  if (c.weapon) { const w = giveWeapon(c.weapon, c.r || 0); Sound.sfx('badge'); await say(`打開寶箱……找到了武器「${weaponName(w)}」（${RARITY[w.r].n}）！`); await say(G.equip.includes(w.id) ? '（已自動放入攜帶欄，可在選單「武器」中切換）' : '（攜帶欄已滿，可在選單「武器」中更換）'); }
+  if (c.weapon) { const w = giveWeapon(c.weapon, c.r || 0); Sound.sfx('badge'); await say(`打開寶箱……找到了武器「${weaponName(w)}」（${RARITY[w.r].n}）！`); await say(w.toBox ? '（背包滿了，已自動存進「電腦」，可在選單的「電腦」取出）' : G.equip.includes(w.id) ? '（已自動放入攜帶欄，可在選單「武器」中切換）' : '（攜帶欄已滿，可在選單「武器」中更換）'); }
   else { const parts = Object.entries(c.items || {}).map(([id, n]) => { G.bag[id] += n; return `「${itemName(id)}」×${n}`; });
     for (const [a, n] of Object.entries(c.frags || {})) { G.frags[a] = (G.frags[a] || 0) + n; parts.push(`「${weaponName(a)}碎片」×${n}`); }
     await say(`打開寶箱……得到了 ${parts.join('、')}！`); }

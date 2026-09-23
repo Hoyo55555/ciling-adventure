@@ -234,7 +234,7 @@ async function battleLoop(s) {
     }
   }
   let turn = 0;
-  if (C.fleeRate && Math.random() < C.fleeRate) s.fleeTurn = rnd(3, 9);   // 整場只判定一次
+  if (C.fleeRate && Math.random() < C.fleeRate) s.fleeTurn = 1;   // 一進入戰鬥就判定是否逃走
   while (true) {
     turn++;
     s.guardTurn = false;
@@ -255,7 +255,7 @@ async function battleLoop(s) {
       else await msg('答錯沒關係，看完解析就是學到了！錯題會收進「錯題本」。', { name: C.mentor });
     }
     if (f.hp <= 0) return await victory(s);
-    if (s.fleeTurn && turn >= s.fleeTurn) { Sound.sfx('run'); await msg(`${f.name} 突然化成一灘墨水——溜走了！`); return 'flee'; }
+    if (s.fleeTurn && turn >= s.fleeTurn) { Sound.sfx('run'); await msg(`${f.name} 看了你一眼，化成一灘墨水——溜走了！`); return 'flee'; }
     await foeTurn(s, tut && turn === 1);
     if (G.hp > 0 && f.hp > 0) { const r = await endOfRound(s); if (r === 'win') return await victory(s); }
     if (f.hp <= 0) return await victory(s);

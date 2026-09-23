@@ -110,14 +110,14 @@ const RACE_TITLES = [
 ];
 /* 文房四寶全部到齊的專屬稱號 */
 const SET_TITLES = [{ id: 's_four', set: 'guardians', name: '文房四寶．齊', stat: 'atk', val: 0.12 }];
-const hasAllGuardians = () => GUARDIAN_KEYS.every(k => G && G.weapons && G.weapons.some(w => w.arch === k));
+const hasAllGuardians = () => GUARDIAN_KEYS.every(k => G && G.weapons && ownsArch(k));
 const ALL_TITLES = () => DEX_TITLES.concat(RACE_TITLES, SET_TITLES);
 const raceSeen = ra => { const all = MON_KEYS.filter(k => monDef(k).race === ra); const d = (Meta.d && Meta.d.dex) || {}; return { got: all.filter(k => d[k]).length, all: all.length }; };
 const TITLE_SLOTS = 2;            // 最多同時配戴兩個稱號，可自由組合
 const dexCount = () => Object.keys((Meta.d && Meta.d.dex) || {}).length;
 const titleUnlocked = t => t.set ? hasAllGuardians() : t.race ? (() => { const r = raceSeen(t.race); return r.all > 0 && r.got >= r.all; })() : dexCount() >= t.n;
 const titleNeedText = t => t.set
-  ? `集齊文房四寶（${GUARDIAN_KEYS.filter(k => G && G.weapons && G.weapons.some(w => w.arch === k)).length} / ${GUARDIAN_KEYS.length}：筆、紙、墨、硯）`
+  ? `集齊文房四寶（${GUARDIAN_KEYS.filter(k => G && G.weapons && ownsArch(k)).length} / ${GUARDIAN_KEYS.length}：筆、紙、墨、硯）`
   : t.race ? (() => { const r = raceSeen(t.race); return `收集齊全部 ${t.race}族妖怪（${r.got} / ${r.all}）`; })() : `圖鑑收集 ${t.n} 種`;
 const equippedTitles = () => ((G && G.titles) || []).map(id => ALL_TITLES().find(t => t.id === id)).filter(t => t && titleUnlocked(t));
 const titleBonus = stat => equippedTitles().filter(t => t.stat === stat).reduce((a, t) => a + t.val, 0);
@@ -250,6 +250,14 @@ const RAR_ATK = [0, 2, 4, 7, 10, 14, 14], RAR_POW = [1, 1.1, 1.2, 1.35, 1.5, 1.7
 const RAR_BONUS = ['', '答對時熟練度額外 +1', '剋制屬性時威力 +15%', '答對時恢復 3% 氣血', '剋制屬性時文氣額外 +1', '被剋制時威力不降低'];
 const bonusList = r => RAR_BONUS.slice(1, Math.min(r, 5) + 1);
 const newWeapon = (arch, r = 0, affix = null) => ({ id: 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), arch, r, mastery: 0, bond: 0, affix });
+const BAG_MAX = 6;                 // 背包最多放 6 把武器，其餘存在「電腦」
+function addWeapon(w) {            // 一律用這個把武器加進背包（滿了就自動送進電腦）
+  G.storage = G.storage || [];
+  if (G.weapons.length >= BAG_MAX) { w.toBox = 1; G.storage.push(w); return w; }
+  G.weapons.push(w); return w;
+}
+const allWeapons = () => G.weapons.concat(G.storage || []);      // 背包＋電腦
+const ownsArch = a => allWeapons().some(w => w.arch === a);
 const wById = id => G.weapons.find(w => w.id === id);
 const curW = () => wById(G.equip[G.cur]);
 const rarChip = r => `<span class="rchip r${r}">${RARITY[r].n}</span>`;
@@ -503,7 +511,7 @@ Object.assign(LAYOUTS, {
       'wwwwww__wwww'],
     warps: [{ x: 6, y: 8, to: 'hallway', tx: 19, ty: 1, dir: 'down' }, { x: 7, y: 8, to: 'hallway', tx: 20, ty: 1, dir: 'down' }],
     chests: [{ id: 'c1a1', x: 10, y: 6, items: { heal: 2, hint: 1 } }],
-    npcs: [{ role: 'boss1', x: 5, y: 1, dir: 'down' }, { role: 'c1aTip', x: 2, y: 5, dir: 'right' }],
+    npcs: [{ role: 'boss1', x: 4, y: 1, dir: 'down' }, { role: 'c1aTip', x: 2, y: 5, dir: 'right' }],
     devices: {
       '4,0': { group: 'bb', flag: 'bb1', cat: '字形', label: '錯字黑板', text: '黑板上浮著扭曲的錯字，正一個個滴下黑墨……\n（找出正確的寫法，就能淨化它！）', ok: '錯字被擦掉了，黑板恢復了乾淨！', allText: '三塊黑板都被淨化了！小老師身上的錯字怨念淡了許多。' },
       '6,0': { group: 'bb', flag: 'bb2', cat: '字形', label: '錯字黑板', text: '第二塊黑板上的錯字正在發抖。', ok: '錯字被擦掉了！', allText: '三塊黑板都被淨化了！小老師身上的錯字怨念淡了許多。' },

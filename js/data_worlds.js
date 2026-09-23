@@ -289,18 +289,23 @@ const WORLD_ORDER = ['school', 'literati', 'wuxia'];
   const stu = (hair, c2, extra) => Object.assign({ hair, cloth: '#f8f8f8', cloth2: c2, style: 'school' }, extra || {});
   S.story = true;
   S.start = { map: 'c8', x: 3, y: 3, dir: 'up' };
+  S.homeTown = { map: 'chendu', x: 16, y: 11 };
   S.tagline = '找回被墨塵奪走的五片准考證碎片，堂堂正正走進考場！';
   S.fragName = '准考證碎片';
   S.stages = [
-    { name: '第一道館．基礎的基石', text: '前往走廊右側的「一年甲班教室」，喚醒被錯字怨念纏身的字音字形小老師。', roles: ['boss1'], tiles: [['hallway', 19, 0], ['c8', 6, 8]] },
-    { name: '第二道館．常識的迷宮', text: '前往校園左側的「圖書館」，拿回第二片碎片。', roles: ['rival1', 'boss2'], tiles: [['campus', 4, 10], ['hallway', 13, 8], ['c1a', 6, 8]] },
-    { name: '第三道館．生活中的意境', text: '從校園南邊前往「文學中庭」，幫做分組報告的組員找回感受力。', roles: ['m1', 'm2', 'm3', 'boss3'], tiles: [['campus', 15, 19], ['hallway', 13, 8], ['lib', 7, 11]] },
-    { name: '第四道館．古典的重擔與抉擇', text: '前往校園右側的「校史室」。', roles: ['rival2', 'boss4'], tiles: [['campus', 24, 10], ['hallway', 13, 8], ['yard', 10, 0]] },
-    { name: '第五道館．會考的鐘聲', text: '前往校園北側的「大禮堂」，迎戰總複習大魔王！', roles: ['e1', 'e2', 'e3', 'moGuard', 'boss5'], tiles: [['campus', 22, 3], ['hallway', 13, 8], ['hist', 6, 11]] },
+    { name: '第一道館．注音坡', text: '沿著通學小徑往北到「注音坡」，挑戰道館①的字音字形小老師。', roles: ['boss1'], tiles: [['chendu', 7, 15], ['r1', 3, 16]] },
+    { name: '第二道館．典籍港', text: '經過抄書巷前往「典籍港」，挑戰道館②的成語圖書股長。', roles: ['rival1', 'boss2'], tiles: [['zhuyin', 12, 15], ['r2', 17, 15], ['chaoshu', 13, 17], ['r3', 17, 15]] },
+    { name: '第三道館．花南街', text: '走聲音鐘步道（記得幫忙分組報告）前往「花南街」，挑戰道館③。', roles: ['m1', 'm2', 'm3', 'boss3'], tiles: [['dianji', 13, 16], ['r4', 17, 15]] },
+    { name: '第四道館．碑林關', text: '沿古碑道前往「碑林關」，挑戰道館④。', roles: ['rival2', 'boss4'], tiles: [['huanan', 13, 15], ['r5', 17, 15]] },
+    { name: '第五道館．鐘塔台', text: '走考鐘坡（先找回遺失的准考證碎紙）前往「鐘塔台」，迎戰總複習大魔王！', roles: ['e1', 'e2', 'e3', 'moGuard', 'boss5'], tiles: [['beilin', 13, 16], ['r6', 17, 15]] },
     { name: '終章．堂堂正正走進考場', text: '准考證已經拼回來了！（可以繼續探索、收集武器，或回到主畫面。）', roles: [], tiles: [] },
   ];
   Object.defineProperty(S, 'chapterName', { get() { return !G || !G.flags.prologue ? '序幕．空白的早自習' : S.stages[Math.min(G.badges.length, 5)].name; }, configurable: true });
-  Object.assign(S.mapNames, { c8: '八年級教室', hallway: '教學大樓．走廊', c1a: '一年甲班教室', campus: '青嵐國中．校園', lib: '圖書館', yard: '文學中庭', hist: '校史室', aud: '大禮堂' });
+  Object.assign(S.mapNames, {
+    c8: '晨讀教室', c1a: '注音坡道館', lib: '典籍港道館', yard: '花南街道館', hist: '碑林關道館', aud: '鐘塔台道館', inkpool: '硯海墨池',
+    chendu: '晨讀村', r1: '路線１．通學小徑', zhuyin: '注音坡', r2: '路線２．書院坡', chaoshu: '抄書巷', r3: '路線３．市街小徑',
+    dianji: '典籍港', r4: '路線４．聲音鐘步道', tingyu: '聽雨亭', huanan: '花南街', r5: '路線５．古碑道', beilin: '碑林關',
+    r6: '路線６．考鐘坡', moquan: '墨泉鄉', zhongta: '鐘塔台', home: '我的家', clinic: '保健室', store: '商店' });
   S.prologue = [
     '（……噹——噹——鐘聲響起。你從課桌上醒來。）',
     '剛才發下的「全國會考准考證」，竟然變成了一張空白的紙。',
@@ -317,10 +322,13 @@ const WORLD_ORDER = ['school', 'literati', 'wuxia'];
     '打倒武器妖可以收集「碎片」，在選單的「鍛造」打造新武器；同名同階的武器還能升階喔！',
     '一年甲班的字音字形小老師被錯字怨念纏住了，第一片准考證碎片就在他那裡。出發吧！'];
   S.gates = Object.assign({}, S.gates, {
-    need1: '（圖書館的門被濃濃的墨塵封住了……先去一年甲班拿回第一片碎片吧。）',
-    need2: '（通往中庭的小路被墨塵擋住了，需要兩片碎片的光芒才能驅散。）',
-    need3: '（校史室的門上爬滿了墨塵……需要三片碎片。）',
-    need4: '（大禮堂的大門緊閉，門上寫著：「集滿四片碎片者，方可應考。」）' });
+    need1: '道館守門人：「典籍港的道館只收有『第一片碎片』的人——先去注音坡的道館吧。」',
+    need2: '道館守門人：「花南街的道館要兩片碎片才進得去。」',
+    need3: '道館守門人：「碑林關的門需要三片碎片的光。」',
+    need4: '道館守門人：「鐘塔台的大門寫著：『集滿四片碎片者，方可應考。』」',
+    sideA: '（前面的柵欄被墨塵纏住了……先幫做分組報告的三位組員找回感受力吧。）',
+    sideB: '（坡上的風太大，學弟妹哭著說准考證被吹碎了……先把三張碎紙找齊吧。）',
+    stone: '（牆角的墨漬只是普通的污漬……好像還缺了什麼。）' });
   S.ending = [
     '總複習大魔王化成了無數張乾淨的白紙，輕輕飄落在禮堂裡。',
     '五片碎片發出溫暖的光芒，拼回了一張完整的准考證。',
@@ -449,6 +457,75 @@ const WORLD_ORDER = ['school', 'literati', 'wuxia'];
       foe: { lv: 22, hpMul: 2.4, el: '水', cats: ['文言', '成語', '閱讀'], moves: [['題海戰術', ['成語'], 58], ['翻譯快打', ['文言'], 58], ['速讀', ['閱讀'], 62]] },
       potions: 2, prize: { money: 600, frags: 1, items: { heal: 2 } } },
   });
+  /* 新世界的城鎮與路線人物 */
+  const stu2 = (hair, c2, extra) => Object.assign({ hair, cloth: '#f8f8f8', cloth2: c2, style: 'school' }, extra || {});
+  Object.assign(S.roles, {
+    busStop: { kind: 'bus', name: '公車站牌', look: { hair: '#4a4a52', cloth: '#3a68b8', hat: '#2a4a88' },
+      lines: ['要搭車去別的城鎮嗎？（只能去已經到過的地方）'] },
+    tipHome: { name: '村口的阿婆', look: { hair: '#b0b0b0', cloth: '#c8a060', gender: 'f' },
+      lines: ['以前每天早上，全村會一起朗讀喔。', '那天早上聲音突然斷掉……你也是那時候醒來的吧？'] },
+    townTip1: { name: '注音坡的學弟', look: stu2('#3a2a20', '#e8a030'),
+      lines: ['壁畫上的注音都被墨塵弄花了，大家開始念錯字。', '道館在坡下的大校舍，門口有守門人喔。'] },
+    townTip2: { name: '抄書巷的老師傅', look: { hair: '#909090', cloth: '#8a5a3a' },
+      lines: ['這條巷子以前家家戶戶都在抄書。', '碎片合成、武器升階，交給我準沒錯——就在旁邊的鍛造工坊。'] },
+    townTip3: { name: '碼頭工人', look: { hair: '#2a2a2a', cloth: '#4a6a8a' },
+      lines: ['書都是從這個港口上岸的，連成語典故都是「隨船來的」。', '圖書股長就在倉庫改成的道館裡。'] },
+    townTip4: { name: '聽雨亭的旅人', look: { hair: '#5a3a2a', cloth: '#6a8a6a' },
+      lines: ['屋簷把雨滴敲成一段一段的，大家叫它「聲音鐘」。', '累了就去茶屋休息，泡杯茶氣血就全滿了。'] },
+    townTip5: { name: '花店老闆娘', look: { hair: '#6a3a2a', cloth: '#e86ab0', gender: 'f' },
+      lines: ['招牌要寫得讓人一眼看懂，又願意多看一眼——這就是修辭啊。'] },
+    townTip6: { name: '碑林的老書院生', look: { hair: '#808080', cloth: '#8a7a5a' },
+      lines: ['每塊碑都是一段古文。看不懂碑文的人，連城門都過不去。'] },
+    springTip: { name: '泉邊的老人', look: { hair: '#a0a0a0', cloth: '#4a5a72' },
+      lines: ['這裡的泉水帶著墨色，老一輩說底下通著「硯海」。', '牆角那道墨漬……偶爾會自己裂開一條縫，但不是誰都能進去。'] },
+    ngHint: { kind: 'guide', name: '小墨', look: { sprite: 'xiaomo' },
+      lines: [['你也覺得奇怪吧？墨塵怎麼又回來了。',
+        '我跟你說一件事：世界上的器靈不只三隻。筆、紙、墨之外，還有一隻「四寶之首」。',
+        '要喚醒牠，你得先把筆、紙、墨三隻器靈都收齊，而且**三隻都要帶在身上**，再到墨泉鄉的泉眼前——牠才會回應你。']] },
+    gymTip1: { name: '道館守門人', look: { hair: '#2a2a2a', cloth: '#c83838', hat: '#a02828' },
+      lines: ['這裡是注音坡道館，考「字音」和「字形」。準備好就進去吧！'] },
+    gymTip2: { name: '道館守門人', look: { hair: '#2a2a2a', cloth: '#c83838', hat: '#a02828' },
+      lines: ['典籍港道館考「成語」。要有第一片碎片才進得去喔。'] },
+    gymTip3: { name: '道館守門人', look: { hair: '#2a2a2a', cloth: '#c83838', hat: '#a02828' },
+      lines: ['花南街道館考「修辭」與「閱讀」。兩片碎片才能進去。'] },
+    gymTip4: { name: '道館守門人', look: { hair: '#2a2a2a', cloth: '#c83838', hat: '#a02828' },
+      lines: ['碑林關道館考「文言」與「常識」。三片碎片才能進去。'] },
+    gymTip5: { name: '道館守門人', look: { hair: '#2a2a2a', cloth: '#c83838', hat: '#a02828' },
+      lines: ['鐘塔台道館……裡面的東西已經不是人了。四片碎片才能進去。'] },
+    sparring: { kind: 'rematch', name: '詩社學姊', look: stu2('#201818', '#8a58c8', { gender: 'f' }),
+      lines: ['要對練嗎？我不收錢，只收你認真的態度。'], ask: '要和詩社學姊對練一場嗎？（可重複挑戰）', no: '好，想練的時候再來。',
+      reward: 260, win: '不錯嘛！比上次更穩了。',
+      foe: { lv: 10, hpMul: 1.6, el: '水', cats: ['修辭', '詩詞'], moves: [['吟詠', ['詩詞'], 50], ['譬喻', ['修辭'], 50]] },
+      potions: 1, prize: { money: 260, items: { heal: 1 } } },
+    sideAGiver: { kind: 'quest2', name: '報告組長 小婕', look: stu2('#2a1a14', '#3a8a58', { gender: 'f' }),
+      offer: '我們要錄「生活中的聲音」做分組報告，可是三個組員被墨塵纏住，全散在步道上了……可以幫我叫醒他們嗎？',
+      progress: '還有人沒醒過來……他們就在步道的草叢附近。',
+      done: '太好了，大家都醒了！這個給你，謝謝你！',
+      after: '報告順利完成了，謝謝你！', need: ['r4:m1', 'r4:m2', 'r4:m3'],
+      prize: { money: 400, items: { heal2: 2, ward: 1 } } },
+    sideBGiver: { kind: 'quest2', name: '哭著的學弟', look: stu2('#1a1a24', '#4a78c8'),
+      offer: '我的准考證被風吹碎了……三張碎紙全被吹到坡上去了，我不敢一個人去撿……',
+      progress: '還差幾張……碎紙好像卡在石碑和草叢裡。',
+      done: '謝謝你！我一定會好好考的！',
+      after: '謝謝你幫我撿回准考證！', needFlag: 'sideB',
+      prize: { money: 500, items: { heal2: 2, cure: 2 } } },
+    t_r2a: { kind: 'trainer', name: '抄書學徒 阿丹', look: stu2('#3a2a20', '#a8463c'), reward: 180,
+      foe: { lv: 6, hpMul: 1.3, el: '木', cats: ['詞義'], moves: [['抄寫連擊', ['詞義'], 45], ['錯字連發', ['字形'], 45]] },
+      intro: '抄了一整天的書，手正癢呢！', win: '你的字比我工整……', after: '「抄」不是重點，看懂才是。' },
+    t_r2b: { kind: 'trainer', name: '書院生 阿翰', look: stu2('#1a1a20', '#4a6a9a'), reward: 200,
+      foe: { lv: 7, hpMul: 1.3, el: '金', cats: ['字音'], moves: [['正音', ['字音'], 48], ['破音字', ['字音'], 48]] },
+      intro: '來比比看誰的字音更準！', win: '念對了……我服了。', after: '「模」樣的模念ㄇㄨˊ喔。' },
+    t_r3a: { kind: 'trainer', name: '港邊搬運工', look: { hair: '#2a2a2a', cloth: '#4a6a8a' }, reward: 240,
+      foe: { lv: 9, hpMul: 1.4, el: '木', cats: ['成語'], moves: [['成語連環', ['成語'], 50], ['典故洪流', ['成語'], 52]] },
+      intro: '搬書箱搬到會背成語了，來試試！', win: '哈哈，你贏了！', after: '一箱一箱搬，就像一個一個字慢慢讀。' },
+    t_r3b: { kind: 'trainer', name: '書店店員', look: stu2('#5a3a2a', '#3a6a9a', { gender: 'f' }), reward: 260,
+      foe: { lv: 10, hpMul: 1.4, el: '水', cats: ['閱讀'], moves: [['速讀', ['閱讀'], 52], ['長文陷阱', ['閱讀'], 54]] },
+      intro: '每天整理書，我最會抓重點了！', win: '你的閱讀比我快……', after: '先看題目再看文章，會快很多喔。' },
+    t_r5a: { kind: 'trainer', name: '碑林導覽員', look: { hair: '#808080', cloth: '#8a7a5a' }, reward: 320,
+      foe: { lv: 14, hpMul: 1.5, el: '土', cats: ['文言', '常識'], moves: [['之乎者也', ['文言'], 55], ['國學常識', ['常識'], 55]] },
+      intro: '導覽做久了，古文我可是很熟的。', win: '後生可畏啊。', after: '碑文要先斷句，斷對了意思就出來了。' },
+  });
+
   /* 二週目：硯海龍君（隱藏地圖隨機出現） */
   Object.assign(S.roles, {
     stoneSpirit: { kind: 'spirit', name: '硯海龍君', look: { sprite: 'stone' },
@@ -460,7 +537,7 @@ const WORLD_ORDER = ['school', 'literati', 'wuxia'];
       after: '（墨池恢復了平靜。）',
       fleeMsg: '硯海龍君化成墨水，從你手邊溜走了……（牠會在墨池的其他地方再出現）',
       reward: 2000, fleeRate: 0.1, potions: 1,
-      foe: { lv: 26, hpMul: 3.0, el: 'none', race: null,
+      foe: { lv: 26, hpMul: 2.2, el: 'none', race: null,
         cats: ['文言', '詩詞', '成語', '閱讀', '常識', '修辭', '字形', '字音', '詞義'],
         moves: [['墨海翻湧', ['文言', '詩詞'], 66], ['磨墨千遍', ['成語', '常識'], 66], ['硯波不驚', ['閱讀', '修辭'], 70], ['文心錯亂', ['閱讀'], 76, 'order']] } },
   });
