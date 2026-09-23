@@ -403,6 +403,13 @@ const GFX = (() => {
     }
     cache.set(key, cv); return cv;
   }
+  /* 草案預覽用：直接把 parts 畫成圖（不進遊戲流程） */
+  function draft(key, sp) {
+    const k = 'q:' + key; if (cache.has(k)) return cache.get(k);
+    const n = sp.size || 32;
+    const cv = toCanvas(n, n, raster(n, n, sp.parts, null));
+    cache.set(k, cv); return cv;
+  }
   function chest(open) {
     const key = 'chest' + open; if (cache.has(key)) return cache.get(key);
     const P = open ? [{ t: 'r', v: [2, 7, 12, 7], c: '#8a5a2a' }, { t: 'r', v: [3, 8, 10, 2], c: '#3a2410' }, { t: 'r', v: [2, 3, 12, 3], c: '#a86a32' }]
@@ -410,5 +417,5 @@ const GFX = (() => {
     const cv = toCanvas(16, 16, raster(16, 16, P, null)); cache.set(key, cv); return cv;
   }
 
-  return { person, tile, weapon, weaponMon, special, chest, THEMES, adj, hue, star, pxEllipse, el, OUT };
+  return { person, tile, weapon, weaponMon, special, chest, draft, THEMES, adj, hue, star, pxEllipse, el, OUT };
 })();
