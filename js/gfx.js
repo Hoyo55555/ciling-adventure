@@ -138,33 +138,42 @@ const GFX = (() => {
   };
   /* 城鎮主題（地圖改版草案）：以 school 為底，換掉地面、屋頂、樹木等顏色 */
   const TOWN_THEMES = {
-    /* 晨讀村：清晨薄霧、紅瓦矮房 */
-    t_dawn:   { ground: '#a6dc86', ground2: '#86bc66', path: '#f0e4c4', path2: '#d4c8a4', roof: '#d86a50', roof2: '#a84636',
-                flower: ['#f8b0c8', '#fff0a0', '#ffffff'], leaf: '#5ab858', leaf2: '#92dc76' },
-    /* 注音坡：山坡校舍、橘黃屋頂、彩色壁畫 */
-    t_slope:  { ground: '#b4dc72', ground2: '#94bc54', path: '#f4e0b0', path2: '#d8c08c', roof: '#e8a030', roof2: '#b8762a',
-                door: '#f8d860', win: '#d8f0ff', rock: '#c0b49c', flower: ['#f86a8a', '#f8e040', '#8ad0f8'] },
-    /* 抄書巷：窄巷、深紅磚、晾著的紙 */
-    t_alley:  { ground: '#9ab88a', ground2: '#7a986a', path: '#c8b49a', path2: '#a08a72', roof: '#a8463c', roof2: '#742c26',
-                wall: '#e8d8c0', wall2: '#b8a088', lamp: '#f0c860' },
-    /* 典籍港：水岸倉庫、藍灰石板 */
-    t_port:   { ground: '#88c0a0', ground2: '#68a080', path: '#b8bcc4', path2: '#909aa4', pathStyle: 'slab',
-                roof: '#3a6a9a', roof2: '#24466e', water: '#3a9ad8', water2: '#bfe8ff', wall: '#eceee8' },
-    /* 聽雨亭：竹林、青綠、屋簷雨滴 */
-    t_bamboo: { ground: '#7ec880', ground2: '#5ea460', path: '#d8cca8', path2: '#b4a684', roof: '#4a7a5a', roof2: '#2e5a3e',
-                water: '#62c0d8', water2: '#d8f6ff', leaf: '#4aa858', leaf2: '#82d878' },
-    /* 花南街：花市、布招、粉綠拱廊 */
-    t_flower: { ground: '#9ad878', ground2: '#7ab858', path: '#f0d8d0', path2: '#d0b0a8', roof: '#c85a8a', roof2: '#96406a',
+    /* 晨讀村：晨光下的田埂與紅瓦矮房 */
+    t_dawn:   { ground: '#b6e08a', ground2: '#94c068', path: '#f4e6c0', path2: '#d8c8a0', roof: '#d86a50', roof2: '#a84636',
+                leaf: '#5ab858', leaf2: '#96e078', leaf3: '#357a3a', trunk: '#8a5a2a', treeStyle: 'round',
+                flower: ['#f8b0c8', '#fff0a0', '#ffffff'], fence: '#e8dcc0', fence2: '#b8a888' },
+    /* 注音坡：黃綠色坡地、橘黃校舍、石駁坎 */
+    t_slope:  { ground: '#c8dc72', ground2: '#a4bc54', path: '#f6dfa8', path2: '#d8bc80', roof: '#e8a030', roof2: '#b8762a',
+                leaf: '#7ab848', leaf2: '#b0dc70', leaf3: '#4a8a34', trunk: '#9a6a34', treeStyle: 'round',
+                door: '#f8d860', win: '#d8f0ff', rock: '#cfc0a0', flower: ['#f86a8a', '#f8e040', '#8ad0f8'] },
+    /* 抄書巷：泥土色窄巷、深紅磚、少綠意 */
+    t_alley:  { ground: '#a89a72', ground2: '#8a7c58', path: '#c4a888', path2: '#9a8064', pathStyle: 'dirt',
+                roof: '#a8463c', roof2: '#742c26', leaf: '#6a8a4a', leaf2: '#96b070', leaf3: '#44602e', trunk: '#6a4a2a',
+                wall: '#ecdcc4', wall2: '#bca88c', lamp: '#f0c860' },
+    /* 典籍港：藍灰石板與水岸 */
+    t_port:   { ground: '#7ab89a', ground2: '#5a9878', path: '#c0c4cc', path2: '#98a2ac', pathStyle: 'slab',
+                roof: '#3a6a9a', roof2: '#24466e', water: '#2f8fd8', water2: '#bfe8ff',
+                leaf: '#4a9a78', leaf2: '#7ec8a0', leaf3: '#2e6a52', trunk: '#5a4a3a', wall: '#eef0ea' },
+    /* 聽雨亭：濃綠竹林、青瓦 */
+    t_bamboo: { ground: '#6ec078', ground2: '#4e9c58', path: '#d4cca4', path2: '#aea278', roof: '#4a7a5a', roof2: '#2e5a3e',
+                leaf: '#3a9850', leaf2: '#78d078', leaf3: '#24683a', trunk: '#6a5a3a', treeStyle: 'bamboo',
+                water: '#5ac0e8', water2: '#d0f4ff' },
+    /* 花南街：粉色街屋與滿街花 */
+    t_flower: { ground: '#a8e084', ground2: '#84c060', path: '#f6dcd8', path2: '#d4b4b0', roof: '#d8629a', roof2: '#9e3e70',
+                leaf: '#66c060', leaf2: '#a4e884', leaf3: '#3e8a44', trunk: '#8a5a4a',
                 flower: ['#f86ab0', '#ffe070', '#ffffff'], wall: '#fdf2e8' },
-    /* 碑林關：土黃石道、碑石、燈籠 */
-    t_stele:  { ground: '#aab870', ground2: '#8a9852', path: '#cfae7c', path2: '#a98a5c', pathStyle: 'dirt',
-                roof: '#8a4a3a', roof2: '#5a2e24', wall: '#e2d2aa', wall2: '#b2a27a', rock: '#9a9488', lamp: '#e84838' },
-    /* 墨泉鄉：墨色溫泉、石砌、蒸氣 */
-    t_spring: { ground: '#86ae96', ground2: '#668e76', path: '#b0aab0', path2: '#8a848a', roof: '#4a4a62', roof2: '#2e2e42',
-                water: '#5a7ab0', water2: '#cfe0f4', wall: '#e0e0e4', lamp: '#d8e8ff' },
-    /* 鐘塔台：灰白石階、旗幟、鐘塔 */
-    t_tower:  { ground: '#8ab08a', ground2: '#6a8e6a', path: '#c4bcb4', path2: '#9a928a', roof: '#5a5a68', roof2: '#38384a',
-                wall: '#eeeae2', fence: '#c8a040', door: '#c83838' },
+    /* 碑林關：乾黃土地、碑石、深褐瓦 */
+    t_stele:  { ground: '#bcb476', ground2: '#9c9456', path: '#cfa970', path2: '#a88550', pathStyle: 'dirt',
+                roof: '#8a4a3a', roof2: '#5a2e24', leaf: '#8a9a58', leaf2: '#b4c078', leaf3: '#5a6a34', trunk: '#7a5a34',
+                wall: '#e4d4ac', wall2: '#b4a47c', rock: '#a09a8c', lamp: '#e84838' },
+    /* 墨泉鄉：青灰霧氣、墨藍屋瓦 */
+    t_spring: { ground: '#7ea898', ground2: '#5e8878', path: '#aeb2b8', path2: '#868a90', pathStyle: 'slab',
+                roof: '#44445e', roof2: '#2a2a40', leaf: '#4a8a78', leaf2: '#7ab8a4', leaf3: '#2e5a4e', trunk: '#4a4a52',
+                water: '#5a7ab0', water2: '#cfe0f4', wall: '#e2e2e6', lamp: '#d8e8ff' },
+    /* 鐘塔台：冷灰石階與金旗 */
+    t_tower:  { ground: '#8ab08a', ground2: '#6a8e6a', path: '#c8c2ba', path2: '#9a948c', pathStyle: 'slab',
+                roof: '#4e4e60', roof2: '#30304a', leaf: '#5a9a6a', leaf2: '#8ac490', leaf3: '#36663f', trunk: '#5a5a52',
+                wall: '#eeeae2', fence: '#d8b040', fence2: '#a07f20', door: '#c83838' },
   };
   for (const [k, v] of Object.entries(TOWN_THEMES)) THEMES[k] = Object.assign({}, THEMES.school, v);
   function hash(a, b) { let s = (a * 374761393 + b * 668265263) >>> 0; s = (s ^ (s >>> 13)) * 1274126177 >>> 0; return (s ^ (s >>> 16)) >>> 0; }
@@ -237,6 +246,16 @@ const GFX = (() => {
         break;
       case '^': ground(); R(2, 5, 12, 10, T.rock); R(4, 3, 8, 3, T.rock); R(4, 4, 4, 2, adj(T.rock, .3)); R(2, 13, 12, 2, adj(T.rock, -.3)); break;
       case 'X': R(0, 0, 16, 16, '#16120e'); break;
+      /* ---- 特別建築的屋頂與門牌 ---- */
+      case 'h': R(0, 0, 16, 16, '#d83a3a'); R(0, 0, 16, 3, '#f05a52'); R(0, 13, 16, 3, '#a02424');   // 保健室（紅）
+        R(6, 5, 4, 6, '#ffffff'); R(4, 7, 8, 2, '#ffffff'); break;
+      case 'c': R(0, 0, 16, 16, '#3a68b8'); R(0, 0, 16, 3, '#5a88d8'); R(0, 13, 16, 3, '#28487e');   // 商店（藍）
+        for (let x = 0; x < 16; x += 4) R(x, 5, 2, 6, '#e8f0ff'); break;
+      case 'G': R(0, 0, 16, 16, '#c8961e'); R(0, 0, 16, 3, '#f0c040'); R(0, 13, 16, 3, '#8a641a');   // 道館（金）
+        R(3, 5, 10, 6, '#f8e8b0'); R(5, 7, 6, 2, '#8a641a'); R(7, 5, 2, 6, '#8a641a'); break;
+      case 'N': ground(); R(7, 8, 2, 7, '#6a4a32');                                                   // 門牌
+        R(2, 3, 12, 6, '#e8dcc0'); R(2, 3, 12, 1, '#b8a888'); R(2, 8, 12, 1, '#b8a888');
+        R(4, 5, 8, 1, '#6a5a44'); R(4, 7, 5, 1, '#6a5a44'); break;
       /* ---- 城鎮景物（地圖改版）---- */
       case 'Y': ground();                                   // 竹叢
         for (const [x, h0] of [[3, 2], [7, 0], [11, 3]]) { R(x, h0, 2, 16 - h0, '#5a9a4a'); R(x, h0, 1, 16 - h0, '#86c86a'); for (let y = h0 + 3; y < 16; y += 4) R(x - 1, y, 4, 1, '#3a7a34'); }

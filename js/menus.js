@@ -102,10 +102,11 @@ const BookMenu = {
   async open() {
     let sel = 0;
     while (true) {
-      const opts = ['角色', '武器', '電腦', '鍛造', '道具', '兵器譜', '妖怪圖鑑', '稱號', '任務', '存檔', '設定'].concat(Cloud.user ? ['登出'] : [], ['回到主畫面', '關閉']);
+      const opts = ['角色', '地圖', '武器', '電腦', '鍛造', '道具', '兵器譜', '妖怪圖鑑', '稱號', '任務', '存檔', '設定'].concat(Cloud.user ? ['登出'] : [], ['回到主畫面', '關閉']);
       const i = await UI.choose(opts, { pos: {}, cls: 'bookmenu', start: sel });
       const L = opts[i]; if (i < 0 || L === '關閉') return; sel = i;
       if (L === '角色') await CharPanel.open();
+      if (L === '地圖') await WorldMap.open();
       if (L === '武器') await WeaponMenu.open();
       if (L === '電腦') await Storage.open();
       if (L === '鍛造') await Forge.open();
@@ -306,17 +307,61 @@ const TitleMenu = {
   },
 };
 
+/* ============ 世界地圖 ============ */
+const WORLD_CHAIN = [
+  { id: 'chendu', kind: 'town', tag: '起點' }, { id: 'r1', kind: 'road' },
+  { id: 'zhuyin', kind: 'gym', gym: 1 }, { id: 'r2', kind: 'road' },
+  { id: 'chaoshu', kind: 'rest' }, { id: 'r3', kind: 'road' },
+  { id: 'dianji', kind: 'gym', gym: 2 }, { id: 'r4', kind: 'road', side: 'sideA' },
+  { id: 'tingyu', kind: 'rest' }, { id: 'huanan', kind: 'gym', gym: 3 },
+  { id: 'r5', kind: 'road' }, { id: 'beilin', kind: 'gym', gym: 4 },
+  { id: 'r6', kind: 'road', side: 'sideB' }, { id: 'moquan', kind: 'rest' },
+  { id: 'zhongta', kind: 'gym', gym: 5 },
+];
+const MAP_KIND = { town: ['#c8a040', '村鎮'], gym: ['#d8a020', '道館'], rest: ['#4aa0f0', '休息站'], road: ['#8a9a6a', '道路'] };
+const WorldMap = {
+  open() {
+    return UI.panel(ctl => {
+      const here = OW.id, cur = LAYOUTS[here] || {};
+      const inside = !WORLD_CHAIN.some(n => n.id === here);
+      const parent = inside ? (G.ret && G.ret.map) : here;
+      const rows = WORLD_CHAIN.map(n => {
+        const name = W.mapNames[n.id] || n.id;
+        const isHere = n.id === here || (inside && n.id === parent);
+        const [col, kindName] = MAP_KIND[n.kind];
+        const open = n.kind !== 'gym' || G.badges.length >= (n.gym - 1);
+        const cleared = n.gym && G.badges.length >= n.gym;
+        const sideOpen = !n.side || (n.side === 'sideA' ? ['r4:m1', 'r4:m2', 'r4:m3'].every(k => G.defeated[k]) : !!G.flags.sideB);
+        return `<div class="row${isHere ? ' sel' : ''}" style="padding:${U(1)} ${U(2)}">
+          <span style="display:inline-block;width:${U(4)};height:${U(4)};background:${col};border-radius:50%;margin-right:${U(2)}"></span>
+          <b class="grow">${isHere ? '▶ ' : ''}${esc(name)}</b>
+          <span class="small ${cleared ? 'good' : 'muted'}">${n.gym ? (cleared ? '✔ 已取得碎片' : open ? '可挑戰' : '尚未開放') : kindName}${n.side && !sideOpen ? '（支線未完成）' : ''}${n.tag ? '．' + n.tag : ''}</span></div>`;
+      }).join('<div class="small muted" style="text-align:center;line-height:1">│</div>');
+      ctl.box.innerHTML = `<h2>🗺 地圖　<span class="small muted">目前位置：${esc(W.mapNames[here] || here)}${inside ? '（室內）' : ''}．碎片 ${G.badges.length} / 5</span></h2>
+        <div class="scroll">${rows}<div class="small muted" style="margin-top:${U(3)}">🟡 道館城鎮　🔵 休息站　🟢 道路　｜ 城鎮的公車站可以直接前往去過的城鎮。${G.ng ? '<br>二週目：器靈目前在「' + esc(W.mapNames[G.roamAt] || '？') + '」附近出沒。' : ''}</div></div>` + footKeys('↑↓ 捲動　B 返回');
+      const sc = $('.scroll', ctl.box);
+      const me = $('.row.sel', ctl.box); if (me && me.scrollIntoView) me.scrollIntoView({ block: 'center' });
+      ctl.update = () => { const d = Input.dir(); if (d === 'down') sc.scrollTop += 40; if (d === 'up') sc.scrollTop -= 40; if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } };
+    });
+  },
+};
+
 /* ============ 電腦：武器倉庫（背包最多 6 把，戰鬥中無法使用） ============ */
 const Storage = {
   open() {
     return UI.panel(ctl => {
       let side = 0;       // 0=背包 1=電腦
+      let sort = 0;       // 0=取得順序 1=稀有度 2=種族
       const render = () => {
         G.storage = G.storage || [];
         const bag = G.weapons, box = G.storage;
-        const list = side ? box : bag;
+        const SORTS = ['取得順序', '稀有度', '種族'];
+        const base = side ? box : bag;
+        const list = sort === 0 ? base.slice()
+          : sort === 1 ? base.slice().sort((a, b) => b.r - a.r || b.mastery - a.mastery)
+          : base.slice().sort((a, b) => String(ARCH[a.arch].race).localeCompare(String(ARCH[b.arch].race)) || b.r - a.r);
         ctl.box.innerHTML = `<h2>💻 電腦．武器倉庫　<span class="small muted">背包 ${bag.length} / ${BAG_MAX}．電腦 ${box.length}</span></h2>
-          <div class="row" style="gap:${U(4)}"><b class="${side ? 'muted' : 'good'}">［背包］</b><b class="${side ? 'good' : 'muted'}">［電腦］</b><span class="small muted">←→ 切換</span></div>
+          <div class="row" style="gap:${U(4)}"><b class="${side ? 'muted' : 'good'}">［背包］</b><b class="${side ? 'good' : 'muted'}">［電腦］</b><span class="small muted">←→ 切換　START 排序：${SORTS[sort]}</span></div>
           <div class="scroll"></div>` + footKeys(side ? 'A 取出到背包　←→ 切換　B 返回' : 'A 存進電腦　←→ 切換　B 返回');
         const sc = $('.scroll', ctl.box);
         if (!list.length) sc.innerHTML = `<div class="muted">${side ? '電腦裡沒有武器。' : '背包裡沒有武器。'}</div>`;
@@ -345,7 +390,11 @@ const Storage = {
           autosave(); render();
         } });
         const inner = ctl.update;                       // 左右切換背包／電腦
-        ctl.update = () => { const d = Input.dir(); if (d === 'left' && side) { side = 0; Sound.sfx('cursor'); render(); return; } if (d === 'right' && !side) { side = 1; Sound.sfx('cursor'); render(); return; } inner(); };
+        ctl.update = () => { const d = Input.dir();
+          if (d === 'left' && side) { side = 0; Sound.sfx('cursor'); render(); return; }
+          if (d === 'right' && !side) { side = 1; Sound.sfx('cursor'); render(); return; }
+          if (Input.p('START')) { sort = (sort + 1) % 3; Sound.sfx('cursor'); render(); return; }
+          inner(); };
       };
       render();
     });

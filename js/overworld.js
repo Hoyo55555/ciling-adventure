@@ -179,7 +179,7 @@ const OW = {
 
   draw(g) {
     const p = this.p, L = this.L; if (!L) return;
-    const theme = W.theme, mw = L.rows[0].length * 16, mh = L.rows.length * 16;
+    const theme = L.theme || W.theme, mw = L.rows[0].length * 16, mh = L.rows.length * 16;   // 每個城鎮有自己的配色
     const k = p.moving ? p.t : 0;
     const px = (p.moving ? p.x + (p.tx - p.x) * k : p.x) * 16, py = (p.moving ? p.y + (p.ty - p.y) * k : p.y) * 16;
     let cx = px - 112, cy = py - 72;
@@ -205,9 +205,13 @@ const OW = {
     actors.sort((a, b) => a.y - b.y).forEach(a => a.draw());
     // 任務提示：該對話的對象頭上閃爍
     const marks = questMarks();
-    for (const n of this.npcs) { const m = marks[n.role === W.roles.questGiver ? 'questGiver' : n.key.split(':')[1]]; if (m) drawMark(g, n.x * 16 + n.ox - cx + 3, n.y * 16 + n.oy - cy - (n.look.sprite === 'boss' ? 30 : 17), m, now); }
-    for (const [mp, tx, ty] of storyTiles()) if (mp === this.id) drawMark(g, tx * 16 - cx + 3, ty * 16 - cy - 12, 'main', now);
-    for (const [k, d] of Object.entries(this.L.devices || {})) if (!G.flags[d.flag]) { const [dx2, dy2] = k.split(',').map(Number); drawMark(g, dx2 * 16 - cx + 3, Math.max(2, dy2 * 16 - cy - 10), 'side', now); }
+    for (const n of this.npcs) { const m = marks[n.role === W.roles.questGiver ? 'questGiver' : n.key.split(':')[1]]; if (m) drawMark(g, n.x * 16 + n.ox - cx + 3, n.y * 16 + n.oy - cy - (n.look.sprite === 'boss' ? 28 : 15), m, now); }
+    for (const [mp, tx, ty] of storyTiles()) if (mp === this.id) {
+      const dx = tx - this.p.x, dy = ty - this.p.y;
+      const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+      drawMark(g, tx * 16 - cx + 4, ty * 16 - cy - 10, 'way', now, dir);
+    }
+    for (const [k, d] of Object.entries(this.L.devices || {})) if (!G.flags[d.flag]) { const [dx2, dy2] = k.split(',').map(Number); drawMark(g, dx2 * 16 - cx + 4, Math.max(2, dy2 * 16 - cy - 9), 'side', now); }
     if (this.bubble) { const n = this.bubble; const bx = n.x * 16 + n.ox - cx + 3, by = n.y * 16 + n.oy - cy - 16;
       g.fillStyle = '#2a2018'; g.fillRect(bx - 1, by - 1, 12, 13); g.fillStyle = '#fbf3dc'; g.fillRect(bx, by, 10, 11); g.fillStyle = '#b8322a'; g.fillRect(bx + 4, by + 2, 2, 5); g.fillRect(bx + 4, by + 8, 2, 2); }
   },
@@ -233,14 +237,27 @@ function questMarks() {
   return m;
 }
 const GLYPH = { '!': ['..#..', '..#..', '..#..', '..#..', '.....', '..#..'], '?': ['.###.', '#...#', '...#.', '..#..', '.....', '..#..'] };
-function drawMark(g, x, y, type, now) {
+/* 對話用「！」、指路用箭頭；整體縮小 */
+function drawMark(g, x, y, type, now, dir) {
   const blink = (Math.sin(now / 180) + 1) / 2; if (blink < 0.15) return;
-  const bob = Math.round(Math.sin(now / 250) * 1.5); y += bob;
+  const bob = Math.round(Math.sin(now / 250) * 1.2); y += bob;
+  g.globalAlpha = 0.6 + 0.4 * blink;
+  if (type === 'way') {                                   // 指路箭頭
+    g.fillStyle = '#2a2018';
+    const A = { up: [[3, 0], [2, 1], [4, 1], [1, 2], [5, 2], [0, 3], [6, 3], [2, 4], [4, 4], [2, 5], [4, 5], [2, 6], [4, 6]],
+      down: [[3, 6], [2, 5], [4, 5], [1, 4], [5, 4], [0, 3], [6, 3], [2, 2], [4, 2], [2, 1], [4, 1], [2, 0], [4, 0]],
+      left: [[0, 3], [1, 2], [1, 4], [2, 1], [2, 5], [3, 0], [3, 6], [4, 2], [4, 4], [5, 2], [5, 4], [6, 2], [6, 4]],
+      right: [[6, 3], [5, 2], [5, 4], [4, 1], [4, 5], [3, 0], [3, 6], [2, 2], [2, 4], [1, 2], [1, 4], [0, 2], [0, 4]] }[dir || 'down'];
+    for (const [ax, ay] of A) g.fillRect(x + ax, y + ay - 1, 2, 2);
+    g.fillStyle = '#f8c830';
+    for (const [ax, ay] of A) g.fillRect(x + ax, y + ay, 1, 1);
+    g.globalAlpha = 1; return;
+  }
   const col = type === 'side' ? '#4aa0f0' : '#f8c830';
-  g.globalAlpha = 0.55 + 0.45 * blink;
-  g.fillStyle = '#2a2018'; g.fillRect(x - 1, y - 1, 11, 11); g.fillRect(x + 3, y + 10, 3, 2);
-  g.fillStyle = col; g.fillRect(x, y, 9, 9); g.fillRect(x + 4, y + 9, 1, 2);
-  g.fillStyle = '#2a2018'; GLYPH[type === 'report' ? '?' : '!'].forEach((row, j) => [...row].forEach((c, i) => { if (c === '#') g.fillRect(x + 2 + i, y + 1 + j, 1, 1); }));
+  g.fillStyle = '#2a2018'; g.fillRect(x, y, 8, 8); g.fillRect(x + 3, y + 8, 2, 2);
+  g.fillStyle = col; g.fillRect(x + 1, y + 1, 6, 6); g.fillRect(x + 3, y + 7, 1, 2);
+  g.fillStyle = '#2a2018'; g.fillRect(x + 3, y + 2, 2, 3); g.fillRect(x + 3, y + 6, 2, 1);
+  if (type === 'report') { g.fillStyle = col; g.fillRect(x + 3, y + 2, 2, 3); g.fillStyle = '#2a2018'; g.fillRect(x + 2, y + 2, 3, 1); g.fillRect(x + 4, y + 3, 1, 1); g.fillRect(x + 3, y + 4, 1, 1); g.fillRect(x + 3, y + 6, 1, 1); }
   g.globalAlpha = 1;
 }
 const wenqiDots = () => `<span class="wq">${Array.from({ length: ULT_COST }, (_, i) => `<i class="${i < G.wenqi ? 'on' : ''}"></i>`).join('')}</span>`;
