@@ -234,7 +234,7 @@ async function goHome() {
 async function useDevice(d) {
   if (G.flags[d.flag]) { await say(d.doneText || '（這裡的機關已經解開了。）'); return; }
   await say(d.text);
-  const q = QB.draw([d.cat], OW.L.qlv || 1);
+  const q = QB.draw([d.cat], clamp((OW.L.qlv || 1) + (G.ng || 0), 1, 3), clamp(1 + (G.ng || 0), 1, 3));   // 二週目機關題也變難
   if (!q) { await say('（題庫裡還沒有這類題目，機關自行解開了。）'); G.flags[d.flag] = true; await afterDevice(d); return; }
   const tries = (G.devTry = G.devTry || {});
   const n = tries[d.flag] = (tries[d.flag] || 0) + 1;
@@ -279,7 +279,7 @@ async function spiritTalk(n) {
   const R = n.role;
   await say(R.appear);
   await say(R.quiz, R.name);
-  const q = QB.draw(R.foe.cats, 3, 1);
+  const q = QB.draw(R.foe.cats, 3, clamp(1 + (G.ng || 0), 1, 3));
   if (q) {
     const r = await UI.question(q, { move: '硯海試煉', mode: 'device', hint: true });
     if (!r.correct) { await say(R.wrong); await respawnSpirit(n); return; }

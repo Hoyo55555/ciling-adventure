@@ -108,12 +108,17 @@ const RACE_TITLES = [
   { id: 'r_bing', race: '兵', name: '兵不血刃', stat: 'atk', val: 0.08 },
   { id: 'r_mo', race: '墨', name: '惜墨如金', stat: 'def', val: 0.06 },
 ];
-const ALL_TITLES = () => DEX_TITLES.concat(RACE_TITLES);
+/* 文房四寶全部到齊的專屬稱號 */
+const SET_TITLES = [{ id: 's_four', set: 'guardians', name: '文房四寶．齊', stat: 'atk', val: 0.12 }];
+const hasAllGuardians = () => GUARDIAN_KEYS.every(k => G && G.weapons && G.weapons.some(w => w.arch === k));
+const ALL_TITLES = () => DEX_TITLES.concat(RACE_TITLES, SET_TITLES);
 const raceSeen = ra => { const all = MON_KEYS.filter(k => monDef(k).race === ra); const d = (Meta.d && Meta.d.dex) || {}; return { got: all.filter(k => d[k]).length, all: all.length }; };
 const TITLE_SLOTS = 2;            // 最多同時配戴兩個稱號，可自由組合
 const dexCount = () => Object.keys((Meta.d && Meta.d.dex) || {}).length;
-const titleUnlocked = t => t.race ? (() => { const r = raceSeen(t.race); return r.all > 0 && r.got >= r.all; })() : dexCount() >= t.n;
-const titleNeedText = t => t.race ? (() => { const r = raceSeen(t.race); return `收集齊全部 ${t.race}族妖怪（${r.got} / ${r.all}）`; })() : `圖鑑收集 ${t.n} 種`;
+const titleUnlocked = t => t.set ? hasAllGuardians() : t.race ? (() => { const r = raceSeen(t.race); return r.all > 0 && r.got >= r.all; })() : dexCount() >= t.n;
+const titleNeedText = t => t.set
+  ? `集齊文房四寶（${GUARDIAN_KEYS.filter(k => G && G.weapons && G.weapons.some(w => w.arch === k)).length} / ${GUARDIAN_KEYS.length}：筆、紙、墨、硯）`
+  : t.race ? (() => { const r = raceSeen(t.race); return `收集齊全部 ${t.race}族妖怪（${r.got} / ${r.all}）`; })() : `圖鑑收集 ${t.n} 種`;
 const equippedTitles = () => ((G && G.titles) || []).map(id => ALL_TITLES().find(t => t.id === id)).filter(t => t && titleUnlocked(t));
 const titleBonus = stat => equippedTitles().filter(t => t.stat === stat).reduce((a, t) => a + t.val, 0);
 
@@ -172,6 +177,9 @@ const GUARDIANS = {
     desc: '文房四寶之首，二週目才會現身。筆墨紙都要在牠的硯海裡才能成形。' },
 };
 const GUARDIAN_KEYS = Object.keys(GUARDIANS);
+/* 舊版存檔相容：舊的守護神器代號 → 新的文房四寶器靈 */
+const OLD_GUARDIAN_MAP = { g_school_a: 'g_pen', g_school_b: 'g_paper', g_literati_a: 'g_pen', g_literati_b: 'g_ink', g_wuxia_a: 'g_paper', g_wuxia_b: 'g_ink' };
+const fixArch = a => OLD_GUARDIAN_MAP[a] || a;
 const GUARDIAN_FIRST = GUARDIAN_KEYS.filter(k => !GUARDIANS[k].ng);   // 一週目三選一
 const passiveList = a => { const p = ARCH[archOf(a)].passive; return p ? (Array.isArray(p) ? p : [p]) : []; };
 const PASSIVES = {

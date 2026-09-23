@@ -379,6 +379,13 @@ const Quests = {
       const n = dexCount(), nt = DEX_TITLES.find(t => t.n > n);
       out.push(nt ? `妖怪圖鑑收集（${n} / ${MON_KEYS.length}）<span class="muted">．再 ${nt.n - n} 種可解鎖稱號「${esc(nt.name)}」</span>`
         : `<s>妖怪圖鑑收集</s>　<b class="good">全部稱號已解鎖</b>`);
+      if (G.ng > 0) {
+        const got = G.weapons.some(w => w.arch === 'g_stone');
+        out.push(got ? '<s>在「硯海墨池」擊敗硯海龍君</s>　<b class="good">已取得</b>'
+          : '在校園牆角的墨漬進入「硯海墨池」，找到並擊敗硯海龍君<span class="muted">．答對題目才能挑戰，牠會換位置</span>');
+        const n4 = GUARDIAN_KEYS.filter(k => G.weapons.some(w => w.arch === k)).length;
+        out.push(n4 >= 4 ? '<s>集齊文房四寶</s>　<b class="good">已完成</b>' : `集齊文房四寶（${n4} / 4）<span class="muted">．每一週目可獲得一隻</span>`);
+      }
       const wn = G.wrong.length;
       out.push(wn ? `複習錯題本（目前 ${wn} 題）<span class="muted">．答對就會從錯題本消失</span>` : `<s>複習錯題本</s>　<b class="good">目前沒有錯題</b>`);
       return out;

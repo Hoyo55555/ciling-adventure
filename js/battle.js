@@ -194,7 +194,9 @@ function statsOf(s, who) {
   const f = s.foe, burn = hasSt(s, 'foe', 'burn') ? STATUS.burn.atk : 1;
   return { lv: f.lv, atk: f.atk * (1 + s.fbuff.atk) * burn, def: f.def * (1 + s.fbuff.def) };
 }
-const qLv = () => [OW.L ? OW.L.qlv + (G.ng ? 1 : 0) : 3, G.ng ? 2 : 1];
+/* 題目難度：二週目起只抽比較難的題（上下限一起往上抬） */
+const qLv = () => { const ng = G.ng || 0, base = OW.L ? OW.L.qlv : 3;
+  return [clamp(base + ng, 1, 3), clamp(1 + ng, 1, 3)]; };
 /* 錯題強化：35% 機率從錯題本中挑同類題目再出一次 */
 const AGAIN_RATE = 0.35;
 function drawQ(cats, qtype) {

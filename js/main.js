@@ -182,7 +182,14 @@ const Flow = {
     if (G.map === 'town2' && !LAYOUTS.town2.rows[G.y]) { G.x = 11; G.y = 12; }
     for (const id of ITEM_ORDER) if (G.bag[id] == null) G.bag[id] = 0;        // 舊存檔補上新道具欄位
     if (!Array.isArray(G.titles)) G.titles = [];
-    for (const w of G.weapons) { if (w.bond == null) w.bond = 0; if (w.affix === undefined) w.affix = null; }
+    for (const w of G.weapons) {
+      if (w.bond == null) w.bond = 0; if (w.affix === undefined) w.affix = null;
+      const na = fixArch(w.arch);                     // 舊的守護神器換成新的文房四寶
+      if (na !== w.arch) { w.arch = na; w.r = 6; Meta.seeWeapon(G.world, na, 6); }
+      if (!ARCH[w.arch]) w.arch = 'brush';            // 萬一遇到不存在的武器，至少不會壞掉
+    }
+    if (G.flags.guardianGot) G.flags.guardianGot = fixArch(G.flags.guardianGot);
+    G.titles = (G.titles || []).filter(id => ALL_TITLES().some(t => t.id === id));
     playerStats();
     if (W.story && !G.flags.prologue) { const S0 = W.start; G.map = S0.map; G.x = S0.x; G.y = S0.y; G.weapons = []; G.equip = []; }
     await fade(1, 0.3); UI.clear(); Game.scene = 'overworld'; OW.load(G.map, G.x, G.y, 'down'); await fade(0, 0.3);
@@ -201,8 +208,8 @@ const Flow = {
   /* 二週目：保留養成，重新挑戰所有道館，敵人更強，開放隱藏地圖 */
   async newGamePlus() {
     const ng = (G.ng || 0) + 1;
-    await say('【二週目】\n等級、武器、碎片、圖鑑與稱號都會保留，但所有對手都會變得更強。\n五座道館與最終魔王可以重新挑戰！');
-    await say('另外——校園牆角的墨漬似乎有了變化。傳說文房四寶之首「硯海龍君」，就沉睡在那底下。');
+    for (const t of (W.ngIntro || [])) await say(t, t.startsWith('（') ? undefined : '小墨');
+    await say('【二週目】\n等級、武器、碎片、圖鑑與稱號都會保留，但所有對手都會變得更強，題目也會變難。\n五座道館與最終魔王可以重新挑戰！');
     G.ng = ng;
     G.badges = []; G.defeated = {}; G.opened = {}; G.devTry = {}; G.route = null; G.chapter = 1;
     const keep = { prologue: true, tut: 'skip', cleared: true };
