@@ -40,7 +40,7 @@ const bondLv = w => BOND_STEPS.filter(x => (w.bond || 0) >= x).length;
 const BOND_MAX_BONUS = 0.05;
 const RACE_BOND_STAT = { 筆: 'atk', 紙: 'hp', 器: 'def', 音: 'dodge', 兵: 'atk', 墨: 'def' };
 const BOND_STAT_NAME = { atk: '攻擊', def: '防禦', hp: '氣血上限', dodge: '迴避機率' };
-const bondStatOf = w => RACE_BOND_STAT[ARCH[archOf(w)].race] || 'atk';
+const bondStatOf = w => RACE_BOND_STAT[ARCH[archOf(w)].race] || 'atk';   // 無種族（硯海龍君）預設加攻擊
 const bondBonus = (w, stat) => (w && bondLv(w) >= 3 && bondStatOf(w) === stat) ? BOND_MAX_BONUS : 0;
 
 /* ============ 狀態異常 ============ */

@@ -458,8 +458,8 @@ const WORLD_ORDER = ['school', 'literati', 'wuxia'];
       win: '……原來如此。筆墨紙都在我的硯海裡成形，而你，讓它們有了意義。',
       after: '（墨池恢復了平靜。）',
       fleeMsg: '硯海龍君化成墨水，從你手邊溜走了……（牠會在墨池的其他地方再出現）',
-      reward: 2000, fleeRate: 0.1, potions: 2,
-      foe: { lv: 28, hpMul: 3.8, el: 'none', race: null,
+      reward: 2000, fleeRate: 0.1, potions: 1,
+      foe: { lv: 26, hpMul: 3.0, el: 'none', race: null,
         cats: ['文言', '詩詞', '成語', '閱讀', '常識', '修辭', '字形', '字音', '詞義'],
         moves: [['墨海翻湧', ['文言', '詩詞'], 66], ['磨墨千遍', ['成語', '常識'], 66], ['硯波不驚', ['閱讀', '修辭'], 70], ['文心錯亂', ['閱讀'], 76, 'order']] } },
   });

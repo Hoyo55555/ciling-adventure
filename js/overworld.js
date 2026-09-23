@@ -286,7 +286,7 @@ async function spiritTalk(n) {
     await say('（硯海龍君點了點頭。）');
   }
   await say(R.intro, R.name);
-  const role = Object.assign({}, R, { foe: Object.assign({}, R.foe, { lv: Math.max(R.foe.lv, G.lv + 1) }) });
+  const role = Object.assign({}, R, { foe: Object.assign({}, R.foe, { lv: Math.max(R.foe.lv, G.lv) }) });
   const res = await Battle.start({ kind: 'gym', foe: makePersonFoe(role), role, cats: role.foe.cats, fleeRate: R.fleeRate });
   if (res === 'flee') { await say(R.fleeMsg); await respawnSpirit(n); return; }
   if (res !== 'win') return;
