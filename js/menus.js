@@ -131,7 +131,7 @@ const WeaponMenu = {
         const rows = list.map(w => { const lv = weaponLv(w), next = MASTERY_STEPS[lv], slot = G.equip.indexOf(w.id); const r = h('div', 'row');
           r.appendChild(wIcon(w.arch, w.r));
           r.insertAdjacentHTML('beforeend', `<div class="grow"><b class="rtxt r${w.r}">${esc(weaponName(w))}</b> ${rarChip(w.r)} <span class="small">Lv.${lv}</span> ${elChip(elOfCats(ARCH[w.arch].cats))}${catChips(w.arch)}
-            <div class="small muted">熟練度 ${w.mastery}${next != null ? ' / ' + next : '（已滿級）'}　${raceChip(ARCH[w.arch].race)}親密度 ${bondHearts(w)}${ARCH[w.arch].passive ? `．<b style="color:#b8322a">能力「${PASSIVES[ARCH[w.arch].passive].name}」</b>` : ''}${w.affix ? `<br><span class="affix ${AFFIX[w.affix.k].good ? '' : 'bad'}">${AFFIX[w.affix.k].good ? '✦' : '✧'} ${AFFIX[w.affix.k].name} ${Math.round(w.affix.rate * 100)}%</span>` : ''}</div></div>
+            <div class="small muted">熟練度 ${w.mastery}${next != null ? ' / ' + next : '（已滿級）'}　${raceChip(ARCH[w.arch].race)}親密度 ${bondHearts(w)}${passiveList(w.arch).length ? `．<b style="color:#b8322a">能力「${passiveList(w.arch).map(p => PASSIVES[p].name).join('」「')}」</b>` : ''}${w.affix ? `<br><span class="affix ${AFFIX[w.affix.k].good ? '' : 'bad'}">${AFFIX[w.affix.k].good ? '✦' : '✧'} ${AFFIX[w.affix.k].name} ${Math.round(w.affix.rate * 100)}%</span>` : ''}</div></div>
             <span class="small">${slot === G.cur ? '<b class="good">★ 使用中</b>' : slot >= 0 ? `攜帶 ${slot + 1}` : '<span class="muted">收納中</span>'}</span>`);
           sc.appendChild(r); return r; });
         listNav(ctl, rows, { onBack: () => ctl.done(), onPick: async i => {
@@ -155,7 +155,7 @@ const WeaponMenu = {
         <div>${esc(weaponDesc(a))}</div><div style="margin:${U(2)} 0">擅長 ${catChips(a)}　<span class="muted">稀有度加成：攻擊 +${RAR_ATK[w.r]}、招式威力 ×${mul}</span></div>
         <div style="margin-bottom:${U(2)}">${raceChip(ARCH[a].race)}<span class="muted">族．剋 ${esc(RACE_KE[ARCH[a].race])}族、被 ${esc(RACE_KE_BY[ARCH[a].race])}族所剋</span>　親密度 ${bondHearts(w)} <span class="muted">${bondText(w)}</span></div>
         ${w.affix ? `<div class="bonus"><span class="affix ${AFFIX[w.affix.k].good ? '' : 'bad'}">${AFFIX[w.affix.k].good ? '✦ 附加效果' : '✧ 附加效果（負面）'}：${AFFIX[w.affix.k].name}</span>——${esc(AFFIX[w.affix.k].desc)}（觸發機率 ${Math.round(w.affix.rate * 100)}%）</div>` : ''}
-        ${w.r ? `<div class="bonus">★ 稀有度效果：${bonusList(w.r).join('；')}${ARCH[a].passive ? `；守護能力「${PASSIVES[ARCH[a].passive].name}」` : ''}</div>` : '<div class="small muted">凡品武器沒有稀有度效果，升階後會獲得。</div>'}
+        ${w.r ? `<div class="bonus">★ 稀有度效果：${bonusList(w.r).join('；')}${passiveList(a).length ? `；守護能力「${passiveList(a).map(p => PASSIVES[p].name).join('」「')}」` : ''}</div>` : '<div class="small muted">凡品武器沒有稀有度效果，升階後會獲得。</div>'}
         ${ARCH[a].skills.map(([n, c, p], i) => { const open = i < lv + 1, el = elOfCats(c); return `<div class="row" style="padding:${U(1)} ${U(2)}"><b class="grow">${open ? esc(n) : '？？？'}</b>${open ? elChip(el) + (el ? `<span class="small muted">剋${KE[el]}</span>` : '') + c.slice(0, 2).map(chip).join('') + `　威力 ${Math.round(p * mul)}` : `<span class="muted">武器 Lv.${i} 解鎖（熟練度 ${MASTERY_STEPS[i - 1]}）</span>`}</div>`; }).join('')}
         ${ARCH[a].tactic ? `<div class="row" style="padding:${U(1)} ${U(2)}"><b class="grow">${lv >= 2 ? '◆ ' + esc(ARCH[a].tactic.name) : '？？？'}</b><span class="muted">${lv >= 2 ? '戰術．' + tacticText(ARCH[a].tactic) : '武器 Lv.2 解鎖戰術招式'}</span></div>` : ''}
         <div class="row" style="padding:${U(1)} ${U(2)}"><b class="grow">★ ${esc(ARCH[a].ult)}</b><span class="muted">必殺技．文氣 5 格</span></div>
@@ -200,6 +200,23 @@ const Forge = {
             G.cur = Math.max(0, G.equip.indexOf(use.some(x => x.id === curId) ? nw.id : curId)); playerStats();
             const fxN = use.filter(x => x.affix).length;
             return `升階成功！得到了${RARITY[nw.r].n}「${weaponName(nw)}」！${nw.affix ? `\n${AFFIX[nw.affix.k].good ? '✦' : '✧'} 附加效果「${AFFIX[nw.affix.k].name}」：${AFFIX[nw.affix.k].desc}（機率 ${Math.round(nw.affix.rate * 100)}%）${fxN > 1 ? `\n（合併了 ${fxN} 件帶效果的武器，只保留一個效果，但觸發機率提高了！）` : ''}` : ''}`; } }); }
+        sc.insertAdjacentHTML('beforeend', `<div class="qsec">洗鍊（重抽附加效果）</div><div class="small muted">花 ${REFINE_COST} ${esc(W.money)} 重抽一件武器的附加效果，可能變好也可能變差，也可能什麼都沒有。</div>`);
+        for (const w of G.weapons) {
+          if (ARCH[w.arch].guardian) continue;
+          const ok = G.money >= REFINE_COST; const r = h('div', 'row' + (ok ? '' : ' dis'));
+          r.appendChild(wIcon(w.arch, w.r));
+          r.insertAdjacentHTML('beforeend', `<div class="grow"><b>${esc(weaponName(w))}</b> ${rarChip(w.r)}<div class="small muted">${w.affix ? `目前：<span class="affix ${AFFIX[w.affix.k].good ? '' : 'bad'}">${AFFIX[w.affix.k].name} ${Math.round(w.affix.rate * 100)}%</span>` : '目前沒有附加效果'}</div></div><span class="small">${REFINE_COST}</span>`);
+          sc.appendChild(r);
+          acts.push({ r, ok, run: async () => {
+            if (!(await UI.yesno(`要花 ${REFINE_COST} ${W.money} 洗鍊「${weaponName(w)}」嗎？${w.affix ? '\n（現在的「' + AFFIX[w.affix.k].name + '」會被覆蓋）' : ''}`))) return null;
+            G.money -= REFINE_COST;
+            const old = w.affix;
+            w.affix = rollAffix() || (Math.random() < 0.4 ? { k: pick(AFFIX_GOOD), rate: AFFIX_BASE } : null);
+            if (w.affix && old && old.k === w.affix.k) w.affix.rate = Math.min(AFFIX_MAX, old.rate + AFFIX_STEP);
+            playerStats();
+            return w.affix ? `洗鍊完成！「${weaponName(w)}」現在帶有${AFFIX[w.affix.k].good ? '' : '（負面）'}「${AFFIX[w.affix.k].name}」——${AFFIX[w.affix.k].desc}（機率 ${Math.round(w.affix.rate * 100)}%）` : `洗鍊完成……這次什麼效果都沒有附上。`;
+          } });
+        }
         listNav(ctl, acts.map(x => x.r), { onBack: () => ctl.done(), onPick: async i => { const A = acts[i]; if (!A.ok) { Sound.sfx('bump'); return; } const m = await A.run(); if (!m) return; Sound.sfx('badge'); await say(m); autosave(); render(); } });
       };
       render();
@@ -229,7 +246,7 @@ const Armory = {
       const wrap = $('.armory', ctl.box), gw = $('.armory.g', ctl.box);
       const card = (a, box) => { const seen = Meta.d.armory[G.world + ':' + a]; const c = h('div', 'arm' + (seen ? '' : ' unk'));
         const pic = wIcon(a, seen ? seen - 1 : (ARCH[a].guardian ? 6 : 0), 1.3); if (!seen) pic.style.filter = 'brightness(0) opacity(.35)'; c.appendChild(pic);
-        const info = ARCH[a].guardian ? (seen ? '能力：' + PASSIVES[ARCH[a].passive].name : '劇情取得') : (seen ? '最高：' + RARITY[seen - 1].n : '尚未取得');
+        const info = ARCH[a].guardian ? (seen ? '能力：' + passiveList(a).map(p => PASSIVES[p].name).join('、') : (ARCH[a].ng ? '二週目取得' : '劇情取得')) : (seen ? '最高：' + RARITY[seen - 1].n : '尚未取得');
         c.insertAdjacentHTML('beforeend', `<div><b>${seen ? esc(weaponName(a)) : '？？？'}</b><div class="small muted">${info}</div></div>`); box.appendChild(c); };
       ARCH_ORDER.forEach(a => card(a, wrap)); Object.values(W.guardians).forEach(a => card(a, gw));
       const sc = $('.scroll', ctl.box);
@@ -247,12 +264,12 @@ const TitleMenu = {
         ctl.box.innerHTML = `<h2>稱號　<span class="small muted">妖怪圖鑑 ${n} / ${MON_KEYS.length}．最多配戴 ${TITLE_SLOTS} 個</span></h2><div class="scroll"></div>`
           + footKeys('A 配戴／取下　B 返回');
         const sc = $('.scroll', ctl.box);
-        sc.insertAdjacentHTML('beforeend', '<div class="small muted">每收集 10 種妖怪就會解鎖一個稱號，收集越多的稱號加成越高。效果可自由搭配。</div>');
-        for (const t of DEX_TITLES) {
+        sc.insertAdjacentHTML('beforeend', '<div class="small muted">每收集 10 種妖怪解鎖一個稱號，收集越多加成越高；把某一個種族收集齊全，還會解鎖該種族的專屬稱號。效果可自由搭配。</div>');
+        for (const t of ALL_TITLES()) {
           const on = (G.titles || []).includes(t.id), got = titleUnlocked(t);
           const r = h('div', 'row' + (got ? '' : ' dis'));
-          r.insertAdjacentHTML('beforeend', `<div class="grow"><b>${got ? esc(t.name) : '？？？'}</b> ${got ? `<span class="tchip">${BOND_STAT_NAME[t.stat]} +${Math.round(t.val * 100)}%</span>` : ''}
-            <div class="small muted">${got ? `圖鑑收集 ${t.n} 種解鎖` : `再收集 ${t.n - n} 種妖怪即可解鎖（${t.n} 種）`}</div></div>
+          r.insertAdjacentHTML('beforeend', `<div class="grow"><b>${got ? esc(t.name) : '？？？'}</b> ${got ? `<span class="tchip">${BOND_STAT_NAME[t.stat]} +${Math.round(t.val * 100)}%</span>` : ''}${t.race ? raceChip(t.race) : ''}
+            <div class="small muted">${titleNeedText(t)}${got ? ' ✓' : ''}</div></div>
             <span class="small">${on ? '<b class="good">★ 配戴中</b>' : got ? '未配戴' : ''}</span>`);
           sc.appendChild(r); rows.push({ r, t, got, on });
         }
@@ -568,36 +585,72 @@ const ChapterEnd = {
 };
 /* 守護神器：正式版在主線結局取得；試玩版於第一章結尾示範 */
 const Guardian = {
-  async grant(story) {
-    const route = G.route || 'a'; const a = W.guardians[route];
-    if (G.weapons.some(w => w.arch === a)) return;
-    if (story) await say('（你的話語化成一道光，從周以恆的題庫中飛出一件閃耀著七彩光芒的神器……）');
-    else await say(`（試玩版示範：正式版中，守護神器會在主線結局、打倒最終魔王後取得。你選擇了「${W.routeNames[route]}」，所以會得到這一件。）`);
+  /* 把器靈交給玩家（一週目三選一隨機、二週目硯靈） */
+  async give(a) {
+    if (G.weapons.some(w => w.arch === a)) return null;
     Sound.sfx('badge'); s_flash();
     const w = newWeapon(a, 6); G.weapons.push(w); Meta.seeWeapon(G.world, a, 6);
-    await say(`${G.player.name} 得到了守護神器「${weaponName(a)}」！`);
-    await say(`特殊能力「${PASSIVES[ARCH[a].passive].name}」：${PASSIVES[ARCH[a].passive].desc}\n（放進攜帶欄就會生效）`);
-    if (G.equip.length < 3) G.equip.push(w.id); autosave();
+    await say(`${G.player.name} 得到了守護器靈「${weaponName(a)}」！`);
+    await say(`${ARCH[a].gdesc || ''}`);
+    await say(`守護能力：${passiveList(a).map(p => `「${PASSIVES[p].name}」${PASSIVES[p].desc}`).join('\n')}\n（放進攜帶欄就會生效）`);
+    if (G.equip.length < 3) G.equip.push(w.id);
+    autosave(); return w;
   },
+  /* 一週目：決戰前的對話選擇，三隻器靈隨機出現一隻 */
+  async firstMeet() {
+    if (G.flags.guardianGot) return;
+    const pool = GUARDIAN_FIRST.filter(k => !G.weapons.some(w => w.arch === k));
+    const a = pick(pool.length ? pool : GUARDIAN_FIRST);
+    G.flags.guardianGot = a;
+    await say('（你手上的文具同時亮了起來，一道光在空中凝成形體……）');
+    await say(`（文房四寶之一——「${weaponName(a)}」現身了！）`);
+    await Guardian.give(a);
+  },
+  async grant(story) { return Guardian.firstMeet(); },
 };
 function s_flash() { const fx = $('#fx'); fx.classList.add('white'); fx.style.opacity = 0.9; Anim.run(0.6, k => fx.style.opacity = 0.9 * (1 - k)).then(() => fx.classList.remove('white')); }
 /* 國中生涯．劇情結局 */
 const StoryEnding = {
   async play() {
+    const ng = G.ng || 0;
     Sound.play('ending');
     for (const t of W.ending) await say(t);
     if (G.route) await say(W.routeEnd[G.route]);
     s_flash(); await say(W.finale);
+    const gotStone = G.weapons.some(w => w.arch === 'g_stone');
+    if (ng > 0) {
+      await say(gotStone
+        ? '（筆、紙、墨、硯——文房四寶都在你手上了。這一次，你是真的把整座校園都讀懂了。）'
+        : '（二週目的挑戰完成了。不過墨池深處的硯海龍君，還在等你。）');
+    }
     await Credits.play();
     const first = !G.flags.cleared; G.flags.cleared = true;
     const T = totals(G);
-    if (first) { Meta.clear(G.world); Meta.addReport({ world: G.world, name: G.player.name, title: rankTitle(T.pct), pct: T.pct, total: T.t, time: G.time, lv: G.lv, ng: G.ng || 0, at: Date.now() }); }
+    if (first || ng > 0) { Meta.clear(G.world); Meta.addReport({ world: G.world, name: G.player.name, title: rankTitle(T.pct), pct: T.pct, total: T.t, time: G.time, lv: G.lv, ng, at: Date.now() }); }
     autosave();
     await Report.open(G);
-    const k = await UI.ask('恭喜通關國中生涯！接下來要做什麼呢？', ['留在校園繼續探索', '重新開始（全新冒險）', '返回標題畫面'], { cancel: false });
-    if (k === 1) { Game.scene = 'blank'; Flow.newGame(G.slot); }
-    else if (k === 2) { Game.scene = 'blank'; titleScreen(); }
+    if (ng > 0 && gotStone) { await StoryEnding.allDone(); return; }
+    const opts = [].concat(ng > 0 ? [] : ['進入二週目（難度提升，可再挑戰所有道館）'], ['留在校園繼續探索', '重新開始（全新冒險）', '返回標題畫面']);
+    const k = await UI.ask('恭喜通關國中生涯！接下來要做什麼呢？', opts, { cancel: false });
+    const L = opts[k];
+    if (L && L.startsWith('進入二週目')) { await Flow.newGamePlus(); return; }
+    if (L === '重新開始（全新冒險）') { Game.scene = 'blank'; Flow.newGame(G.slot); }
+    else if (L === '返回標題畫面') { Game.scene = 'blank'; titleScreen(); }
     else Sound.play(W.music[OW.L.music] || OW.L.music);
+  },
+  /* 二週目＋文房四寶到齊：最終的跑馬燈與謝幕 */
+  async allDone() {
+    if (G.flags.allDone) return;
+    G.flags.allDone = true;
+    Sound.play('ending');
+    s_flash();
+    await say('（筆、紙、墨、硯——文房四寶四隻器靈同時亮了起來。）');
+    await say('小墨：「你看，牠們本來就不是武器。」\n「牠們只是在等一個，願意好好讀、好好寫的人。」');
+    await Credits.play();
+    await say('★ 全部挑戰完成！\n\n感謝遊玩《詞靈冒險．翡翠之卷》。\n願你在每一次考試之外，都還記得文字原本的溫度。');
+    autosave();
+    const k2 = await UI.ask('接下來要做什麼呢？', ['留在校園繼續探索', '返回標題畫面'], { cancel: false });
+    if (k2 === 1) { Game.scene = 'blank'; titleScreen(); } else Sound.play(W.music[OW.L.music] || OW.L.music);
   },
 };
 function rankTitle(p) { return p >= 90 ? '文曲下凡' : p >= 80 ? '博學鴻儒' : p >= 65 ? '飽讀詩書' : p >= 50 ? '勤學書生' : '初出茅廬'; }
@@ -733,7 +786,10 @@ const Help = {
         <b>☠ 狀態異常</b>：中毒、燒傷每回合會損血（燒傷還會降低攻擊）；睡眠、麻痺有機率無法行動。用「解狀態的道具」可以一次解除，敵人也會自己解。<br>
         <b>🧪 戰鬥道具</b>：除了補血，還有提升攻擊／防禦／迴避的道具（本場有效）與解除狀態的道具，可在福利社購買。館主、勁敵與魔王也會使用道具補血或強化自己。<br>
         <b>✦ 武器附加效果</b>：碎片合成出來的武器有 ${Math.round(AFFIX_RATE * 100)}% 機率帶「附加效果」，例如回春、反擊、銳利、燃墨（讓對手燒傷），也可能是脆裂、沉重等負面效果。升階時附加效果會保留；把兩把有附加效果的武器合在一起，只會留下一個效果，但觸發機率會提高（最高 ${Math.round(AFFIX_MAX * 100)}%）。<br>
-        <b>👑 圖鑑稱號</b>：妖怪圖鑑每收集 10 種就解鎖一個稱號，收集越多的稱號加成越高（攻擊／氣血／防禦／迴避），最多同時配戴 ${TITLE_SLOTS} 個，可以自由搭配。<br>
+        <b>👑 圖鑑稱號</b>：妖怪圖鑑每收集 10 種就解鎖一個稱號，收集越多的稱號加成越高（攻擊／氣血／防禦／迴避）；收集齊某一個種族還會解鎖專屬稱號。最多同時配戴 ${TITLE_SLOTS} 個，可以自由搭配。<br>
+        <b>⚒ 洗鍊</b>：在「鍛造」可以花 ${REFINE_COST} ${esc(W.money)} 重抽武器的附加效果；抽到同一種效果時，觸發機率會疊加。<br>
+        <b>🐉 守護器靈</b>：文房四寶——筆、紙、墨各是該種族最強，決戰前會依你的回答隨機現身一隻；硯海龍君是四寶之首（有兩種能力），只有二週目才會在隱藏的「硯海墨池」出現。<br>
+        <b>🔁 二週目</b>：通關後可以進入二週目，保留等級、武器、圖鑑與稱號，所有對手都會變強，五座道館與魔王可以重新挑戰，並開放隱藏地圖。全部完成就會播放結尾。<br>
         <b>🐾 種族相剋</b>：武器與妖怪都有種族——筆剋紙、紙剋器、器剋音、音剋兵、兵剋筆。剋制威力 ×1.3，被剋制 ×0.85；若種族與五行<b>同時剋制</b>，傷害再 ×${DOUBLE_BONUS}（雙重剋制）。<br>
         <b>☯ 五行相剋</b>：金剋木、木剋土、土剋水、水剋火、火剋金。題型屬性：字音字形＝金、詞義成語＝木、修辭閱讀＝水、詩詞＝火、文言常識＝土。剋制對手威力 ×1.5，被剋制 ×0.7。<br>
         <b>✨ 文氣與必殺技</b>：每次命中或答對題目都會累積 1 格文氣（答錯落空則沒有），集滿 5 格就能施展必殺技（必定命中）。<br>

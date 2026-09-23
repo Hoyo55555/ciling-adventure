@@ -23,7 +23,7 @@ const WORLDS = {
       seal: ['放大鏡', '看清每個細節，擅長常識與閱讀。'], legend: ['金牌鋼筆', '傳說中會考滿分學長留下的鋼筆。'] },
     items: { heal: '運動飲料', heal2: '營養便當', wenqi: '提神巧克力', hint: '錦囊小抄', atkup: '專注口香糖', defup: '護身護腕', dodgeup: '體育課球鞋', cure: '保健室藥包' },
     monsters: { brush: '鉛筆妖', tome: '字典妖', scroll: '課本妖', fan: '螢光筆妖', seal: '放大鏡妖', legend: '鋼筆妖' }, monSuffix: '妖',
-    guardians: { a: 'g_school_a', b: 'g_school_b' }, routeNames: { a: '同心之路', b: '競逐之路' },
+    guardians: { a: 'g_pen', b: 'g_paper' }, routeNames: { a: '同心之路', b: '競逐之路' },
     routeEnd: { a: '程昊：「以後的路，我們一起走吧！」', b: '程昊：「下一章，我一定會超越你！」' },
     gymName: '字音字形關',
     intro: [
@@ -114,7 +114,7 @@ const WORLDS = {
       seal: ['端硯', '名硯之首，研出的墨能增長見聞。'], legend: ['松煙古墨', '傳說中文曲星留下的古墨。'] },
     items: { heal: '參茶', heal2: '靈芝', wenqi: '墨香', hint: '錦囊', atkup: '狼毫新鋒', defup: '青玉鎮紙', dodgeup: '輕羅衣', cure: '清心散' },
     monsters: { brush: '筆精', tome: '竹簡精', scroll: '玉笛精', fan: '紙扇精', seal: '硯精', legend: '古墨精' }, monSuffix: '精',
-    guardians: { a: 'g_literati_a', b: 'g_literati_b' }, routeNames: { a: '知音之路', b: '爭鳴之路' },
+    guardians: { a: 'g_pen', b: 'g_paper' }, routeNames: { a: '知音之路', b: '爭鳴之路' },
     routeEnd: { a: '沈墨：「高山流水，知音難覓。有你同行，此生無憾。」', b: '沈墨：「百家爭鳴，方見真章。下回，我必勝你！」' },
     gymName: '太白詩社',
     intro: [
@@ -205,7 +205,7 @@ const WORLDS = {
       seal: ['袖裡箭', '暗器之術，考驗見聞與眼力。'], legend: ['龍泉劍', '傳說中的神兵，萬法歸一。'] },
     items: { heal: '金創藥', heal2: '大還丹', wenqi: '提神丹', hint: '錦囊', atkup: '烈酒', defup: '軟蝟甲', dodgeup: '輕功靴', cure: '解毒丹' },
     monsters: { brush: '筆魂', tome: '劍魂', scroll: '琴魂', fan: '扇魂', seal: '箭魂', legend: '龍泉劍魂' }, monSuffix: '魂',
-    guardians: { a: 'g_wuxia_a', b: 'g_wuxia_b' }, routeNames: { a: '俠義之路', b: '孤鴻之路' },
+    guardians: { a: 'g_pen', b: 'g_paper' }, routeNames: { a: '俠義之路', b: '孤鴻之路' },
     routeEnd: { a: '葉孤舟：「俠之大者，為國為民。這條路，我陪你走到底！」', b: '葉孤舟：「江湖再見時，勝負還未分呢！」' },
     gymName: '峨嵋分舵',
     intro: [
@@ -296,7 +296,7 @@ const WORLD_ORDER = ['school', 'literati', 'wuxia'];
     { name: '第二道館．常識的迷宮', text: '前往校園左側的「圖書館」，拿回第二片碎片。', roles: ['rival1', 'boss2'], tiles: [['campus', 4, 10], ['hallway', 13, 8], ['c1a', 6, 8]] },
     { name: '第三道館．生活中的意境', text: '從校園南邊前往「文學中庭」，幫做分組報告的組員找回感受力。', roles: ['m1', 'm2', 'm3', 'boss3'], tiles: [['campus', 15, 19], ['hallway', 13, 8], ['lib', 7, 11]] },
     { name: '第四道館．古典的重擔與抉擇', text: '前往校園右側的「校史室」。', roles: ['rival2', 'boss4'], tiles: [['campus', 24, 10], ['hallway', 13, 8], ['yard', 10, 0]] },
-    { name: '第五道館．會考的鐘聲', text: '前往校園北側的「大禮堂」，迎戰總複習大魔王！', roles: ['e1', 'e2', 'e3', 'boss5'], tiles: [['campus', 22, 3], ['hallway', 13, 8], ['hist', 6, 11]] },
+    { name: '第五道館．會考的鐘聲', text: '前往校園北側的「大禮堂」，迎戰總複習大魔王！', roles: ['e1', 'e2', 'e3', 'moGuard', 'boss5'], tiles: [['campus', 22, 3], ['hallway', 13, 8], ['hist', 6, 11]] },
     { name: '終章．堂堂正正走進考場', text: '准考證已經拼回來了！（可以繼續探索、收集武器，或回到主畫面。）', roles: [], tiles: [] },
   ];
   Object.defineProperty(S, 'chapterName', { get() { return !G || !G.flags.prologue ? '序幕．空白的早自習' : S.stages[Math.min(G.badges.length, 5)].name; }, configurable: true });
@@ -327,7 +327,7 @@ const WORLD_ORDER = ['school', 'literati', 'wuxia'];
     '小墨：「你做到了！不是靠死背，而是靠『理解』。文字終於找回了它的情感。」'];
   S.routeEnd = { a: '周以恆：「謝謝你當頭棒喝。從今天起，我要理解，不再只是背。」', b: '周以恆：「謝謝你懂我的壓力。原來古人和我們一樣，也會煩惱、也會努力。」' };
   S.finale = '鐘聲響起。你握緊准考證，堂堂正正地走進了考場。';
-  S.guardians = { a: 'g_school_a', b: 'g_school_b' };
+  S.guardians = { a: 'g_pen', b: 'g_paper' };
   S.routeNames = { a: '當頭棒喝', b: '同理之心' };
 
   Object.assign(S.roles, {
@@ -409,8 +409,16 @@ const WORLD_ORDER = ['school', 'literati', 'wuxia'];
     e3: { kind: 'trainer', name: '菁英考生 丙', look: stu('#5a3a24', '#c8a040', { bag: '#303038' }), reward: 400,
       foe: { lv: 21, hpMul: 2.7, el: '火', cats: ['常識', '詩詞', '詞義'], moves: [['常識轟炸', ['常識'], 58], ['詩詞焰', ['詩詞'], 58]] },
       intro: '最後一道防線！讓我看看你的錯題本複習得怎麼樣！', win: '……你真的把錯題都弄懂了。', after: '大魔王就在講台上。' },
-    boss5: { kind: 'gym', name: '總複習大魔王', badge: '准考證碎片（五）', badgeColor: '#b8322a', reward: 3000, final: true, leaves: true, potions: 2, needDefeated: ['aud:e1', 'aud:e2', 'aud:e3'], wenqiFlags: ['ad1', 'ad2', 'ad3'],
-      gateText: '（紅毯上的菁英考生擋住了去路……先通過他們的考驗吧！）',
+    moGuard: { kind: 'guardian', name: '小墨', look: { sprite: 'xiaomo' }, needDefeated: ['aud:e1', 'aud:e2', 'aud:e3'],
+      lines: ['{name}，等一下。', '講台上的那個東西，是把全校的焦慮揉成一團做出來的……光靠文具，可能撐不住。',
+        '不過，只要你心裡還相信文字，文房四寶就會來幫你。我問你一句話就好——'],
+      choice: { q: '小墨看著你：「對你來說，讀國文到底是為了什麼？」',
+        opts: ['為了看懂別人想說的話', '為了把自己想說的話說清楚'],
+        replies: ['……嗯，那是「讀」的力量。', '……嗯，那是「寫」的力量。'] },
+      afterGive: '牠會陪你一起上場的。去吧，別怕那團墨。',
+      after: '準備好了就上講台吧！' },
+    boss5: { kind: 'gym', name: '總複習大魔王', badge: '准考證碎片（五）', badgeColor: '#b8322a', reward: 3000, final: true, leaves: true, potions: 2, needDefeated: ['aud:e1', 'aud:e2', 'aud:e3', 'aud:moGuard'], wenqiFlags: ['ad1', 'ad2', 'ad3'],
+      gateText: '（紅毯上的菁英考生擋住了去路，小墨也還有話要說……先處理好再上台吧！）',
       look: { sprite: 'boss' },
       foe: { lv: 24, hpMul: 4.9, el: 'none', cats: ['閱讀', '文言', '詩詞', '成語', '修辭', '字形', '字音', '詞義', '常識'], moves: [['全題型轟炸', ['閱讀', '文言'], 62], ['模擬考卷海', ['成語', '詩詞'], 62], ['空白作文紙', ['修辭', '字形'], 62], ['段落錯亂', ['閱讀'], 72, 'order']] },
       intro: '空白的作文紙、寫不完的模擬考卷……全部都是你們的焦慮！\n\n在我面前，你們只能死背、只能害怕！',
@@ -439,6 +447,21 @@ const WORLD_ORDER = ['school', 'literati', 'wuxia'];
       reward: 600, win: '……又輸了。不過這次我懂了為什麼。',
       foe: { lv: 22, hpMul: 2.4, el: '水', cats: ['文言', '成語', '閱讀'], moves: [['題海戰術', ['成語'], 58], ['翻譯快打', ['文言'], 58], ['速讀', ['閱讀'], 62]] },
       potions: 2, prize: { money: 600, frags: 1, items: { heal: 2 } } },
+  });
+  /* 二週目：硯海龍君（隱藏地圖隨機出現） */
+  Object.assign(S.roles, {
+    stoneSpirit: { kind: 'spirit', name: '硯海龍君', look: { sprite: 'stone' },
+      appear: '（墨池的水面突然翻湧，一方古硯從墨海中浮了上來——硯海龍君！）',
+      quiz: '硯海龍君低聲問道：「要拿走文房四寶之首，先讓我看看你的底子。」\n（答對才能挑戰牠。）',
+      wrong: '硯海龍君搖了搖頭，化成一灘墨水滲進地面……（牠會在墨池的其他地方再出現）',
+      intro: '很好。那就讓我看看，你的字裡有沒有真心。',
+      win: '……原來如此。筆墨紙都在我的硯海裡成形，而你，讓它們有了意義。',
+      after: '（墨池恢復了平靜。）',
+      fleeMsg: '硯海龍君化成墨水，從你手邊溜走了……（牠會在墨池的其他地方再出現）',
+      reward: 2000, fleeRate: 0.1, potions: 2,
+      foe: { lv: 28, hpMul: 3.8, el: 'none', race: null,
+        cats: ['文言', '詩詞', '成語', '閱讀', '常識', '修辭', '字形', '字音', '詞義'],
+        moves: [['墨海翻湧', ['文言', '詩詞'], 66], ['磨墨千遍', ['成語', '常識'], 66], ['硯波不驚', ['閱讀', '修辭'], 70], ['文心錯亂', ['閱讀'], 76, 'order']] } },
   });
   /* 通關後才會出現的人物 */
   S.postNpcs = {

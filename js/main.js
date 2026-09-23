@@ -63,7 +63,7 @@ const WorldPick = {
     this.sel = WORLD_ORDER.findIndex(w => w !== this.exclude);
     UI.clear(); setWorldClass(null); Game.scene = 'worldpick'; Sound.play('title');
     const head = UI.el('box wp-head', esc(opt.title || '選擇你要冒險的世界'));
-    const labels = WORLD_ORDER.map((w, i) => UI.el('box wp-label', `<b>${WORLDS[w].icon} ${esc(WORLDS[w].name)}</b>${Meta.d.cleared[w] ? '<br><span class="small good">✓ 已通關</span>' : ''}${w === this.exclude ? '<br><span class="small muted">目前的世界</span>' : ''}`, { left: U(i * 80 + 4), width: U(72) }));
+    const labels = WORLD_ORDER.map((w, i) => UI.el('box wp-label', `<b>${WORLDS[w].icon} ${esc(WORLDS[w].name)}</b>${w !== STORY_WORLD ? '<br><span class="small muted">製作中</span>' : Meta.d.cleared[w] ? '<br><span class="small good">✓ 已通關</span>' : ''}`, { left: U(i * 80 + 4), width: U(72) }));
     const foot = UI.el('wp-foot', '←→ 選擇　A 決定　B 返回');
     const cleanup = () => { head.remove(); labels.forEach(l => l.remove()); foot.remove(); };
     await Anim.run(1.1, k => this.enter = k);
@@ -79,6 +79,11 @@ const WorldPick = {
         UI.push(m);
       });
       if (pick < 0) { cleanup(); return null; }
+      if (WORLD_ORDER[pick] !== STORY_WORLD) {      // 其他世界觀尚未開放
+        Sound.sfx('bump');
+        await UI.say(`${WORLDS[WORLD_ORDER[pick]].icon} ${WORLDS[WORLD_ORDER[pick]].name}\n\n製作中，未來有機會開放。\n目前請先體驗「🏫 國中生涯」的完整故事！`);
+        continue;
+      }
       Sound.sfx('ok'); this.chosen = pick; [head, foot, ...labels].forEach(e => e.style.display = 'none');
       await Anim.run(0.7, k => this.exp = k * k * (3 - 2 * k));
       const Wd = WORLDS[WORLD_ORDER[pick]]; setWorldClass(Wd.id); Sound.play(Wd.music.town);
@@ -142,13 +147,12 @@ async function titleScreen() {
   if (Cloud.enabled && !Cloud.user && !Cloud.skipped && !TeacherAuth.on) { logo.style.display = 'none'; const r = await LoginPanel.open(); if (r === 'skip' || r === null) Cloud.skipped = true; if (r === 'created') await say('帳號建立完成！之後請用同一組班級、座號和密碼登入。'); if (r === 'teacher') await say('教師登入成功！標題選單已出現「教師設定」。'); logo.style.display = ''; paintLink(); Cloud.paint(); }
   while (true) {
     // 只有「新的冒險」與「設定」一定出現；其他選項要有理由才出現
-    const labels = [].concat(Slots.any() ? ['繼續冒險'] : [], ['新的冒險'], !STORY_WORLD && Slots.cleared().length ? ['轉生'] : [], Meta.hasAny() ? ['紀錄館'] : [], ['設定'], TeacherAuth.on ? ['教師設定', '教師登出'] : Cloud.enabled ? [Cloud.user ? '登出' : '登入帳號'] : []);
+    const labels = [].concat(Slots.any() ? ['繼續冒險'] : [], ['新的冒險'], Meta.hasAny() ? ['紀錄館'] : [], ['設定'], TeacherAuth.on ? ['教師設定', '教師登出'] : Cloud.enabled ? [Cloud.user ? '登出' : '登入帳號'] : []);
     const i = await UI.choose(labels, { pos: { left: '50%', bottom: U(6), transform: 'translateX(-50%)' }, cancel: false, start: Math.min(sel, labels.length - 1), cls: 'titlemenu', cols: labels.length > 3 ? 2 : 1 });
     sel = i; const L = labels[i];
     logo.style.display = 'none';
     if (L === '繼續冒險') { const n = await SlotScreen.open('load'); if (n) { logo.remove(); tlink.remove(); return Flow.load(n); } }
     if (L === '新的冒險') { const n = await SlotScreen.open('new'); if (n) { logo.remove(); const ok = await Flow.newGame(n); if (ok) return; return titleScreen(); } }
-    if (L === '轉生') { const n = await SlotScreen.open('rebirth'); if (n) { logo.remove(); const ok = await Flow.rebirth(n); if (ok) return; return titleScreen(); } }
     if (L === '登出' || L === '登入帳號') {
       if (L === '登出' && !(await Cloud.logoutFlow())) { logo.style.display = ''; continue; }
       const r = await LoginPanel.open(); if (r === 'skip' || r === null) Cloud.skipped = true; if (r === 'created') await say('帳號建立完成！之後請用同一組班級、座號和密碼登入。'); if (r === 'teacher') await say('教師登入成功！標題選單已出現「教師設定」。'); paintLink(); Cloud.paint(); }
@@ -187,12 +191,30 @@ const Flow = {
   async newGame(slot, preset) {
     while (true) {
       UI.clear(); setWorldClass(null); Game.scene = 'title';
-      const wid = STORY_WORLD || await WorldPick.open(); if (!wid) return false;
+      const wid = await WorldPick.open(); if (!wid) return false;
       W = WORLDS[wid]; setWorldClass(wid); Game.scene = 'title'; G = freshState(wid, { name: '', title: '', look: {} }, slot);
-      const pl = await CharCreate.open(wid, preset); if (!pl) { G = null; W = null; if (STORY_WORLD) return false; continue; }
+      const pl = await CharCreate.open(wid, preset); if (!pl) { G = null; W = null; continue; }
       G.player = pl; playerStats();
       await Flow.start(); return true;
     }
+  },
+  /* 二週目：保留養成，重新挑戰所有道館，敵人更強，開放隱藏地圖 */
+  async newGamePlus() {
+    const ng = (G.ng || 0) + 1;
+    await say('【二週目】\n等級、武器、碎片、圖鑑與稱號都會保留，但所有對手都會變得更強。\n五座道館與最終魔王可以重新挑戰！');
+    await say('另外——校園牆角的墨漬似乎有了變化。傳說文房四寶之首「硯海龍君」，就沉睡在那底下。');
+    G.ng = ng;
+    G.badges = []; G.defeated = {}; G.opened = {}; G.devTry = {}; G.route = null; G.chapter = 1;
+    const keep = { prologue: true, tut: 'skip', cleared: true };
+    G.flags = keep;
+    G.hp = G.maxhp; G.wenqi = 0;
+    const S0 = { map: 'campus', x: 15, y: 6 };
+    G.lastHeal = { map: S0.map, x: S0.x, y: S0.y }; G.ret = Object.assign({}, S0);
+    autosave();
+    await fade(1, 0.4); UI.clear(); Game.scene = 'overworld'; OW.load(S0.map, S0.x, S0.y, 'down'); await fade(0, 0.4);
+    showBanner(`二週目．難度提升（×${ng}）`);
+    await say('（回到校園。墨塵又聚集起來了——這一次，牠們更強了。）');
+    autosave();
   },
   async rebirth(slot) {
     const old = Slots.read(slot); if (!old) return false;

@@ -126,7 +126,10 @@ async function addSt(s, who, k, turns) {
   await amsg(`${name} ${STATUS[k].hit}`, 800);
   return true;
 }
-function wardBlock(s) { const w = curW(); return w && w.affix && w.affix.k === 'ward' && Math.random() < w.affix.rate; }
+function wardBlock(s) {
+  if (s.wardCharge > 0) { s.wardCharge--; return true; }
+  const w = curW(); return w && w.affix && w.affix.k === 'ward' && Math.random() < w.affix.rate;
+}
 function clearSt(s, who) { s.st[who] = {}; hudMe(s); hudFoe(s); }
 /* 回合結束的持續傷害與倒數 */
 async function tickStatus(s, who) {
@@ -202,7 +205,7 @@ function drawQ(cats, qtype) {
   return { q: QB.draw(cats, maxLv, minLv), again: false };
 }
 /* 攜帶中的守護神器能力 */
-const passives = () => new Set(G.equip.map(id => wById(id)).filter(w => w && ARCH[w.arch].passive).map(w => ARCH[w.arch].passive));
+const passives = () => new Set(G.equip.map(id => wById(id)).filter(Boolean).flatMap(w => passiveList(w.arch)));
 async function askQ(s, cats, mode, move, qtype) {
   const d = drawQ(cats, qtype); if (!d.q) return { correct: true };
   return UI.question(d.q, { mode, move, again: d.again, autoHint: s.pas.has('eye') || s.pas.has('po') });
@@ -229,6 +232,7 @@ async function battleLoop(s) {
     }
   }
   let turn = 0;
+  if (C.fleeRate && Math.random() < C.fleeRate) s.fleeTurn = rnd(3, 9);   // 整場只判定一次
   while (true) {
     turn++;
     s.guardTurn = false;
@@ -249,6 +253,7 @@ async function battleLoop(s) {
       else await msg('答錯沒關係，看完解析就是學到了！錯題會收進「錯題本」。', { name: C.mentor });
     }
     if (f.hp <= 0) return await victory(s);
+    if (s.fleeTurn && turn >= s.fleeTurn) { Sound.sfx('run'); await msg(`${f.name} 突然化成一灘墨水——溜走了！`); return 'flee'; }
     await foeTurn(s, tut && turn === 1);
     if (G.hp > 0 && f.hp > 0) { const r = await endOfRound(s); if (r === 'win') return await victory(s); }
     if (f.hp <= 0) return await victory(s);
@@ -401,7 +406,7 @@ async function foeTurn(s, forceQ) {
   if (await foeUseItem(s)) return;                       // 館主、勁敵等會使用道具
   const mv = pick(f.moves);
   await amsg(`${f.name} 使出了「${mv.name}」！`, 450);
-  const w = curW(), chance = dodgeChance(w, s.buff.dodge);
+  const w = curW(), chance = Math.max(0, dodgeChance(w, s.buff.dodge) - (s.dodgeDown ? 0.1 : 0));
   if (forceQ || mv.qtype || Math.random() < chance) {
     if (mv.qtype === 'order') await amsg('文章的段落被打亂了！把它排回正確的順序！', 800);
     else await amsg(`「${weaponName(w)}」和你變得更親密了，牠努力想幫你迴避——答對問題就能閃過！`, 900);
@@ -448,6 +453,16 @@ async function foeUseItem(s) {
     await amsg(`${f.name} 喝下了補給品，恢復了 ${f.hp - from} 點氣血！`, 900);
     return true;
   }
+  if ((s.buff.atk || s.buff.def || s.buff.dodge) && Math.random() < 0.25) {
+    f.potions--; s.buff = { atk: 0, def: 0, dodge: 0 }; playerStats(); hudMe(s); Sound.sfx('alert');
+    await amsg(`${f.name} 撒出墨粉，把你剛才的加成全都抹掉了！`, 900);
+    return true;
+  }
+  if (!s.dodgeDown && Math.random() < 0.15) {
+    f.potions--; s.dodgeDown = true; hudMe(s); Sound.sfx('alert');
+    await amsg(`${f.name} 加快了出招速度，你變得比較難看穿牠的動作……（迴避機率下降）`, 950);
+    return true;
+  }
   if (low < 0.75 && !s.fbuff.atk && Math.random() < 0.18) {
     f.potions--; s.fbuff.atk = 0.25; hudFoe(s); Sound.sfx('alert');
     await amsg(`${f.name} 用了提神道具，氣勢變強了！（攻擊提升）`, 900);
@@ -483,6 +498,7 @@ async function useItem(s, id) {
   if (it.use === 'heal') { const from = G.hp; G.hp = Math.min(G.maxhp, G.hp + it.val); Sound.sfx('heal'); await tweenHP(s, false, from, G.hp); await msg(`用了「${itemName(id)}」，恢復了 ${G.hp - from} 點氣血！`); }
   if (it.use === 'wenqi') { G.wenqi = Math.min(ULT_COST, G.wenqi + it.val); Sound.sfx('heal'); hudMe(s); await msg(`用了「${itemName(id)}」，文氣增加了！`); }
   if (it.use === 'buff') { s.buff[it.stat] = Math.min(0.6, s.buff[it.stat] + it.val); playerStats(); Sound.sfx('heal'); hudMe(s); await msg(`用了「${itemName(id)}」，${BOND_STAT_NAME[it.stat]}提升了！（本場有效）`); }
+  if (it.use === 'ward') { s.wardCharge = (s.wardCharge || 0) + 1; Sound.sfx('heal'); await msg(`用了「${itemName(id)}」，接下來的一次狀態異常會被擋下！`); }
   if (it.use === 'cure') { const had = Object.keys(s.st.me).length; clearSt(s, 'me'); Sound.sfx('heal'); await msg(had ? `用了「${itemName(id)}」，所有不良狀態都解除了！` : `用了「${itemName(id)}」，但現在沒有不良狀態……`); }
   return 'used';
 }

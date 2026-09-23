@@ -22,13 +22,13 @@ const catsOfEl = e => ALL_CATS.filter(c => CAT_EL[c] === e);
 function elEffect(a, d) { if (!a || !d) return 1; if (KE[a] === d) return 1.5; if (KE[d] === a) return 0.7; return 1; }
 
 /* ============ 種族相剋：筆剋紙、紙剋器、器剋音、音剋兵、兵剋筆 ============ */
-const RACE = { 筆: '#d8a030', 紙: '#8a9aa8', 器: '#6a8a58', 音: '#b06ac8', 兵: '#a85040' };
-const RACE_KE = { 筆: '紙', 紙: '器', 器: '音', 音: '兵', 兵: '筆' };
+const RACE = { 筆: '#d8a030', 紙: '#8a9aa8', 器: '#6a8a58', 音: '#b06ac8', 兵: '#a85040', 墨: '#3a3550' };
+const RACE_KE = { 筆: '紙', 紙: '器', 器: '音', 音: '兵', 兵: '墨', 墨: '筆' };
 const RACE_KE_BY = Object.fromEntries(Object.entries(RACE_KE).map(([a, b]) => [b, a]));
 const raceChip = r => r ? `<span class="chip race" style="background:${RACE[r]}">${r}</span>` : '';
 function raceEffect(a, d) { if (!a || !d) return 1; if (RACE_KE[a] === d) return 1.3; if (RACE_KE[d] === a) return 0.85; return 1; }
 const DOUBLE_BONUS = 1.2;          // 屬性與種族同時剋制的額外加成
-let ATTACK_Q_RATE = 0.3;           // 攻擊時出題的機率（教師可調整）
+let ATTACK_Q_RATE = 0.5;           // 攻擊時出題的機率（教師可調整）
 function loadQRate() { const v = Store.get('ciling_qrate', null); if (v != null) ATTACK_Q_RATE = Math.min(1, Math.max(0.1, +v)); }
 function setQRate(v) { ATTACK_Q_RATE = Math.min(1, Math.max(0.1, +v)); Store.set('ciling_qrate', ATTACK_Q_RATE); }
 const ATTACK_Q_POW = 1.3;          // 答對後的威力加成
@@ -38,7 +38,7 @@ const BOND_DODGE = [0, 0.10, 0.15, 0.20];
 const bondLv = w => BOND_STEPS.filter(x => (w.bond || 0) >= x).length;
 /* 親密度滿級（三級）時，武器依種族再給一項小加成 */
 const BOND_MAX_BONUS = 0.05;
-const RACE_BOND_STAT = { 筆: 'atk', 紙: 'hp', 器: 'def', 音: 'dodge', 兵: 'atk' };
+const RACE_BOND_STAT = { 筆: 'atk', 紙: 'hp', 器: 'def', 音: 'dodge', 兵: 'atk', 墨: 'def' };
 const BOND_STAT_NAME = { atk: '攻擊', def: '防禦', hp: '氣血上限', dodge: '迴避機率' };
 const bondStatOf = w => RACE_BOND_STAT[ARCH[archOf(w)].race] || 'atk';
 const bondBonus = (w, stat) => (w && bondLv(w) >= 3 && bondStatOf(w) === stat) ? BOND_MAX_BONUS : 0;
@@ -73,7 +73,8 @@ const AFFIX_GOOD = Object.keys(AFFIX).filter(k => AFFIX[k].good);
 const AFFIX_BAD = Object.keys(AFFIX).filter(k => !AFFIX[k].good);
 const AFFIX_RATE = 0.32;          // 鍛造出來的武器帶附加效果的機率
 const AFFIX_BAD_RATE = 0.25;      // 其中是負面效果的比例
-const AFFIX_BASE = 0.25, AFFIX_STEP = 0.1, AFFIX_MAX = 0.6;   // 觸發機率：基礎、每多一把 +、上限
+const AFFIX_BASE = 0.25, AFFIX_STEP = 0.1, AFFIX_MAX = 0.6;
+const REFINE_COST = 800;          // 洗鍊（重抽附加效果）的花費   // 觸發機率：基礎、每多一把 +、上限
 const affixText = w => { const a = w && w.affix; return a ? `${AFFIX[a.k].good ? '✦' : '✧'} ${AFFIX[a.k].name}（${AFFIX[a.k].desc}，機率 ${Math.round(a.rate * 100)}%）` : ''; };
 function rollAffix() {
   if (Math.random() > AFFIX_RATE) return null;
@@ -98,10 +99,22 @@ const DEX_TITLES = [
   { id: 'd40', n: 40, name: '圖鑑大師', stat: 'dodge', val: 0.10 },
   { id: 'd50', n: 50, name: '萬象皆知', stat: 'atk', val: 0.13 },
 ];
+/* 收集滿一個種族的所有妖怪，另外解鎖專屬稱號 */
+const RACE_TITLES = [
+  { id: 'r_bi', race: '筆', name: '筆鋒所至', stat: 'atk', val: 0.06 },
+  { id: 'r_zhi', race: '紙', name: '紙短情長', stat: 'hp', val: 0.08 },
+  { id: 'r_qi', race: '器', name: '器宇軒昂', stat: 'def', val: 0.08 },
+  { id: 'r_yin', race: '音', name: '餘音繞樑', stat: 'dodge', val: 0.08 },
+  { id: 'r_bing', race: '兵', name: '兵不血刃', stat: 'atk', val: 0.08 },
+  { id: 'r_mo', race: '墨', name: '惜墨如金', stat: 'def', val: 0.06 },
+];
+const ALL_TITLES = () => DEX_TITLES.concat(RACE_TITLES);
+const raceSeen = ra => { const all = MON_KEYS.filter(k => monDef(k).race === ra); const d = (Meta.d && Meta.d.dex) || {}; return { got: all.filter(k => d[k]).length, all: all.length }; };
 const TITLE_SLOTS = 2;            // 最多同時配戴兩個稱號，可自由組合
 const dexCount = () => Object.keys((Meta.d && Meta.d.dex) || {}).length;
-const titleUnlocked = t => dexCount() >= t.n;
-const equippedTitles = () => ((G && G.titles) || []).map(id => DEX_TITLES.find(t => t.id === id)).filter(t => t && titleUnlocked(t));
+const titleUnlocked = t => t.race ? (() => { const r = raceSeen(t.race); return r.all > 0 && r.got >= r.all; })() : dexCount() >= t.n;
+const titleNeedText = t => t.race ? (() => { const r = raceSeen(t.race); return `收集齊全部 ${t.race}族妖怪（${r.got} / ${r.all}）`; })() : `圖鑑收集 ${t.n} 種`;
+const equippedTitles = () => ((G && G.titles) || []).map(id => ALL_TITLES().find(t => t.id === id)).filter(t => t && titleUnlocked(t));
 const titleBonus = stat => equippedTitles().filter(t => t.stat === stat).reduce((a, t) => a + t.val, 0);
 
 /* ============ 武器系統（30 種 × 3 世界名稱）============
@@ -147,14 +160,20 @@ const WEAPON_TABLE = [
   ['legend', ALL_CATS, 5, '文曲天降', ['金牌鋼筆', 'pen'], ['松煙古墨', 'block'], ['龍泉劍', 'sword'], '#e8c040'],
 ];
 /* 守護神器（彩色，只能由劇情取得）：每個世界兩件，依劇情選擇而不同，各有特殊能力 */
+/* 守護器靈．文房四寶：筆、紙、墨各是該種族最強，硯是最頂級（二週目限定、兩種能力） */
 const GUARDIANS = {
-  g_school_a: { world: 'school', name: '破妄筆', shape: 'pen', col: '#f8d040', ult: '當頭棒喝', passive: 'po' },
-  g_school_b: { world: 'school', name: '護心玉', shape: 'orb', col: '#78d0b0', ult: '將心比心', passive: 'guard' },
-  g_literati_a: { world: 'literati', name: '知音琴', shape: 'zither', col: '#c8905a', ult: '高山流水', passive: 'eye' },
-  g_literati_b: { world: 'literati', name: '春秋筆', shape: 'pen', col: '#b8322a', ult: '微言大義', passive: 'bane' },
-  g_wuxia_a: { world: 'wuxia', name: '俠義令', shape: 'tablet', col: '#d8a030', ult: '俠之大者', passive: 'regen' },
-  g_wuxia_b: { world: 'wuxia', name: '孤鴻劍', shape: 'sword', col: '#c8d8f0', ult: '孤鴻影落', passive: 'retry' },
+  g_pen: { world: 'school', name: '文心筆靈', race: '筆', shape: 'pen', col: '#f8d040', ult: '一筆定千秋', passive: 'po',
+    desc: '筆族之王。傳說第一個把心裡的話寫下來的人，用的就是牠。' },
+  g_paper: { world: 'school', name: '素心紙靈', race: '紙', shape: 'scroll', col: '#f4ecd8', ult: '白紙黑字', passive: 'guard',
+    desc: '紙族之王。再重的心事，攤開來就只是一張白紙。' },
+  g_ink: { world: 'school', name: '凝香墨靈', race: '墨', shape: 'block', col: '#2a2a3c', ult: '墨染千里', passive: 'bane',
+    desc: '墨族之王。磨得越久，字越沉穩。' },
+  g_stone: { world: 'school', name: '硯海龍君', race: null, shape: 'orb', col: '#6a8ab0', ult: '硯海無涯', passive: ['spring', 'retry'], ng: true,
+    desc: '文房四寶之首，二週目才會現身。筆墨紙都要在牠的硯海裡才能成形。' },
 };
+const GUARDIAN_KEYS = Object.keys(GUARDIANS);
+const GUARDIAN_FIRST = GUARDIAN_KEYS.filter(k => !GUARDIANS[k].ng);   // 一週目三選一
+const passiveList = a => { const p = ARCH[archOf(a)].passive; return p ? (Array.isArray(p) ? p : [p]) : []; };
 const PASSIVES = {
   shield: { name: '護心', desc: '每場戰鬥第一次被擊中時，傷害歸零。' },
   spring: { name: '文思泉湧', desc: '每場戰鬥開始時，文氣直接 +2。' },
@@ -190,18 +209,20 @@ const RACE_TACTIC = {
 for (const [key, cats, ch, ult, sc, li, wu, col] of WEAPON_TABLE)
   ARCH[key] = { cats, ch, ult, col, names: { school: sc[0], literati: li[0], wuxia: wu[0] }, shapes: { school: sc[1], literati: li[1], wuxia: wu[1] }, skills: withEffects(skillsFor(cats), cats) };
 for (const [key, g] of Object.entries(GUARDIANS))
-  ARCH[key] = { cats: ALL_CATS, ch: 9, ult: g.ult, col: g.col, guardian: true, passive: g.passive, names: { school: g.name, literati: g.name, wuxia: g.name }, shapes: { school: g.shape, literati: g.shape, wuxia: g.shape },
+  ARCH[key] = { cats: ALL_CATS, ch: 9, ult: g.ult, col: g.col, guardian: true, passive: g.passive, race: g.race || null, gdesc: g.desc, ng: g.ng, names: { school: g.name, literati: g.name, wuxia: g.name }, shapes: { school: g.shape, literati: g.shape, wuxia: g.shape },
     skills: [['守護', ALL_CATS, 48], ['神威', ALL_CATS, 55], ['天啟', ALL_CATS, 65, { inflict: 'para', rate: 0.5 }], ['永恆', ALL_CATS, 78]] };
 const ARCH_RACE = {
-  brush: '筆', maobi: '筆', marker: '筆', chalk: '筆', fan: '兵', tome: '紙', dict: '紙', notebook: '紙', idiom: '紙', poemcard: '紙',
+  brush: '筆', marker: '筆', maobi: '墨', chalk: '墨', palette: '墨', fan: '兵', tome: '紙', dict: '紙', notebook: '紙', idiom: '紙', poemcard: '紙',
   bookmark: '紙', classic: '紙', scroll: '紙', trophy: '器', ruler: '器', eraser: '器', compass: '器', globe: '器', glasses: '器',
   seal: '器', abacus: '器', tablet: '器', palette: '器', zhuyin: '紙', bell: '音', mic: '音', whistle: '音', lamp: '器', chess: '器', legend: '兵',
 };
-for (const k in ARCH) if (!ARCH[k].race) ARCH[k].race = ARCH_RACE[k] || (ARCH[k].guardian ? '兵' : '器');
+for (const k in ARCH) if (!ARCH[k].race && !ARCH[k].guardian) ARCH[k].race = ARCH_RACE[k] || '器';
 for (const k in ARCH) ARCH[k].tactic = RACE_TACTIC[ARCH[k].race];
 const ARCH_ORDER = WEAPON_TABLE.map(r => r[0]);
 const STARTER_ARCHS = ['brush', 'tome', 'scroll'];
-const weaponDesc = a => (W.weapons && W.weapons[a] && W.weapons[a][1]) || (ARCH[a].guardian ? `守護神器．特殊能力「${PASSIVES[ARCH[a].passive].name}」：${PASSIVES[ARCH[a].passive].desc}` : `擅長「${ARCH[a].cats.join('」「')}」題型的武器。`);
+const weaponDesc = a => (W.weapons && W.weapons[a] && W.weapons[a][1]) || (ARCH[a].guardian
+  ? `${ARCH[a].gdesc || ''}\n守護器靈．${passiveList(a).map(p => `能力「${PASSIVES[p].name}」：${PASSIVES[p].desc}`).join('　')}`
+  : `擅長「${ARCH[a].cats.join('」「')}」題型的武器。`);
 const MASTERY_STEPS = [0, 10, 25, 45];            // 熟練度門檻 → 武器 Lv1~4
 const weaponLv = w => MASTERY_STEPS.filter(s => w.mastery >= s).length;
 const weaponSkills = (arch, lv) => ARCH[arch].skills.slice(0, Math.min(4, lv + 1));
@@ -242,8 +263,8 @@ const MONSTERS = {
   paper_mark: ['書籤妖', '紙', '水', 'card', '#48b878', 'bookmark', 2], paper_scrap: ['剪貼簿妖', '紙', '水', 'book', '#58b0a0', 'notebook', 2],
   paper_poem: ['詩詞卡妖', '紙', '火', 'card', '#c85a8a', 'poemcard', 3], paper_essay: ['作文紙妖', '紙', '火', 'card', '#f8f0dc', 'tablet', 3],
   tool_ruler: ['直尺妖', '器', '金', 'ruler', '#e8c070', 'ruler', 0], tool_eraser: ['橡皮擦妖', '器', '金', 'block', '#f0a0a0', 'eraser', 0],
-  tool_tri: ['三角板妖', '器', '金', 'ruler', '#c8d8f0', 'ruler', 1], tool_tape: ['修正帶妖', '器', '水', 'block', '#f8f8f8', 'eraser', 1],
-  tool_glue: ['膠水妖', '器', '木', 'block', '#f0e070', 'eraser', 1], tool_compass: ['圓規妖', '器', '土', 'compass', '#a0a8b8', 'compass', 2],
+  tool_tri: ['三角板妖', '器', '金', 'ruler', '#c8d8f0', 'ruler', 1], ink_white: ['修正液妖', '墨', '金', 'block', '#f8f8f8', 'eraser', 1],
+  ink_bottle: ['墨水瓶妖', '墨', '水', 'block', '#2a3a6a', 'maobi', 1], tool_compass: ['圓規妖', '器', '土', 'compass', '#a0a8b8', 'compass', 2],
   tool_scissor: ['剪刀妖', '器', '金', 'dagger', '#c8c8d8', 'eraser', 2], tool_stapler: ['釘書機妖', '器', '金', 'block', '#6a6a80', 'ruler', 2],
   tool_lens: ['放大鏡妖', '器', '水', 'lens', '#d8a030', 'seal', 2], tool_protractor: ['量角器妖', '器', '土', 'ring', '#8ac0d8', 'compass', 3],
   tool_abacus: ['算盤妖', '器', '土', 'abacus', '#8a5a2a', 'abacus', 4], tool_calc: ['計算機妖', '器', '土', 'tablet', '#4a5a70', 'abacus', 4],
@@ -255,6 +276,8 @@ const MONSTERS = {
   arm_fan: ['紙扇妖', '兵', '水', 'fan', '#f0f0f8', 'fan', 3], arm_bamboo: ['竹劍妖', '兵', '木', 'sword', '#8ab858', 'legend', 4],
   arm_wood: ['木刀妖', '兵', '木', 'sword', '#a8784a', 'legend', 4], arm_dart: ['飛鏢妖', '兵', '金', 'star', '#b8c4d4', 'seal', 4],
   arm_stick: ['棍棒妖', '兵', '木', 'stick', '#8a6a3a', 'trophy', 4],
+  ink_stick: ['墨條妖', '墨', '木', 'block', '#2a2a34', 'maobi', 2], ink_pad: ['印泥妖', '墨', '火', 'block', '#b8322a', 'seal', 3],
+  ink_duster: ['板擦妖', '墨', '土', 'block', '#8a7a5a', 'chalk', 2],
 };
 const MON_KEYS = Object.keys(MONSTERS);
 const monDef = k => { const m = MONSTERS[k]; return { name: m[0], race: m[1], el: m[2], shape: m[3], col: m[4], drop: m[5], stage: m[6] }; };
@@ -270,8 +293,9 @@ const ITEMS = {
   defup: { price: 160, desc: '本場戰鬥防禦提升 25%。', use: 'buff', stat: 'def', val: 0.25 },
   dodgeup: { price: 180, desc: '本場戰鬥迴避出題的機率 +20%。', use: 'buff', stat: 'dodge', val: 0.2 },
   cure: { price: 120, desc: '解除中毒、燒傷、睡眠、麻痺等狀態。', use: 'cure' },
+  ward: { price: 200, desc: '本場戰鬥免疫一次狀態異常。', use: 'ward' },
 };
-const ITEM_ORDER = ['heal', 'heal2', 'cure', 'atkup', 'defup', 'dodgeup', 'wenqi', 'hint'];
+const ITEM_ORDER = ['heal', 'heal2', 'cure', 'ward', 'atkup', 'defup', 'dodgeup', 'wenqi', 'hint'];
 const itemName = id => W.items[id];
 
 /* ============ 數值 ============ */
@@ -300,9 +324,10 @@ function makePersonFoe(R) {
   const F = R.foe, lv = F.lv + (G.ng || 0) * 4;
   const el = F.el === 'none' ? null : F.el || (F.weak && F.weak.length ? KE[CAT_EL[F.weak[0]]] : '土');   // 人物的屬性：由弱點題型推回
   const hpM = R.hpMod && G.flags[R.hpMod.flag] ? R.hpMod.mul : 1, atkM = R.atkMod && G.flags[R.atkMod.flag] ? R.atkMod.mul : 1;
+  const ngM = 1 + (G.ng || 0) * 0.15;   // 二週目起，對手的血量再提升
   const f = { kind: 'person', look: R.look, name: R.name, lv, el, race: F.race || null, weak: el ? catsOfEl(KE_BY[el]) : [], resist: el ? catsOfEl(KE[el]) : [],
     moves: F.moves.map(([name, cats, pow, qtype]) => ({ name, cats, pow, qtype })),
-    maxhp: Math.floor((20 + lv * 6) * (F.hpMul || 1) * hpM), atk: Math.floor((5 + lv * 1.6) * atkM), def: Math.floor(4 + lv * 1.5), exp: Math.floor(lv * 5 * (F.hpMul || 1)) };
+    maxhp: Math.floor((20 + lv * 6) * (F.hpMul || 1) * hpM * ngM), atk: Math.floor((5 + lv * 1.6) * atkM), def: Math.floor(4 + lv * 1.5), exp: Math.floor(lv * 5 * (F.hpMul || 1)) };
   f.hp = f.maxhp; return f;
 }
 
@@ -506,6 +531,7 @@ Object.assign(LAYOUTS, {
     signs: {},
     chests: [{ id: 'cam1', x: 2, y: 18, items: { heal: 2, cure: 1 } }, { id: 'cam2', x: 27, y: 4, items: { atkup: 1, defup: 1 } }],
     foes: { n: 4, lv: [3, 6], scale: 3, auto: 1 },
+    doorWarps: { '15,5': { to: 'inkpool', tx: 7, ty: 10, dir: 'up', ret: { x: 15, y: 6 }, need: 'ng' } },
     npcs: [{ role: 'xiaomo', x: 16, y: 7, dir: 'down' }, { role: 'tipA', x: 10, y: 7, dir: 'down', wander: 1 }, { role: 'tipB', x: 20, y: 13, dir: 'left', wander: 1 }, { role: 'tipC', x: 5, y: 18, dir: 'right', wander: 1 }],
     shop: ['heal', 'heal2', 'cure', 'atkup', 'defup', 'dodgeup', 'wenqi', 'hint'] },
   lib: { music: 'hall', qlv: 2, indoor: 1, rows: [
@@ -572,6 +598,21 @@ Object.assign(LAYOUTS, {
       '5,6': { group: 'st', flag: 'st1', cat: '文言', label: '古文石碑', text: '石碑上刻著一段古文，字跡被墨塵遮住了一半……\n（讀懂它，石碑就會亮起。）', ok: '石碑亮起了柔和的光！', allText: '三座石碑同時亮起，擋路的石碑緩緩沉入地面，通往檔案室的路開了！', open: [[5, 6], [6, 6], [7, 6], [8, 6]] },
       '6,6': { group: 'st', flag: 'st2', cat: '文言', label: '古文石碑', text: '第二座石碑記載著校史與古語。', ok: '石碑亮起來了！', allText: '三座石碑同時亮起，路開了！', open: [[5, 6], [6, 6], [7, 6], [8, 6]] },
       '7,6': { group: 'st', flag: 'st3', cat: '常識', label: '古文石碑', text: '最後一座石碑上是一段國學常識。', ok: '石碑亮起來了！', allText: '三座石碑同時亮起，路開了！', open: [[5, 6], [6, 6], [7, 6], [8, 6]] } } },
+  inkpool: { music: 'boss', qlv: 3, indoor: 1, rows: [
+      'wwwwwwwwwwwwwwww',
+      'w______________w',
+      'w__~~~____~~~__w',
+      'w__~~~____~~~__w',
+      'w______________w',
+      'w____~~~~~~____w',
+      'w____~~~~~~____w',
+      'w______________w',
+      'w__~~~____~~~__w',
+      'w__~~~____~~~__w',
+      'w______________w',
+      'wwwwwww__wwwwwww'],
+    warps: [{ x: 7, y: 11, to: 'campus', tx: 15, ty: 6, dir: 'down' }, { x: 8, y: 11, to: 'campus', tx: 15, ty: 6, dir: 'down' }],
+    npcs: [], chests: [{ id: 'ink1', x: 1, y: 1, items: { heal2: 3, ward: 2, cure: 2 } }] },
   aud: { music: 'hall', qlv: 3, indoor: 1, rows: [
       'wwwwwBBBBBBwwwww',
       'w______________w',
@@ -588,7 +629,7 @@ Object.assign(LAYOUTS, {
       'wwwwwww__wwwwwww'],
     warps: [{ x: 7, y: 12, to: 'campus', tx: 22, ty: 4, dir: 'down' }, { x: 8, y: 12, to: 'campus', tx: 23, ty: 4, dir: 'down' }],
     chests: [{ id: 'aud1', x: 1, y: 1, items: { heal2: 2, cure: 2, dodgeup: 1 } }, { id: 'aud2', x: 14, y: 1, items: { atkup: 2, defup: 2 } }],
-    npcs: [{ role: 'e1', x: 1, y: 9, dir: 'right', sight: 14 }, { role: 'e2', x: 14, y: 7, dir: 'left', sight: 14 }, { role: 'e3', x: 1, y: 5, dir: 'right', sight: 14 }, { role: 'boss5', x: 7, y: 1, dir: 'down' }],
+    npcs: [{ role: 'e1', x: 1, y: 9, dir: 'right', sight: 14 }, { role: 'e2', x: 14, y: 7, dir: 'left', sight: 14 }, { role: 'e3', x: 1, y: 5, dir: 'right', sight: 14 }, { role: 'moGuard', x: 4, y: 11, dir: 'right' }, { role: 'boss5', x: 7, y: 1, dir: 'down' }],
     devices: {
       '5,6': { group: 'ad', flag: 'ad1', cat: '閱讀', label: '准考證感應台', text: '講台前的感應台亮著微光，上面寫著：「答對即可凝聚文氣。」', ok: '感應台亮起，一股文氣湧入你的身體！（下場戰鬥文氣 +1）' },
       '12,8': { group: 'ad', flag: 'ad2', cat: '成語', label: '准考證感應台', text: '第二座感應台等著你。', ok: '文氣再度凝聚！（下場戰鬥文氣 +1）' },

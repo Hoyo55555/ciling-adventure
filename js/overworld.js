@@ -18,6 +18,7 @@ const OW = {
       return { key: id + ':' + s.role, role, x: s.x, y: s.y, dir: s.dir, home: s.dir, sight: s.sight || 0, wander: s.wander, ox: 0, oy: 0, fr: 0, look: role.look };
     }).filter(Boolean);
     this.spawnFoes();
+    if (id === 'inkpool') this.spawnSpirit();
     G.map = id; G.x = x; G.y = y;
     Sound.play(W.music[this.L.music] || this.L.music); Cloud.paint();
     showBanner(W.mapNames[id]);
@@ -33,6 +34,17 @@ const OW = {
       const sp = F.auto ? pick(monsAtStage(st)) : weighted(F.list.filter(x => (x.stage || 0) <= st)).sp;
       this.foes.push({ sp, lv: rnd(F.lv[0], F.lv[1]) + (F.scale || 0) * st + (G.ng || 0) * 4, x: s[0], y: s[1], hx: s[0], hy: s[1], ox: 0, oy: 0, t: Math.random() * 1.5, cool: 0, moving: false });
     }
+  },
+  /* 二週目：硯海龍君在墨池裡隨機現身 */
+  spawnSpirit() {
+    this.npcs = this.npcs.filter(n => n.key !== 'inkpool:stoneSpirit');
+    if (!G.ng || G.weapons.some(w => w.arch === 'g_stone')) return;
+    const spots = [];
+    for (let y = 1; y < this.L.rows.length - 1; y++) for (let x = 1; x < this.L.rows[0].length - 1; x++)
+      if (!SOLID.has(this.tile(x, y)) && !this.chestAt(x, y) && Math.abs(x - this.p.x) + Math.abs(y - this.p.y) > 3) spots.push([x, y]);
+    if (!spots.length) return;
+    const [sx, sy] = pick(spots), role = W.roles.stoneSpirit;
+    this.npcs.push({ key: 'inkpool:stoneSpirit', role, x: sx, y: sy, dir: 'down', home: 'down', sight: 0, ox: 0, oy: 0, fr: 0, look: role.look });
   },
   tile(x, y) { const r = this.L.rows; if (y < 0 || y >= r.length || x < 0 || x >= r[0].length) return this.L.indoor ? 'X' : 'T'; const o = G && G.opened && G.opened[this.id + ':' + x + ',' + y]; return o || r[y][x]; },
   npcAt(x, y) { return this.npcs.find(n => n.x === x && n.y === y); },
@@ -209,7 +221,9 @@ async function warpTo(map, x, y, dir) {
   }
 }
 async function enterDoor(dw) {
-  if (dw.need && G.badges.length < dw.need) { Sound.sfx('bump'); await say(W.gates[dw.gate]); return; }
+  if (dw.need === 'ng') { if (!G.ng) { Sound.sfx('bump'); await say('（牆角的墨漬看起來只是普通的污漬……好像還沒有什麼特別的。）'); return; }
+    if (!G.flags.inkpoolFound) { G.flags.inkpoolFound = true; await say('（牆角的墨漬突然漾開，露出一條通往地下的路——這裡是傳說中的「硯海墨池」！）'); } }
+  else if (dw.need && G.badges.length < dw.need) { Sound.sfx('bump'); await say(W.gates[dw.gate]); return; }
   if (dw.ret) G.ret = { map: OW.id, x: dw.ret.x, y: dw.ret.y };
   await warpTo(dw.to, dw.tx, dw.ty, dw.dir);
 }
@@ -248,6 +262,8 @@ async function talkTo(n) {
     case 'trainer': case 'rival': case 'gym': return trainerTalk(n);
     case 'quest': return questTalk(n);
     case 'rematch': return rematchTalk(n);
+    case 'guardian': return guardianTalk(n);
+    case 'spirit': return spiritTalk(n);
     case 'guide': { const L = R.lines[Math.min(storyStage(), R.lines.length - 1)]; await say(L.join('\n\n'), R.name); return; }
     case 'healer': {
       Sound.sfx('door'); await say(R.text); G.hp = G.maxhp;
@@ -257,6 +273,47 @@ async function talkTo(n) {
     case 'smith': await say(R.lines.join('\n\n'), R.name); await Forge.open(); n.dir = n.home; return;
     default: await say(R.lines.join('\n\n'), R.name); n.dir = n.home;
   }
+}
+/* 二週目：硯海龍君——先答題才能挑戰，戰鬥中牠有機率直接逃走 */
+async function spiritTalk(n) {
+  const R = n.role;
+  await say(R.appear);
+  await say(R.quiz, R.name);
+  const q = QB.draw(R.foe.cats, 3, 1);
+  if (q) {
+    const r = await UI.question(q, { move: '硯海試煉', mode: 'device', hint: true });
+    if (!r.correct) { await say(R.wrong); await respawnSpirit(n); return; }
+    await say('（硯海龍君點了點頭。）');
+  }
+  await say(R.intro, R.name);
+  const role = Object.assign({}, R, { foe: Object.assign({}, R.foe, { lv: Math.max(R.foe.lv, G.lv + 1) }) });
+  const res = await Battle.start({ kind: 'gym', foe: makePersonFoe(role), role, cats: role.foe.cats, fleeRate: R.fleeRate });
+  if (res === 'flee') { await say(R.fleeMsg); await respawnSpirit(n); return; }
+  if (res !== 'win') return;
+  G.money += R.reward;
+  await Guardian.give('g_stone');
+  OW.npcs = OW.npcs.filter(x => x !== n);
+  await say(R.after);
+  autosave();
+  if (G.ng > 0 && G.badges.length >= 5) await StoryEnding.allDone();   // 二週目＋四寶到齊＝全部完成
+}
+async function respawnSpirit(n) {
+  OW.npcs = OW.npcs.filter(x => x !== n);
+  await sleep(300); OW.spawnSpirit(); Sound.sfx('alert');
+  autosave();
+}
+/* 決戰前：對話選擇後，文房四寶中的一隻現身 */
+async function guardianTalk(n) {
+  const R = n.role;
+  if (G.defeated[n.key]) { await say(R.after, R.name); return; }
+  for (const t of R.lines) await say(fmt(t), R.name);
+  const k = await UI.ask(R.choice.q, R.choice.opts, { name: R.name, cancel: false });
+  await say(R.choice.replies[k], R.name);
+  G.guardianAnswer = k;
+  await Guardian.firstMeet();
+  G.defeated[n.key] = true;
+  await say(R.afterGive, R.name);
+  autosave();
 }
 /* 通關後的再戰：等級會跟著玩家成長 */
 async function rematchTalk(n) {
