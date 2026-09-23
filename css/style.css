@@ -270,7 +270,9 @@ body{ background:#16120e radial-gradient(ellipse at top,#3a3026 0%,#16120e 70%);
 .bh .chip{ font-size:calc(var(--u)*5.4); }
 .bcmd{ left:calc(var(--u)*2); bottom:calc(var(--u)*2); width:calc(var(--u)*60); padding:calc(var(--u)*3) calc(var(--u)*4) calc(var(--u)*3) calc(var(--u)*2); font-size:calc(var(--u)*8.5); }
 .bcmd .opt{ padding-top:calc(var(--u)*.2); padding-bottom:calc(var(--u)*.2); }
-.bcmd.skills{ width:calc(var(--u)*92); font-size:calc(var(--u)*8); max-height:calc(var(--u)*56); overflow:hidden; }
+.bcmd.skills{ width:calc(var(--u)*92); font-size:calc(var(--u)*7.6); max-height:calc(var(--u)*104); overflow-y:auto; overflow-x:hidden; }
+.bcmd.skills.many{ font-size:calc(var(--u)*6.8); padding-top:calc(var(--u)*2); padding-bottom:calc(var(--u)*2); }
+.bcmd.skills::-webkit-scrollbar{ width:calc(var(--u)*2); } .bcmd.skills::-webkit-scrollbar-thumb{ background:#b8a68a; border-radius:calc(var(--u)*1); }
 .bcmd .opt.ult{ color:#b8322a; font-weight:900; }
 .skillinfo{ left:calc(var(--u)*96); right:calc(var(--u)*2); bottom:calc(var(--u)*2); min-height:calc(var(--u)*30); padding:calc(var(--u)*4) calc(var(--u)*6); font-size:calc(var(--u)*7); line-height:1.6; }
 

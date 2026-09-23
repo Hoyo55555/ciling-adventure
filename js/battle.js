@@ -317,11 +317,12 @@ function skillMenu(s) {
     const w = curW(), arch = w.arch, skills = weaponSkills(arch, weaponLv(w)).map(([name, cats, pow, fx]) => ({ name, cats, pow: Math.round(pow * RAR_POW[w.r]), fx }));
     const canUlt = G.wenqi >= ULT_COST, T = ARCH[arch].tactic, canTactic = weaponLv(w) >= 2 && T && !(s.tacticCd > 0);
     const list = skills.concat(canTactic ? [{ name: '◆ ' + T.name, tactic: T }] : [], canUlt ? [{ name: '★ ' + ARCH[arch].ult, ult: true }] : []);
-    const box = UI.el('box menu bcmd skills'); const info = UI.el('box skillinfo');
+    const box = UI.el('box menu bcmd skills' + (list.length >= 5 ? ' many' : '')); const info = UI.el('box skillinfo');
     const items = list.map((sk, i) => { const d = h('div', 'opt' + (sk.ult ? ' ult' : ''), esc(sk.name)); d.addEventListener('pointerdown', e => { e.preventDefault(); if (sel === i) pickIt(); else { sel = i; paint(); } }); box.appendChild(d); return d; });
     let sel = 0;
     const paint = () => {
       items.forEach((d, i) => d.classList.toggle('sel', i === sel));
+      if (items[sel] && items[sel].scrollIntoView) items[sel].scrollIntoView({ block: 'nearest' });
       const sk = list[sel];
       if (sk.ult) { info.innerHTML = `<b>必殺技</b>．消耗 5 格文氣<br>不必答題，必定命中，威力 120！`; return; }
       if (sk.tactic) { const T = sk.tactic;

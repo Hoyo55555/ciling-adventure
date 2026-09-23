@@ -23,6 +23,22 @@ const OW = {
     Sound.play(W.music[this.L.music] || this.L.music); Cloud.paint();
     showBanner(W.mapNames[id]);
   },
+  /* 撤退後：讓這隻武器妖消失，並在地圖上別的地方重新生成一隻 */
+  respawnFoe(f) {
+    this.foes = this.foes.filter(x => x !== f);
+    const F = this.L.foes; if (!F) return;
+    const spots = [];
+    for (let y = 0; y < this.L.rows.length; y++) for (let x = 0; x < this.L.rows[0].length; x++) {
+      if (this.tile(x, y) !== (F.on || 'g')) continue;
+      if (this.foeAt(x, y) || this.npcAt(x, y)) continue;
+      if (Math.abs(x - this.p.x) + Math.abs(y - this.p.y) < 6) continue;     // 不要生在玩家臉上
+      spots.push([x, y]);
+    }
+    if (!spots.length) return;
+    const [sx, sy] = pick(spots), st = G.badges.length;
+    const sp = F.auto ? pick(monsAtStage(st)) : weighted(F.list.filter(x => (x.stage || 0) <= st)).sp;
+    this.foes.push({ sp, lv: rnd(F.lv[0], F.lv[1]) + (F.scale || 0) * st + (G.ng || 0) * 4, x: sx, y: sy, hx: sx, hy: sy, ox: 0, oy: 0, t: Math.random() * 1.5, cool: 1.5, moving: false });
+  },
   spawnFoes() {
     this.foes = []; const F = this.L.foes; if (!F) return;
     const on = F.on || 'g';
@@ -419,7 +435,7 @@ async function questTalk(n) {
 async function foeBattle(f) {
   const res = await Battle.start({ kind: 'wild', foe: makeFoe(f.sp, f.lv) });
   if (res === 'win') { OW.foes = OW.foes.filter(x => x !== f); const q = G.quests.bugs; if (q && q.state === 'active' && f.drop === 'brush') q.n = Math.min(3, q.n + 1); }
-  else if (res === 'run') f.cool = 3;
+  else if (res === 'run' || res === 'flee') OW.respawnFoe(f);   // 撤退：這一隻消失，換個地方重新出現
 }
 async function openChest(c) {
   if (G.chests[c.id]) { await say('寶箱是空的。'); return; }

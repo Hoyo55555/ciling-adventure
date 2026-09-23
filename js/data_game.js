@@ -535,11 +535,11 @@ Object.assign(LAYOUTS, {
       '4,10': { to: 'lib', tx: 7, ty: 10, dir: 'up', need: 1, gate: 'need1' },
       '24,10': { to: 'hist', tx: 6, ty: 10, dir: 'up', need: 3, gate: 'need3' },
       '22,3': { to: 'aud', tx: 7, ty: 11, dir: 'up', need: 4, gate: 'need4' }, '23,3': { to: 'aud', tx: 8, ty: 11, dir: 'up', need: 4, gate: 'need4' },
-      '3,15': { to: 'clinic', tx: 4, ty: 5, dir: 'up', ret: { x: 3, y: 16 } }, '26,15': { to: 'store', tx: 4, ty: 5, dir: 'up', ret: { x: 26, y: 16 } } },
+      '3,15': { to: 'clinic', tx: 4, ty: 5, dir: 'up', ret: { x: 3, y: 16 } }, '26,15': { to: 'store', tx: 4, ty: 5, dir: 'up', ret: { x: 26, y: 16 } },
+      '15,5': { to: 'inkpool', tx: 7, ty: 10, dir: 'up', ret: { x: 15, y: 6 }, need: 'ng' } },
     signs: {},
     chests: [{ id: 'cam1', x: 2, y: 18, items: { heal: 2, cure: 1 } }, { id: 'cam2', x: 27, y: 4, items: { atkup: 1, defup: 1 } }],
     foes: { n: 4, lv: [3, 6], scale: 3, auto: 1 },
-    doorWarps: { '15,5': { to: 'inkpool', tx: 7, ty: 10, dir: 'up', ret: { x: 15, y: 6 }, need: 'ng' } },
     npcs: [{ role: 'xiaomo', x: 16, y: 7, dir: 'down' }, { role: 'tipA', x: 10, y: 7, dir: 'down', wander: 1 }, { role: 'tipB', x: 20, y: 13, dir: 'left', wander: 1 }, { role: 'tipC', x: 5, y: 18, dir: 'right', wander: 1 }],
     shop: ['heal', 'heal2', 'cure', 'atkup', 'defup', 'dodgeup', 'wenqi', 'hint'] },
   lib: { music: 'hall', qlv: 2, indoor: 1, rows: [
