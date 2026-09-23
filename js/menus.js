@@ -10,8 +10,9 @@ const Slots = {
   cleared() { const r = []; for (let i = 1; i <= SLOT_N; i++) { const g = this.read(i); if (g && g.flags && g.flags.cleared) r.push(i); } return r; },
 };
 const Meta = {
-  d: Object.assign({ cleared: {}, armory: {}, reports: [] }, Store.get('ciling_meta', {})),
+  d: Object.assign({ cleared: {}, armory: {}, reports: [], dex: {} }, Store.get('ciling_meta', {})),
   save() { Store.set('ciling_meta', this.d); },
+  seeMon(key) { if (!this.d.dex) this.d.dex = {}; if (!this.d.dex[key]) { this.d.dex[key] = 1; this.save(); } },
   seeWeapon(world, arch, r = 0) { const k = world + ':' + arch; if ((this.d.armory[k] || 0) < r + 1) { this.d.armory[k] = r + 1; this.save(); } },
   hasAny() { return Object.keys(this.d.cleared).length > 0 || this.d.reports.length > 0; },
   clear(world) { this.d.cleared[world] = (this.d.cleared[world] || 0) + 1; this.save(); },
@@ -27,6 +28,8 @@ function pickFile(accept) { return new Promise(res => { const f = document.creat
 const catChips = a => ARCH[a].cats.length >= ALL_CATS.length ? '<span class="chip" style="background:#2e261e">全題型</span>' : ARCH[a].cats.map(chip).join('');
 /* 帶稀有度外框的武器圖示 */
 function wIcon(arch, r, scale = 1.2) { const b = h('span', 'wbox r' + r); b.appendChild(GFX.el(GFX.weapon(arch, W.theme), scale)); return b; }
+const bondHearts = w => { const lv = bondLv(w); return `<span style="color:#d0506a">${'♥'.repeat(lv)}${'♡'.repeat(3 - lv)}</span> <span class="muted">${w.bond || 0}</span>`; };
+const bondText = w => { const lv = bondLv(w), nx = BOND_STEPS[lv]; return lv ? `（迴避機率 ${Math.round(BOND_DODGE[lv] * 100)}%${nx ? `，再 ${nx - (w.bond || 0)} 場升級` : '，已滿級'}）` : `（再 ${BOND_STEPS[0] - (w.bond || 0)} 場戰鬥可解鎖迴避）`; };
 const closeOnAB = ctl => { ctl.update = () => { if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } }; };
 
 /* ============ 存檔畫面 ============ */
@@ -78,7 +81,7 @@ const BookMenu = {
   async open() {
     let sel = 0;
     while (true) {
-      const opts = ['角色', '武器', '鍛造', '道具', '兵器譜', '任務', '錯題本', '學習紀錄', '存檔', '設定'].concat(Cloud.user ? ['登出'] : [], ['回到主畫面', '關閉']);
+      const opts = ['角色', '武器', '鍛造', '道具', '兵器譜', '妖怪圖鑑', '任務', '錯題本', '學習紀錄', '存檔', '設定'].concat(Cloud.user ? ['登出'] : [], ['回到主畫面', '關閉']);
       const i = await UI.choose(opts, { pos: {}, cls: 'bookmenu', start: sel });
       const L = opts[i]; if (i < 0 || L === '關閉') return; sel = i;
       if (L === '角色') await CharPanel.open();
@@ -86,6 +89,7 @@ const BookMenu = {
       if (L === '鍛造') await Forge.open();
       if (L === '道具') await Bag.open({});
       if (L === '兵器譜') await Armory.open();
+      if (L === '妖怪圖鑑') await MonDex.open();
       if (L === '任務') await Quests.open();
       if (L === '錯題本') await WrongBook.open();
       if (L === '學習紀錄') await Records.open();
@@ -125,7 +129,7 @@ const WeaponMenu = {
         const rows = list.map(w => { const lv = weaponLv(w), next = MASTERY_STEPS[lv], slot = G.equip.indexOf(w.id); const r = h('div', 'row');
           r.appendChild(wIcon(w.arch, w.r));
           r.insertAdjacentHTML('beforeend', `<div class="grow"><b class="rtxt r${w.r}">${esc(weaponName(w))}</b> ${rarChip(w.r)} <span class="small">Lv.${lv}</span> ${elChip(elOfCats(ARCH[w.arch].cats))}${catChips(w.arch)}
-            <div class="small muted">熟練度 ${w.mastery}${next != null ? ' / ' + next : '（已滿級）'}${ARCH[w.arch].passive ? `．<b style="color:#b8322a">能力「${PASSIVES[ARCH[w.arch].passive].name}」</b>` : ''}</div></div>
+            <div class="small muted">熟練度 ${w.mastery}${next != null ? ' / ' + next : '（已滿級）'}　${raceChip(ARCH[w.arch].race)}親密度 ${bondHearts(w)}${ARCH[w.arch].passive ? `．<b style="color:#b8322a">能力「${PASSIVES[ARCH[w.arch].passive].name}」</b>` : ''}</div></div>
             <span class="small">${slot === G.cur ? '<b class="good">★ 使用中</b>' : slot >= 0 ? `攜帶 ${slot + 1}` : '<span class="muted">收納中</span>'}</span>`);
           sc.appendChild(r); return r; });
         listNav(ctl, rows, { onBack: () => ctl.done(), onPick: async i => {
@@ -147,10 +151,11 @@ const WeaponMenu = {
       const a = w.arch, lv = weaponLv(w), mul = RAR_POW[w.r];
       ctl.box.innerHTML = `<h2><span class="rtxt r${w.r}">${esc(weaponName(w))}</span>　${rarChip(w.r)} <span class="small muted">Lv.${lv}</span></h2><div style="display:flex;gap:${U(6)};flex:1;min-height:0"><div class="pv"></div><div class="grow scroll small">
         <div>${esc(weaponDesc(a))}</div><div style="margin:${U(2)} 0">擅長 ${catChips(a)}　<span class="muted">稀有度加成：攻擊 +${RAR_ATK[w.r]}、招式威力 ×${mul}</span></div>
+        <div style="margin-bottom:${U(2)}">${raceChip(ARCH[a].race)}<span class="muted">族．剋 ${esc(RACE_KE[ARCH[a].race])}族、被 ${esc(RACE_KE_BY[ARCH[a].race])}族所剋</span>　親密度 ${bondHearts(w)} <span class="muted">${bondText(w)}</span></div>
         ${w.r ? `<div class="bonus">✦ 附加效果：${bonusList(w.r).join('；')}${ARCH[a].passive ? `；守護能力「${PASSIVES[ARCH[a].passive].name}」` : ''}</div>` : '<div class="small muted">凡品武器沒有附加效果，升階後會獲得。</div>'}
         ${ARCH[a].skills.map(([n, c, p], i) => { const open = i < lv + 1, el = elOfCats(c); return `<div class="row" style="padding:${U(1)} ${U(2)}"><b class="grow">${open ? esc(n) : '？？？'}</b>${open ? elChip(el) + (el ? `<span class="small muted">剋${KE[el]}</span>` : '') + c.slice(0, 2).map(chip).join('') + `　威力 ${Math.round(p * mul)}` : `<span class="muted">武器 Lv.${i} 解鎖（熟練度 ${MASTERY_STEPS[i - 1]}）</span>`}</div>`; }).join('')}
         <div class="row" style="padding:${U(1)} ${U(2)}"><b class="grow">★ ${esc(ARCH[a].ult)}</b><span class="muted">必殺技．文氣 5 格</span></div>
-        <div class="muted" style="margin-top:${U(2)}">用這件武器答對題目，熟練度 +1；屬性剋制 +2。　五行：金剋木、木剋土、土剋水、水剋火、火剋金</div></div></div>` + footKeys('B 返回');
+        <div class="muted" style="margin-top:${U(2)}">用這件武器答對題目，熟練度 +1；屬性剋制 +2。　五行：金剋木、木剋土、土剋水、水剋火、火剋金<br>種族相剋：筆剋紙、紙剋器、器剋音、音剋兵、兵剋筆。種族與五行同時剋制時，傷害再 ×${DOUBLE_BONUS}。<br>每打完一場戰鬥，使用過的武器親密度 +1；達到 ${BOND_STEPS.join('、')} 分會提升等級，敵人攻擊時有機會讓你答題閃避。</div></div></div>` + footKeys('B 返回');
       $('.pv', ctl.box).appendChild(wIcon(a, w.r, 4)); closeOnAB(ctl);
     });
   },
@@ -219,6 +224,34 @@ const Armory = {
         const info = ARCH[a].guardian ? (seen ? '能力：' + PASSIVES[ARCH[a].passive].name : '劇情取得') : (seen ? '最高：' + RARITY[seen - 1].n : '尚未取得');
         c.insertAdjacentHTML('beforeend', `<div><b>${seen ? esc(weaponName(a)) : '？？？'}</b><div class="small muted">${info}</div></div>`); box.appendChild(c); };
       ARCH_ORDER.forEach(a => card(a, wrap)); Object.values(W.guardians).forEach(a => card(a, gw));
+      const sc = $('.scroll', ctl.box);
+      ctl.update = () => { const d = Input.dir(); if (d === 'down') sc.scrollTop += 40; if (d === 'up') sc.scrollTop -= 40; if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } };
+    });
+  },
+};
+
+const MonDex = {
+  open() {
+    return UI.panel(ctl => {
+      const seen = MON_KEYS.filter(k => Meta.d.dex && Meta.d.dex[k]).length;
+      const races = Object.keys(RACE);
+      let html = '';
+      for (const ra of races) {
+        const list = MON_KEYS.filter(k => monDef(k).race === ra);
+        html += `<div class="qsec">${esc(ra)}族　<span class="small muted">剋 ${esc(RACE_KE[ra])}族．被 ${esc(RACE_KE_BY[ra])}族所剋</span></div><div class="armory"></div>`;
+      }
+      ctl.box.innerHTML = `<h2>妖怪圖鑑　<span class="small muted">${seen} / ${MON_KEYS.length}</span></h2><div class="scroll">${html}</div>` + footKeys('↑↓ 捲動　B 返回');
+      const boxes = ctl.box.querySelectorAll('.armory');
+      races.forEach((ra, i) => {
+        for (const k of MON_KEYS.filter(x => monDef(x).race === ra)) {
+          const M = monDef(k), got = Meta.d.dex && Meta.d.dex[k];
+          const c = h('div', 'arm' + (got ? '' : ' unk'));
+          const pic = GFX.el(GFX.weaponMon(k, W.theme), 1.1); if (!got) pic.style.filter = 'brightness(0) opacity(.35)';
+          c.appendChild(pic);
+          c.insertAdjacentHTML('beforeend', `<div><b>${got ? esc(M.name) : '？？？'}</b><div class="small muted">${got ? `${elChip(M.el)}${raceChip(M.race)}<br>掉落：${esc(weaponName(M.drop))}` : '尚未遇過'}</div></div>`);
+          boxes[i].appendChild(c);
+        }
+      });
       const sc = $('.scroll', ctl.box);
       ctl.update = () => { const d = Input.dir(); if (d === 'down') sc.scrollTop += 40; if (d === 'up') sc.scrollTop -= 40; if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } };
     });
@@ -625,13 +658,17 @@ const Help = {
     return UI.panel(ctl => {
       ctl.box.innerHTML = `<h2>遊戲說明</h2><div class="scroll small" style="line-height:1.7">
         <b>🎮 操作</b>：方向鍵／WASD 移動，Z 或空白鍵＝確認，X 或 Esc＝取消（按住可奔跑），Enter 或 M＝開啟選單。手機可用下方按鍵，也能直接點選畫面。<br>
-        <b>⚔ 戰鬥＝答題</b>：武器的每個招式都對應一種國文題型，<b>答對才能命中</b>。<br>
-        <b>🛡 防禦題</b>：敵人出招時有機會「出題」，答對就能完全閃避。<br>
+        <b>⚔ 戰鬥＝答題</b>：武器的每個招式都對應一種國文題型。攻擊時有 <b>${Math.round(ATTACK_Q_RATE * 100)}%</b> 的機會出題，答對這一擊威力 ×${ATTACK_Q_POW} 並累積文氣，答錯則落空。<br>
+        <b>🛡 迴避題</b>：武器親密度達到 ${BOND_STEPS[0]} 分後，敵人出招時有機會出題，答對就能完全閃避（一級 10%、二級 15%、三級 20%）。<br>
+        <b>❤ 武器親密度</b>：每打完一場戰鬥，這場用過的武器親密度 +1；因為武器變得與你更親密，牠會努力幫你迴避攻擊。<br>
+        <b>🐾 種族相剋</b>：武器與妖怪都有種族——筆剋紙、紙剋器、器剋音、音剋兵、兵剋筆。剋制威力 ×1.3，被剋制 ×0.85；若種族與五行<b>同時剋制</b>，傷害再 ×${DOUBLE_BONUS}（雙重剋制）。<br>
         <b>☯ 五行相剋</b>：金剋木、木剋土、土剋水、水剋火、火剋金。題型屬性：字音字形＝金、詞義成語＝木、修辭閱讀＝水、詩詞＝火、文言常識＝土。剋制對手威力 ×1.5，被剋制 ×0.7。<br>
-        <b>✨ 文氣與必殺技</b>：每答對一題累積 1 格文氣，集滿 5 格就能施展必殺技（必定命中）。<br>
-        <b>🗡 武器熟練度</b>：用武器答對題目會提升熟練度，升級後學會新招式。最多攜帶 3 件武器。<br>
+        <b>✨ 文氣與必殺技</b>：每次命中或答對題目都會累積 1 格文氣（答錯落空則沒有），集滿 5 格就能施展必殺技（必定命中）。<br>
+        <b>🗡 武器熟練度</b>：用武器答對戰鬥中的題目會提升熟練度（屬性剋制時 +2），升級後學會新招式。最多攜帶 3 件武器。<br>
         <b>⚒ 碎片與鍛造</b>：野生怪物是武器幻化的「武器妖」，打倒後有機會掉落該武器的碎片，集滿 5 片可合成武器；同名同階武器可以升階。<br>
         <b>💎 稀有度</b>：凡品（白）→ 良品（綠）→ 精品（藍）→ 珍品（紫）→ 絕品（金）→ 神品（紅）→ 守護神器（彩，只能由劇情取得）。階級越高，附加效果越多：良品熟練度 +1、精品剋制威力 +15%、珍品答對回血 3%、絕品剋制文氣 +1、神品被剋制不減威力。<br>
+        <b>🔧 道館機關</b>：每座道館裡都有三個符合館主風格的機關（錯字黑板、飛舞的辭典、枯萎的花、古文石碑、准考證感應台）。答對題目解開全部機關，就能削弱館主或打開新的路。<br>
+        <b>📕 妖怪圖鑑</b>：全 ${MON_KEYS.length} 種武器妖，遇過就會自動登錄，可在選單查看種族與屬性。<br>
         <b>👀 看得見的敵人</b>：敵人在地圖上走動，靠近會追過來；不想打可以繞路。<br>
         <b>💾 存檔</b>：共 3 個欄位，切換地圖、戰鬥後會自動存檔；也能匯出存檔檔案帶到其他電腦。<br>
         <b>📖 錯題本</b>：答錯的題目會自動收錄，隨時可以複習。</div>` + footKeys('B 返回');

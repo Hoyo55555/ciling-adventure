@@ -146,7 +146,7 @@ async function fade(to, dur = 0.25, white) {
 UI.question = function (q, opt = {}) {
   return new Promise(res => {
     const box = UI.el('box qp');
-    const modeTxt = { attack: '⚔ 答對才能命中！', defend: '🛡 答對就能閃避！', review: '📖 錯題複習', practice: '✏️ 練習' }[opt.mode] || '';
+    const modeTxt = { attack: '⚔ 答對就能強化這一擊！', defend: '🛡 答對就能閃避！', review: '📖 錯題複習', practice: '✏️ 練習', device: '🔧 解開機關' }[opt.mode] || '';
     const typeTxt = { choice: '選擇題', tf: '是非題', fill: '填空題', order: '排序題' }[q.type];
     box.innerHTML = `<div class="qhead">${chip(q.cat)}${opt.again ? '<span class="again">🔁 錯題重現</span>' : ''}<span>${typeTxt}${q.lesson ? '．' + esc(q.lesson) : ''}${opt.move ? '．招式「' + esc(opt.move) + '」' : ''}</span><span class="mode ${opt.mode === 'defend' ? 'def' : ''}">${modeTxt}</span></div>
       <div class="qtext ${q.q.length > 48 ? 'long' : ''}">${esc(q.q)}</div><div class="qbody"></div><div class="qafter"></div>`;
@@ -180,6 +180,7 @@ UI.question = function (q, opt = {}) {
       if (canHint) { const t = h('div', 'qtool'); hintBtn = h('div', 'opt', `🎁 使用錦囊（剩 ${G.bag.hint}）`); t.appendChild(hintBtn); body.appendChild(t); tools = [hintBtn]; }
       const all = btns.concat(tools); let sel = 0; const cols = long ? 1 : 2;
       box._pickCorrect = () => choose(btns.findIndex(b => +b.dataset.oi === correctIdx)); // 測試用
+      box._pickWrong = () => choose(btns.findIndex(b => +b.dataset.oi !== correctIdx)); // 測試用
       const paint = () => all.forEach((b, i) => b.classList.toggle('sel', i === sel));
       const choose = i => {
         if (answered) return;
@@ -209,6 +210,7 @@ UI.question = function (q, opt = {}) {
       const parts = shuffle(q.parts.map((p, i) => ({ p, i }))); const picked = [];
       const btns = parts.map(o => { const d = h('div', 'qopt', esc(o.p)); grid.appendChild(d); return d; });
       box._pickCorrect = () => { picked.length = 0; q.parts.forEach(p => choose(parts.findIndex((o, k) => o.p === p && !picked.includes(k)))); }; // 測試用
+      box._pickWrong = () => { picked.length = 0; q.parts.slice().reverse().forEach(p => choose(parts.findIndex((o, k) => o.p === p && !picked.includes(k)))); }; // 測試用
       const tip = h('div', 'qnext', 'A 選取片段．B 退回上一個'); body.appendChild(tip);
       let sel = 0;
       const paint = () => { btns.forEach((b, i) => { b.classList.toggle('sel', i === sel); b.classList.toggle('gone', picked.includes(i)); }); line.textContent = picked.map(i => parts[i].p).join('　') || '　'; };
@@ -227,6 +229,8 @@ UI.question = function (q, opt = {}) {
       ok.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); submit(); });
       inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); submit(); } e.stopPropagation(); });
       inp.addEventListener('pointerdown', e => e.stopPropagation());
+      box._pickCorrect = () => { inp.value = q.ans[0]; submit(); }; // 測試用
+      box._pickWrong = () => { inp.value = '？？'; submit(); }; // 測試用
       setTimeout(() => inp.focus(), 50);
       navUpdate = () => { if (Input.p('A') && document.activeElement !== inp) inp.focus(); };
     }

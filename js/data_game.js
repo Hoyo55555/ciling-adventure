@@ -21,6 +21,20 @@ const elChip = e => e ? `<span class="chip el" style="background:${ELEM[e]}">${e
 const catsOfEl = e => ALL_CATS.filter(c => CAT_EL[c] === e);
 function elEffect(a, d) { if (!a || !d) return 1; if (KE[a] === d) return 1.5; if (KE[d] === a) return 0.7; return 1; }
 
+/* ============ 種族相剋：筆剋紙、紙剋器、器剋音、音剋兵、兵剋筆 ============ */
+const RACE = { 筆: '#d8a030', 紙: '#8a9aa8', 器: '#6a8a58', 音: '#b06ac8', 兵: '#a85040' };
+const RACE_KE = { 筆: '紙', 紙: '器', 器: '音', 音: '兵', 兵: '筆' };
+const RACE_KE_BY = Object.fromEntries(Object.entries(RACE_KE).map(([a, b]) => [b, a]));
+const raceChip = r => r ? `<span class="chip race" style="background:${RACE[r]}">${r}</span>` : '';
+function raceEffect(a, d) { if (!a || !d) return 1; if (RACE_KE[a] === d) return 1.3; if (RACE_KE[d] === a) return 0.85; return 1; }
+const DOUBLE_BONUS = 1.2;          // 屬性與種族同時剋制的額外加成
+const ATTACK_Q_RATE = 0.3;         // 攻擊時出題的機率
+const ATTACK_Q_POW = 1.3;          // 答對後的威力加成
+/* 武器親密度：每打完一場戰鬥 +1，分三級，越高越容易觸發「迴避出題」 */
+const BOND_STEPS = [10, 20, 35];
+const BOND_DODGE = [0, 0.10, 0.15, 0.20];
+const bondLv = w => BOND_STEPS.filter(x => (w.bond || 0) >= x).length;
+
 /* ============ 武器系統（30 種 × 3 世界名稱）============
    同一列是同一種武器在三個世界的名稱，轉生時依此轉換。
    欄位：代號、擅長題型、最早出現章節、必殺技、[國中, 圖示]、[文人, 圖示]、[俠客, 圖示]、主色 */
@@ -95,6 +109,12 @@ for (const [key, cats, ch, ult, sc, li, wu, col] of WEAPON_TABLE)
 for (const [key, g] of Object.entries(GUARDIANS))
   ARCH[key] = { cats: ALL_CATS, ch: 9, ult: g.ult, col: g.col, guardian: true, passive: g.passive, names: { school: g.name, literati: g.name, wuxia: g.name }, shapes: { school: g.shape, literati: g.shape, wuxia: g.shape },
     skills: [['守護', ALL_CATS, 48], ['神威', ALL_CATS, 55], ['天啟', ALL_CATS, 65], ['永恆', ALL_CATS, 78]] };
+const ARCH_RACE = {
+  brush: '筆', maobi: '筆', marker: '筆', chalk: '筆', fan: '兵', tome: '紙', dict: '紙', notebook: '紙', idiom: '紙', poemcard: '紙',
+  bookmark: '紙', classic: '紙', scroll: '紙', trophy: '器', ruler: '器', eraser: '器', compass: '器', globe: '器', glasses: '器',
+  seal: '器', abacus: '器', tablet: '器', palette: '器', zhuyin: '紙', bell: '音', mic: '音', whistle: '音', lamp: '器', chess: '器', legend: '兵',
+};
+for (const k in ARCH) if (!ARCH[k].race) ARCH[k].race = ARCH_RACE[k] || (ARCH[k].guardian ? '兵' : '器');
 const ARCH_ORDER = WEAPON_TABLE.map(r => r[0]);
 const STARTER_ARCHS = ['brush', 'tome', 'scroll'];
 const weaponDesc = a => (W.weapons && W.weapons[a] && W.weapons[a][1]) || (ARCH[a].guardian ? `守護神器．特殊能力「${PASSIVES[ARCH[a].passive].name}」：${PASSIVES[ARCH[a].passive].desc}` : `擅長「${ARCH[a].cats.join('」「')}」題型的武器。`);
@@ -116,18 +136,45 @@ const FRAG_RATE = 0.45;             // 打倒武器怪掉落碎片的機率
 const RAR_ATK = [0, 2, 4, 7, 10, 14, 14], RAR_POW = [1, 1.1, 1.2, 1.35, 1.5, 1.7, 1.6];
 const RAR_BONUS = ['', '答對時熟練度額外 +1', '剋制屬性時威力 +15%', '答對時恢復 3% 氣血', '剋制屬性時文氣額外 +1', '被剋制時威力不降低'];
 const bonusList = r => RAR_BONUS.slice(1, Math.min(r, 5) + 1);
-const newWeapon = (arch, r = 0) => ({ id: 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), arch, r, mastery: 0 });
+const newWeapon = (arch, r = 0) => ({ id: 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), arch, r, mastery: 0, bond: 0 });
 const wById = id => G.weapons.find(w => w.id === id);
 const curW = () => wById(G.equip[G.cur]);
 const rarChip = r => `<span class="rchip r${r}">${RARITY[r].n}</span>`;
 
-/* ============ 野生怪物：武器幻化的「武器妖」 ============
-   詞靈附在武器上幻化成Ｑ版小妖。打倒後有機率掉落碎片，集滿可合成該武器。
-   出招時會用自己武器擅長的題型出「防禦題」。 */
-function monInfo(arch) {   // 怪物屬性＝其武器擅長題型的五行；弱點＝剋它的屬性
-  const c0 = ARCH[arch].cats[0], i = ALL_CATS.indexOf(c0), el = elOfCats(ARCH[arch].cats) || '金';
-  return { el, weak: el ? catsOfEl(KE_BY[el]) : [], resist: el ? catsOfEl(KE[el]) : [], base: { hp: 42 + (i % 3) * 3, atk: 46 + (i % 4) * 2, def: 40 + (i % 3) * 2 } };
-}
+/* ============ 武器妖圖鑑（50 種） ============
+   同一「種族」有不同「屬性」，例如紅筆（火）、藍筆（水）、黑筆（土）、綠筆（木）都屬於筆族。
+   欄位：名稱、種族、五行、外形、顏色、掉落碎片對應的武器、最早出現階段 */
+const MONSTERS = {
+  pen_auto: ['自動筆妖', '筆', '金', 'pen', '#f0c040', 'brush', 0], pen_shake: ['搖搖筆妖', '筆', '金', 'pen', '#e8a030', 'brush', 0],
+  pen_red: ['紅筆妖', '筆', '火', 'pen', '#e04a4a', 'chalk', 1], pen_blue: ['藍筆妖', '筆', '水', 'pen', '#3a78d8', 'marker', 1],
+  pen_black: ['黑筆妖', '筆', '土', 'pen', '#3a3a44', 'maobi', 2], pen_green: ['綠筆妖', '筆', '木', 'pen', '#3e9830', 'marker', 2],
+  pen_hl: ['螢光筆妖', '筆', '水', 'pen', '#f070b0', 'fan', 1], pen_chalk: ['粉筆妖', '筆', '金', 'pen', '#f0f0e8', 'chalk', 2],
+  pen_color: ['彩色筆妖', '筆', '火', 'pen', '#e8804a', 'marker', 2], pen_marker: ['麥克筆妖', '筆', '水', 'pen', '#8a58c8', 'marker', 3],
+  pen_mao: ['毛筆妖', '筆', '土', 'pen', '#8a5a2a', 'maobi', 3], pen_fountain: ['鋼筆妖', '筆', '金', 'pen', '#c8c8d8', 'legend', 4],
+  paper_text: ['課本妖', '紙', '土', 'book', '#3a8a58', 'scroll', 0], paper_dict: ['字典妖', '紙', '木', 'book', '#5a88c8', 'tome', 0],
+  paper_exam: ['考卷妖', '紙', '金', 'card', '#f4f2ea', 'bookmark', 0], paper_work: ['習作妖', '紙', '木', 'book', '#6ab04a', 'notebook', 1],
+  paper_hand: ['講義妖', '紙', '木', 'card', '#e8dcc0', 'notebook', 1], paper_idiom: ['成語卡妖', '紙', '木', 'card', '#4ea838', 'idiom', 1],
+  paper_contact: ['聯絡簿妖', '紙', '土', 'book', '#c8a030', 'dict', 1], paper_note: ['便條紙妖', '紙', '水', 'card', '#f8e070', 'notebook', 2],
+  paper_mark: ['書籤妖', '紙', '水', 'card', '#48b878', 'bookmark', 2], paper_scrap: ['剪貼簿妖', '紙', '水', 'book', '#58b0a0', 'notebook', 2],
+  paper_poem: ['詩詞卡妖', '紙', '火', 'card', '#c85a8a', 'poemcard', 3], paper_essay: ['作文紙妖', '紙', '火', 'card', '#f8f0dc', 'tablet', 3],
+  tool_ruler: ['直尺妖', '器', '金', 'ruler', '#e8c070', 'ruler', 0], tool_eraser: ['橡皮擦妖', '器', '金', 'block', '#f0a0a0', 'eraser', 0],
+  tool_tri: ['三角板妖', '器', '金', 'ruler', '#c8d8f0', 'ruler', 1], tool_tape: ['修正帶妖', '器', '水', 'block', '#f8f8f8', 'eraser', 1],
+  tool_glue: ['膠水妖', '器', '木', 'block', '#f0e070', 'eraser', 1], tool_compass: ['圓規妖', '器', '土', 'compass', '#a0a8b8', 'compass', 2],
+  tool_scissor: ['剪刀妖', '器', '金', 'dagger', '#c8c8d8', 'eraser', 2], tool_stapler: ['釘書機妖', '器', '金', 'block', '#6a6a80', 'ruler', 2],
+  tool_lens: ['放大鏡妖', '器', '水', 'lens', '#d8a030', 'seal', 2], tool_protractor: ['量角器妖', '器', '土', 'ring', '#8ac0d8', 'compass', 3],
+  tool_abacus: ['算盤妖', '器', '土', 'abacus', '#8a5a2a', 'abacus', 4], tool_calc: ['計算機妖', '器', '土', 'tablet', '#4a5a70', 'abacus', 4],
+  sound_bell: ['上課鐘妖', '音', '金', 'bell', '#c89a30', 'bell', 2], sound_ring: ['下課鈴妖', '音', '金', 'bell', '#e0b040', 'bell', 2],
+  sound_flute: ['直笛妖', '音', '火', 'flute', '#6a9a58', 'mic', 2], sound_whistle: ['哨子妖', '音', '水', 'whistle', '#e0b040', 'whistle', 3],
+  sound_mic: ['麥克風妖', '音', '水', 'mic', '#5a6a80', 'mic', 3], sound_harmonica: ['口琴妖', '音', '火', 'block', '#a85040', 'mic', 3],
+  sound_tamb: ['鈴鼓妖', '音', '木', 'orb', '#d8a060', 'bell', 3], sound_triangle: ['三角鐵妖', '音', '金', 'star', '#c8c8d8', 'bell', 4],
+  sound_metro: ['節拍器妖', '音', '土', 'tablet', '#8a6a4a', 'mic', 4],
+  arm_fan: ['紙扇妖', '兵', '水', 'fan', '#f0f0f8', 'fan', 3], arm_bamboo: ['竹劍妖', '兵', '木', 'sword', '#8ab858', 'legend', 4],
+  arm_wood: ['木刀妖', '兵', '木', 'sword', '#a8784a', 'legend', 4], arm_dart: ['飛鏢妖', '兵', '金', 'star', '#b8c4d4', 'seal', 4],
+  arm_stick: ['棍棒妖', '兵', '木', 'stick', '#8a6a3a', 'trophy', 4],
+};
+const MON_KEYS = Object.keys(MONSTERS);
+const monDef = k => { const m = MONSTERS[k]; return { name: m[0], race: m[1], el: m[2], shape: m[3], col: m[4], drop: m[5], stage: m[6] }; };
+const monsAtStage = st => MON_KEYS.filter(k => MONSTERS[k][6] <= st);
 
 /* ============ 道具（名稱依世界觀而不同，見 WORLDS.items） ============ */
 const ITEMS = {
@@ -146,26 +193,29 @@ function playerStats() {
   if (G.hp == null || G.hp > G.maxhp) G.hp = G.maxhp;
 }
 const expNeed = lv => lv * 12 + 20;
-const monName = arch => (W.monsters && W.monsters[arch]) || ARCH[arch].names[W.id] + W.monSuffix;
-function makeFoe(arch, lv) {
-  const M = monInfo(arch), b = M.base;
-  const f = { kind: 'mon', sp: arch, lv, name: monName(arch), el: M.el, weak: M.weak, resist: M.resist,
-    moves: ARCH[arch].skills.slice(0, 2).map(([n, cats], i) => ({ name: n, cats, pow: i ? 45 : 35 })),
+const monName = key => monDef(key).name;
+function makeFoe(key, lv) {
+  const M = monDef(key), i = ALL_CATS.indexOf(catsOfEl(M.el)[0]);
+  const A = ARCH[M.drop], b = { hp: 42 + (i % 3) * 3, atk: 46 + (i % 4) * 2, def: 40 + (i % 3) * 2 };
+  const f = { kind: 'mon', sp: key, lv, name: M.name, el: M.el, race: M.race, drop: M.drop,
+    weak: catsOfEl(KE_BY[M.el]), resist: catsOfEl(KE[M.el]),
+    moves: A.skills.slice(0, 2).map(([n, cats], i2) => ({ name: n, cats, pow: i2 ? 45 : 35 })),
     maxhp: Math.floor(b.hp * lv / 25) + lv + 12, atk: Math.floor(b.atk * lv / 25) + 6, def: Math.floor(b.def * lv / 25) + 6, exp: lv * 5 };
   f.hp = f.maxhp; return f;
 }
 function makePersonFoe(R) {
   const F = R.foe, lv = F.lv + (G.ng || 0) * 4;
   const el = F.el === 'none' ? null : F.el || (F.weak && F.weak.length ? KE[CAT_EL[F.weak[0]]] : '土');   // 人物的屬性：由弱點題型推回
-  const f = { kind: 'person', look: R.look, name: R.name, lv, el, weak: el ? catsOfEl(KE_BY[el]) : [], resist: el ? catsOfEl(KE[el]) : [],
+  const hpM = R.hpMod && G.flags[R.hpMod.flag] ? R.hpMod.mul : 1, atkM = R.atkMod && G.flags[R.atkMod.flag] ? R.atkMod.mul : 1;
+  const f = { kind: 'person', look: R.look, name: R.name, lv, el, race: F.race || null, weak: el ? catsOfEl(KE_BY[el]) : [], resist: el ? catsOfEl(KE[el]) : [],
     moves: F.moves.map(([name, cats, pow, qtype]) => ({ name, cats, pow, qtype })),
-    maxhp: Math.floor((20 + lv * 6) * (F.hpMul || 1)), atk: Math.floor(5 + lv * 1.6), def: Math.floor(4 + lv * 1.5), exp: Math.floor(lv * 5 * (F.hpMul || 1)) };
+    maxhp: Math.floor((20 + lv * 6) * (F.hpMul || 1) * hpM), atk: Math.floor((5 + lv * 1.6) * atkM), def: Math.floor(4 + lv * 1.5), exp: Math.floor(lv * 5 * (F.hpMul || 1)) };
   f.hp = f.maxhp; return f;
 }
 
 /* ============ 地圖版型（三個世界共用；外觀由世界主題決定） ============
    . 草地  , 道路  g 草叢  T 樹  ~ 水  # 牆  W 窗  D 門  R 屋頂  = 柵欄  S 告示牌  F 花  L 燈  ^ 岩石 */
-const SOLID = new Set(['T', '#', 'W', 'D', 'R', '~', '=', 'S', 'L', '^', 'X', 'w', 'b', 't', 'k', 'p', 'B']);
+const SOLID = new Set(['T', '#', 'W', 'D', 'R', '~', '=', 'S', 'L', '^', 'X', 'w', 'b', 't', 'k', 'p', 'B', 'M', 'V']);
 const LAYOUTS = {
   town1: { music: 'town', qlv: 1, chapter: 1,
     rows: [
@@ -314,9 +364,7 @@ Object.assign(LAYOUTS, {
       { x: 13, y: 8, to: 'campus', tx: 7, ty: 4, dir: 'down' }, { x: 14, y: 8, to: 'campus', tx: 7, ty: 4, dir: 'down' }],
     npcs: [{ role: 'xiaomo', x: 8, y: 4, dir: 'down' }, { role: 'dictA', x: 10, y: 1, dir: 'down', sight: 3 }, { role: 'dictB', x: 18, y: 7, dir: 'up', sight: 3 }],
     chests: [{ id: 'h1', x: 26, y: 2, weapon: 'scroll', r: 0 }, { id: 'h2', x: 1, y: 7, items: { heal: 2, hint: 1 }, frags: { ruler: 2 } }],
-    foes: { n: 9, lv: [2, 4], scale: 3, list: [{ sp: 'eraser', w: 3 }, { sp: 'brush', w: 2 }, { sp: 'ruler', w: 2 }, { sp: 'zhuyin', w: 2 },
-      { sp: 'tome', w: 2, stage: 1 }, { sp: 'idiom', w: 2, stage: 1 }, { sp: 'fan', w: 2, stage: 2 }, { sp: 'glasses', w: 2, stage: 2 },
-      { sp: 'scroll', w: 2, stage: 3 }, { sp: 'classic', w: 2, stage: 3 }, { sp: 'seal', w: 1, stage: 3 }, { sp: 'poemcard', w: 2, stage: 4 }] } },
+    foes: { n: 9, lv: [2, 4], scale: 3, auto: 1 } },
   c1a: { music: 'hall', qlv: 1, indoor: 1, rows: [
       'wwwwBBBBwwww',
       'w____t_____w',
@@ -328,7 +376,11 @@ Object.assign(LAYOUTS, {
       'wp________pw',
       'wwwwww__wwww'],
     warps: [{ x: 6, y: 8, to: 'hallway', tx: 19, ty: 1, dir: 'down' }, { x: 7, y: 8, to: 'hallway', tx: 20, ty: 1, dir: 'down' }],
-    npcs: [{ role: 'boss1', x: 5, y: 1, dir: 'down' }, { role: 'c1aTip', x: 2, y: 5, dir: 'right' }] },
+    npcs: [{ role: 'boss1', x: 5, y: 1, dir: 'down' }, { role: 'c1aTip', x: 2, y: 5, dir: 'right' }],
+    devices: {
+      '4,0': { group: 'bb', flag: 'bb1', cat: '字形', label: '錯字黑板', text: '黑板上浮著扭曲的錯字，正一個個滴下黑墨……\n（找出正確的寫法，就能淨化它！）', ok: '錯字被擦掉了，黑板恢復了乾淨！', allText: '三塊黑板都被淨化了！小老師身上的錯字怨念淡了許多。' },
+      '6,0': { group: 'bb', flag: 'bb2', cat: '字形', label: '錯字黑板', text: '第二塊黑板上的錯字正在發抖。', ok: '錯字被擦掉了！', allText: '三塊黑板都被淨化了！小老師身上的錯字怨念淡了許多。' },
+      '7,0': { group: 'bb', flag: 'bb3', cat: '字形', label: '錯字黑板', text: '最後一塊黑板寫滿了形近字。', ok: '錯字被擦掉了！', allText: '三塊黑板都被淨化了！小老師身上的錯字怨念淡了許多。', onAll: 'bbAll' } } },
   campus: { music: 'town', qlv: 2, rows: [
       'TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT',
       'T.RRRRRRRRRR....RRRRRRRRRRRR.T',
@@ -363,7 +415,7 @@ Object.assign(LAYOUTS, {
   lib: { music: 'hall', qlv: 2, indoor: 1, rows: [
       'wwwwwwwwwwwwwwww',
       'wkk____t_____kkw',
-      'w______________w',
+      'wkkkkkkkkkkkkkkw',
       'w_kkkk__kkkk_k_w',
       'w____k______k__w',
       'wkk__k_kkkk_k_kw',
@@ -374,7 +426,11 @@ Object.assign(LAYOUTS, {
       'w______________w',
       'wwwwwww__wwwwwww'],
     warps: [{ x: 7, y: 11, to: 'campus', tx: 4, ty: 11, dir: 'down' }, { x: 8, y: 11, to: 'campus', tx: 4, ty: 11, dir: 'down' }],
-    npcs: [{ role: 'rival1', x: 6, y: 10, dir: 'right', sight: 2 }, { role: 'boss2', x: 8, y: 1, dir: 'down' }] },
+    npcs: [{ role: 'rival1', x: 6, y: 10, dir: 'right', sight: 2 }, { role: 'boss2', x: 8, y: 1, dir: 'down' }],
+    devices: {
+      '2,3': { group: 'bk', flag: 'bk1', cat: '成語', label: '飛舞的成語辭典', text: '一本成語辭典在書架前飛來飛去，書頁上缺了一個字……', ok: '辭典安靜地飛回了書架！', allText: '三本辭典都歸位了——中央的書架緩緩讓開，露出通往股長的路！', open: [[7, 2], [8, 2]] },
+      '11,3': { group: 'bk', flag: 'bk2', cat: '成語', label: '飛舞的成語辭典', text: '第二本辭典在你頭上盤旋。', ok: '辭典飛回了書架！', allText: '三本辭典都歸位了——中央的書架緩緩讓開！', open: [[7, 2], [8, 2]] },
+      '7,7': { group: 'bk', flag: 'bk3', cat: '成語', label: '飛舞的成語辭典', text: '最後一本辭典夾在書架縫隙中。', ok: '辭典回到了原位！', allText: '三本辭典都歸位了——中央的書架緩緩讓開！', open: [[7, 2], [8, 2]] } } },
   yard: { music: 'town', qlv: 2, rows: [
       'TTTTTTTTTT,TTTTTTTTTTT',
       'T.F.F.....,......F.F.T',
@@ -393,7 +449,11 @@ Object.assign(LAYOUTS, {
       'T....................T',
       'TTTTTTTTTTTTTTTTTTTTTT'],
     warps: [{ x: 10, y: 0, to: 'campus', tx: 15, ty: 18, dir: 'up' }],
-    npcs: [{ role: 'm1', x: 4, y: 9, dir: 'right', sight: 3 }, { role: 'm2', x: 16, y: 11, dir: 'left', sight: 3 }, { role: 'm3', x: 10, y: 14, dir: 'up', sight: 1 }, { role: 'boss3', x: 10, y: 8, dir: 'down' }] },
+    npcs: [{ role: 'm1', x: 4, y: 9, dir: 'right', sight: 3 }, { role: 'm2', x: 16, y: 11, dir: 'left', sight: 3 }, { role: 'm3', x: 10, y: 14, dir: 'up', sight: 1 }, { role: 'boss3', x: 10, y: 8, dir: 'down' }],
+    devices: {
+      '3,10': { group: 'fl', flag: 'fl1', cat: '修辭', label: '枯萎的花', text: '一朵花因為墨塵而低著頭。\n（用心感受文字，也許它會重新綻放。）', ok: '花瓣舒展開來，散發出淡淡的香氣！', allText: '三朵花都開了，中庭恢復了生氣——助教的氣勢也弱了下來。' },
+      '17,10': { group: 'fl', flag: 'fl2', cat: '閱讀', label: '枯萎的花', text: '第二朵花的葉子上積了一層黑墨。', ok: '黑墨散去，花開了！', allText: '三朵花都開了，中庭恢復了生氣！' },
+      '2,12': { group: 'fl', flag: 'fl3', cat: '修辭', label: '枯萎的花', text: '最後一朵花只剩下花苞。', ok: '花苞綻放了！', allText: '三朵花都開了，中庭恢復了生氣！', onAll: 'flAll' } } },
   hist: { music: 'hall', qlv: 3, indoor: 1, rows: [
       'wwwwwwwwwwwwww',
       'wkk___t____kkw',
@@ -401,14 +461,18 @@ Object.assign(LAYOUTS, {
       'wkkk_kkkk_kkkw',
       'w____________w',
       'w_p________p_w',
-      'wwwww____wwwww',
+      'wwwwwMMMMwwwww',
       'w____________w',
       'wk__________kw',
       'w____________w',
       'w____________w',
       'wwwwww__wwwwww'],
     warps: [{ x: 6, y: 11, to: 'campus', tx: 24, ty: 11, dir: 'down' }, { x: 7, y: 11, to: 'campus', tx: 24, ty: 11, dir: 'down' }],
-    npcs: [{ role: 'rival2', x: 6, y: 7, dir: 'down', sight: 3 }, { role: 'boss4', x: 7, y: 1, dir: 'down' }] },
+    npcs: [{ role: 'rival2', x: 6, y: 7, dir: 'down', sight: 3 }, { role: 'boss4', x: 7, y: 1, dir: 'down' }],
+    devices: {
+      '5,6': { group: 'st', flag: 'st1', cat: '文言', label: '古文石碑', text: '石碑上刻著一段古文，字跡被墨塵遮住了一半……\n（讀懂它，石碑就會亮起。）', ok: '石碑亮起了柔和的光！', allText: '三座石碑同時亮起，擋路的石碑緩緩沉入地面，通往檔案室的路開了！', open: [[5, 6], [6, 6], [7, 6], [8, 6]] },
+      '6,6': { group: 'st', flag: 'st2', cat: '文言', label: '古文石碑', text: '第二座石碑記載著校史與古語。', ok: '石碑亮起來了！', allText: '三座石碑同時亮起，路開了！', open: [[5, 6], [6, 6], [7, 6], [8, 6]] },
+      '7,6': { group: 'st', flag: 'st3', cat: '常識', label: '古文石碑', text: '最後一座石碑上是一段國學常識。', ok: '石碑亮起來了！', allText: '三座石碑同時亮起，路開了！', open: [[5, 6], [6, 6], [7, 6], [8, 6]] } } },
   aud: { music: 'hall', qlv: 3, indoor: 1, rows: [
       'wwwwwBBBBBBwwwww',
       'w______________w',
@@ -416,13 +480,17 @@ Object.assign(LAYOUTS, {
       'w______rr______w',
       'w_tt_t_rr_t_tt_w',
       'w______rr______w',
-      'w_tt_t_rr_t_tt_w',
+      'w_tt_V_rr_t_tt_w',
       'w______rr______w',
-      'w_tt_t_rr_t_tt_w',
+      'w_tt_t_rr_t_Vt_w',
       'w______rr______w',
-      'w_tt_t_rr_t_tt_w',
+      'wV_t_t_rr_t_tt_w',
       'w______rr______w',
       'wwwwwww__wwwwwww'],
     warps: [{ x: 7, y: 12, to: 'campus', tx: 22, ty: 4, dir: 'down' }, { x: 8, y: 12, to: 'campus', tx: 23, ty: 4, dir: 'down' }],
-    npcs: [{ role: 'e1', x: 1, y: 9, dir: 'right', sight: 14 }, { role: 'e2', x: 14, y: 7, dir: 'left', sight: 14 }, { role: 'e3', x: 1, y: 5, dir: 'right', sight: 14 }, { role: 'boss5', x: 7, y: 1, dir: 'down' }] },
+    npcs: [{ role: 'e1', x: 1, y: 9, dir: 'right', sight: 14 }, { role: 'e2', x: 14, y: 7, dir: 'left', sight: 14 }, { role: 'e3', x: 1, y: 5, dir: 'right', sight: 14 }, { role: 'boss5', x: 7, y: 1, dir: 'down' }],
+    devices: {
+      '5,6': { group: 'ad', flag: 'ad1', cat: '閱讀', label: '准考證感應台', text: '講台前的感應台亮著微光，上面寫著：「答對即可凝聚文氣。」', ok: '感應台亮起，一股文氣湧入你的身體！（下場戰鬥文氣 +1）' },
+      '12,8': { group: 'ad', flag: 'ad2', cat: '成語', label: '准考證感應台', text: '第二座感應台等著你。', ok: '文氣再度凝聚！（下場戰鬥文氣 +1）' },
+      '1,10': { group: 'ad', flag: 'ad3', cat: '文言', label: '准考證感應台', text: '最後一座感應台散發著沉穩的光。', ok: '文氣滿溢！（下場戰鬥文氣 +1）', allText: '三座感應台全部亮起，整座禮堂被文氣照亮了！' } } },
 });

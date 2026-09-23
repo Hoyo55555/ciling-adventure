@@ -206,6 +206,8 @@ const GFX = (() => {
         break;
       case '^': ground(); R(2, 5, 12, 10, T.rock); R(4, 3, 8, 3, T.rock); R(4, 4, 4, 2, adj(T.rock, .3)); R(2, 13, 12, 2, adj(T.rock, -.3)); break;
       case 'X': R(0, 0, 16, 16, '#16120e'); break;
+      case 'M': g.drawImage(tile(theme, '_'), 0, 0); R(3, 1, 10, 13, '#8a8a92'); R(4, 2, 8, 11, '#a8a8b0'); R(5, 4, 6, 1, '#6a6a74'); R(5, 6, 6, 1, '#6a6a74'); R(5, 8, 4, 1, '#6a6a74'); R(2, 14, 12, 2, '#6a6a74'); break;
+      case 'V': g.drawImage(tile(theme, '_'), 0, 0); R(3, 4, 10, 9, '#4a5a70'); R(4, 5, 8, 5, '#8ad0f0'); R(5, 6, 3, 1, '#f8f8f8'); R(4, 11, 8, 1, '#2a3648'); R(5, 13, 6, 2, '#2a3648'); break;
       case 'B': R(0, 0, 16, 16, T.iwall || '#f4ecd4'); R(0, 2, 16, 10, '#6a4424'); R(0, 3, 16, 8, '#2e5a3a'); R(2, 5, 5, 1, '#e8f0e0'); R(9, 7, 4, 1, '#e8f0e0'); R(0, 12, 16, 4, T.iwall2 || '#9ab8d8'); R(3, 11, 3, 1, '#f8f8f8'); break;
       case '_': R(0, 0, 16, 16, T.floor); if (theme === 'school') { R(0, 0, 16, 1, T.floor2); R(0, 0, 1, 16, T.floor2); } else { R(0, 5, 16, 1, T.floor2); R(0, 11, 16, 1, T.floor2); R(6, 0, 1, 5, T.floor2); R(11, 6, 1, 5, T.floor2); } break;
       case 'w': R(0, 0, 16, 16, T.iwall); R(0, 10, 16, 6, T.iwall2); R(0, 10, 16, 1, adj(T.iwall2, -.3)); R(0, 15, 16, 1, adj(T.iwall2, -.4)); break;
@@ -287,10 +289,10 @@ const GFX = (() => {
     cache.set(key, cv); return cv;
   }
   /* 武器妖：把武器圖示放大成 32×32，加上眼睛、腳、腮紅 */
-  function weaponMon(arch, theme) {
-    const key = 'm:' + arch + theme; if (cache.has(key)) return cache.get(key);
-    const k = 1.6, ox = 16 - 8 * k, oy = 0;
-    const A = ARCH[arch]; const src = (!A.guardian && WOVR[theme + '.' + arch]) || SHAPES[A.shapes[theme]] || SHAPES.pen; const P = [];
+  function weaponMon(monKey, theme) {
+    const key = 'm:' + monKey; if (cache.has(key)) return cache.get(key);
+    const M = monDef(monKey); const k = 1.6, ox = 16 - 8 * k, oy = 0;
+    const src = SHAPES[M.shape] || SHAPES.pen; const P = [];
     for (const q of src) {
       if (q.t === 'e') P.push({ t: 'e', v: [q.v[0] * k + ox, q.v[1] * k + oy, q.v[2] * k, q.v[3] * k], c: q.c });
       else if (q.t === 'r') P.push({ t: 'r', v: [Math.round(q.v[0] * k + ox), Math.round(q.v[1] * k + oy), Math.round(q.v[2] * k), Math.round(q.v[3] * k)], c: q.c });
@@ -301,7 +303,7 @@ const GFX = (() => {
     P.push({ t: 'e', v: [12.5, 14, 3, 3.3], c: '#ffffff' }, { t: 'e', v: [19.5, 14, 3, 3.3], c: '#ffffff' });
     P.push({ t: 'r', v: [12, 14, 2, 3], c: OUT }, { t: 'r', v: [19, 14, 2, 3], c: OUT }, { t: 'd', v: [[12, 14], [19, 14]], c: '#ffffff' });
     P.push({ t: 'r', v: [9, 18, 2, 1], c: '#f08080' }, { t: 'r', v: [21, 18, 2, 1], c: '#f08080' }, { t: 'r', v: [15, 19, 2, 1], c: OUT });
-    const cv = toCanvas(32, 32, raster(32, 32, P, Object.assign({}, WPAL[theme] || WPAL.school, WOVR[theme + '.' + arch] ? {} : { a: A.col })));
+    const cv = toCanvas(32, 32, raster(32, 32, P, Object.assign({}, WPAL[theme] || WPAL.school, { a: M.col })));
     cache.set(key, cv); return cv;
   }
   /* 劇情角色：小墨（水墨小精靈）、總複習大魔王（考卷與黑墨揉成的怪獸） */

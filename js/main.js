@@ -20,7 +20,7 @@ const Title = {
     for (let x = -16; x < 256; x += 16) { g.drawImage(GFX.tile('literati', ','), x - off, 118); g.drawImage(GFX.tile('literati', '.'), x - off, 134); g.drawImage(GFX.tile('literati', '.'), x - off, 150); }
     const fr = Math.floor(t * 6) % 2 ? 1 : 2;
     HEROES.forEach((L, i) => { const x = 40 + i * 34; g.drawImage(GFX.person(L, 'right', fr), x, 94, 24, 24); g.drawImage(GFX.weapon(STARTER_ARCHS[i], L.style), x + 18, 104, 10, 10); });
-    const bob = Math.abs(Math.sin(t * 5)) * 4; g.drawImage(GFX.weaponMon('brush', 'school'), 176, 88 - bob, 30, 30);
+    const bob = Math.abs(Math.sin(t * 5)) * 4; g.drawImage(GFX.weaponMon('pen_auto', 'school'), 176, 88 - bob, 30, 30);
   },
 };
 const Blank = { draw(g) { g.fillStyle = '#16120e'; g.fillRect(0, 0, 240, 160); } };
@@ -38,7 +38,7 @@ function drawDiorama(g, wid, x, w, t) {
   const fr = Math.floor(t * 6) % 2 ? 1 : 2, walk = w > 100 ? Math.sin(t * 0.8) * 30 : 0;
   g.drawImage(GFX.person(HEROES[i], 'right', fr), Math.round(cx - 34 + walk), 98, 32, 32);
   g.drawImage(GFX.weapon(STARTER_ARCHS[i], th), Math.round(cx - 12 + walk), 110, 14, 14);
-  const bob = Math.abs(Math.sin(t * 4 + i)) * 3; g.drawImage(GFX.weaponMon(STARTER_ARCHS[(i + 1) % 3], th), Math.round(cx + 8 + walk * 0.5), Math.round(102 - bob), 26, 26);
+  const bob = Math.abs(Math.sin(t * 4 + i)) * 3; g.drawImage(GFX.weaponMon(['paper_dict', 'tool_ruler', 'sound_bell'][i], th), Math.round(cx + 8 + walk * 0.5), Math.round(102 - bob), 26, 26);
   g.restore();
 }
 const WorldPick = {
@@ -163,7 +163,7 @@ async function titleScreen() {
 /* ---------- 存檔資料 ---------- */
 function freshState(world, player, slot) {
   return { v: 2, slot, world, player, map: 'town1', x: 6, y: 5, lv: 3, exp: 0, hp: null, weapons: [], equip: [], cur: 0, wenqi: 0,
-    bag: { heal: 0, heal2: 0, wenqi: 0, hint: 0 }, frags: {}, money: 300, chapter: 1, badges: [], flags: {}, defeated: {}, chests: {}, quests: {},
+    bag: { heal: 0, heal2: 0, wenqi: 0, hint: 0 }, frags: {}, money: 300, chapter: 1, badges: [], flags: {}, defeated: {}, chests: {}, quests: {}, opened: {},
     stats: {}, chStats: {}, wrong: [], seen: {}, weakKnown: {}, lastHeal: { map: 'town1', x: 6, y: 5 }, ret: { map: 'town1', x: 6, y: 5 }, time: 0, streak: 0, bestStreak: 0, answered: 0, ng: 0 };
 }
 const Flow = {

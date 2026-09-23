@@ -24,15 +24,17 @@ const OW = {
   },
   spawnFoes() {
     this.foes = []; const F = this.L.foes; if (!F) return;
-    const spots = []; this.L.rows.forEach((r, y) => [...r].forEach((c, x) => { if (c === 'g') spots.push([x, y]); }));
+    const on = F.on || 'g';
+    const spots = []; this.L.rows.forEach((r, y) => [...r].forEach((c, x) => { if (c === on) spots.push([x, y]); }));
     const used = new Set();
     for (let i = 0; i < F.n && spots.length; i++) {
       let s, tries = 0; do { s = pick(spots); tries++; } while ((used.has(s + '') || Math.abs(s[0] - this.p.x) + Math.abs(s[1] - this.p.y) < 4) && tries < 30);
-      used.add(s + ''); const st = G.badges.length; const e = weighted(F.list.filter(x => (x.stage || 0) <= st));
-      this.foes.push({ sp: e.sp, lv: rnd(F.lv[0], F.lv[1]) + (F.scale || 0) * st + (G.ng || 0) * 4, x: s[0], y: s[1], hx: s[0], hy: s[1], ox: 0, oy: 0, t: Math.random() * 1.5, cool: 0, moving: false });
+      used.add(s + ''); const st = G.badges.length;
+      const sp = F.auto ? pick(monsAtStage(st)) : weighted(F.list.filter(x => (x.stage || 0) <= st)).sp;
+      this.foes.push({ sp, lv: rnd(F.lv[0], F.lv[1]) + (F.scale || 0) * st + (G.ng || 0) * 4, x: s[0], y: s[1], hx: s[0], hy: s[1], ox: 0, oy: 0, t: Math.random() * 1.5, cool: 0, moving: false });
     }
   },
-  tile(x, y) { const r = this.L.rows; if (y < 0 || y >= r.length || x < 0 || x >= r[0].length) return this.L.indoor ? 'X' : 'T'; return r[y][x]; },
+  tile(x, y) { const r = this.L.rows; if (y < 0 || y >= r.length || x < 0 || x >= r[0].length) return this.L.indoor ? 'X' : 'T'; const o = G && G.opened && G.opened[this.id + ':' + x + ',' + y]; return o || r[y][x]; },
   npcAt(x, y) { return this.npcs.find(n => n.x === x && n.y === y); },
   foeAt(x, y) { return this.foes.find(f => f.x === x && f.y === y); },
   chestAt(x, y) { return (this.L.chests || []).find(c => c.x === x && c.y === y); },
@@ -116,6 +118,7 @@ const OW = {
     const dw = this.L.doorWarps && this.L.doorWarps[key];
     if (dw) { this.run(() => enterDoor(dw)); return; }
     if (this.L.doors && this.L.doors[key]) { this.run(() => doorAct(this.L.doors[key], tx, ty)); return; }
+    const dv = this.L.devices && this.L.devices[key]; if (dv) { this.run(() => useDevice(dv)); return; }
     if (this.tile(tx, ty) === '~') this.run(() => say('水面波光粼粼，倒映著天空。'));
   },
   updateHud() {
@@ -157,6 +160,7 @@ const OW = {
     const marks = questMarks();
     for (const n of this.npcs) { const m = marks[n.role === W.roles.questGiver ? 'questGiver' : n.key.split(':')[1]]; if (m) drawMark(g, n.x * 16 + n.ox - cx + 3, n.y * 16 + n.oy - cy - (n.look.sprite === 'boss' ? 30 : 17), m, now); }
     for (const [mp, tx, ty] of storyTiles()) if (mp === this.id) drawMark(g, tx * 16 - cx + 3, ty * 16 - cy - 12, 'main', now);
+    for (const [k, d] of Object.entries(this.L.devices || {})) if (!G.flags[d.flag]) { const [dx2, dy2] = k.split(',').map(Number); drawMark(g, dx2 * 16 - cx + 3, dy2 * 16 - cy - 10, 'side', now); }
     if (this.bubble) { const n = this.bubble; const bx = n.x * 16 + n.ox - cx + 3, by = n.y * 16 + n.oy - cy - 16;
       g.fillStyle = '#2a2018'; g.fillRect(bx - 1, by - 1, 12, 13); g.fillStyle = '#fbf3dc'; g.fillRect(bx, by, 10, 11); g.fillStyle = '#b8322a'; g.fillRect(bx + 4, by + 2, 2, 5); g.fillRect(bx + 4, by + 8, 2, 2); }
   },
@@ -201,7 +205,7 @@ async function warpTo(map, x, y, dir) {
   if (map === 'route1' && G.flags.tut === 'pending') {   // 教學戰在步道入口進行（城鎮裡不戰鬥）
     G.flags.tut = 'done'; const M = W.roles.mentor.name;
     await say('就在這裡練習吧！', M);
-    await Battle.start({ kind: 'wild', foe: makeFoe('brush', 2), tutorial: true, mentor: M });
+    await Battle.start({ kind: 'wild', foe: makeFoe('pen_auto', 2), tutorial: true, mentor: M });
   }
 }
 async function enterDoor(dw) {
@@ -212,6 +216,23 @@ async function enterDoor(dw) {
 async function goHome() {
   if (!(await UI.yesno('要回到主畫面嗎？\n（目前進度會自動儲存）'))) return;
   autosave(); await fade(1, 0.3); titleScreen(); await fade(0, 0.3);
+}
+async function useDevice(d) {
+  if (G.flags[d.flag]) { await say(d.doneText || '（這裡的機關已經解開了。）'); return; }
+  await say(d.text);
+  const q = QB.draw([d.cat], OW.L.qlv || 1);
+  if (!q) { await say('（題庫裡還沒有這類題目，機關自行解開了。）'); G.flags[d.flag] = true; await afterDevice(d); return; }
+  const r = await UI.question(q, { move: d.label, mode: 'device' });
+  if (!r.correct) { await say(d.fail || '……好像不是這樣。再想想看，之後還能再試一次。'); return; }
+  G.flags[d.flag] = true; Sound.sfx('ok');
+  await say(d.ok);
+  await afterDevice(d);
+}
+async function afterDevice(d) {
+  const all = Object.values(OW.L.devices).filter(x => x.group === d.group);
+  if (!all.every(x => G.flags[x.flag])) return;
+  await say(d.allText || '機關全部解開了！');
+  if (d.open) { for (const [x, y] of d.open) G.opened[OW.id + ':' + x + ',' + y] = '_'; Sound.sfx('badge'); OW.foes = OW.foes; }
 }
 async function talkTo(n) {
   const R = n.role; n.dir = OPP[OW.p.dir];
@@ -295,7 +316,7 @@ async function storyPrologue() {
   Sound.sfx('badge'); await sleep(300);
   for (const t of W.xiaomoIntro) await say(t, M);
   giveWeapon('brush', 0); G.cur = 0; playerStats(); G.hp = G.maxhp;
-  await Battle.start({ kind: 'wild', foe: makeFoe('eraser', 2), tutorial: true, mentor: M });
+  await Battle.start({ kind: 'wild', foe: makeFoe('tool_eraser', 2), tutorial: true, mentor: M });
   await say(W.xiaomoAfter[0], M);
   const w = G.weapons[0]; w.r = 1; G.frags.eraser = Math.max(0, (G.frags.eraser || 0) - 1); Meta.seeWeapon(G.world, 'brush', 1); playerStats();
   Sound.sfx('badge'); s_flash(); await say(`2B 鉛筆吸收了碎片，化成了「良品．${weaponName(w)}」！`);
@@ -316,7 +337,7 @@ async function questTalk(n) {
 }
 async function foeBattle(f) {
   const res = await Battle.start({ kind: 'wild', foe: makeFoe(f.sp, f.lv) });
-  if (res === 'win') { OW.foes = OW.foes.filter(x => x !== f); const q = G.quests.bugs; if (q && q.state === 'active' && f.sp === 'brush') q.n = Math.min(3, q.n + 1); }
+  if (res === 'win') { OW.foes = OW.foes.filter(x => x !== f); const q = G.quests.bugs; if (q && q.state === 'active' && f.drop === 'brush') q.n = Math.min(3, q.n + 1); }
   else if (res === 'run') f.cool = 3;
 }
 async function openChest(c) {
