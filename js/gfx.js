@@ -138,17 +138,33 @@ const GFX = (() => {
   };
   /* 城鎮主題（地圖改版草案）：以 school 為底，換掉地面、屋頂、樹木等顏色 */
   const TOWN_THEMES = {
-    t_home:   { path: '#e8dcb8', roof: '#d85848', roof2: '#a03838', ground: '#9ad870', ground2: '#7ab858' },            // 青嵐鎮：紅瓦住宅
-    t_school: { path: '#f0e2c0', roof: '#e8a030', roof2: '#b8762a', ground: '#a8dc7a', ground2: '#84bc5c',
-                door: '#f8d860', win: '#d8f0ff', flower: ['#f86a8a', '#f8e040', '#8ad0f8'] },                            // 甲班町：粉筆蠟筆色
-    t_city:   { path: '#c8c8c0', path2: '#a0a098', pathStyle: 'slab', roof: '#4a6a9a', roof2: '#2e4670',
-                ground: '#8ac098', ground2: '#6aa078', wall: '#f0f0e8', lamp: '#f8e878' },                               // 典籍市：石板書香都市
-    t_garden: { path: '#d8c8a0', roof: '#5a8a6a', roof2: '#3a6a4a', ground: '#86cf78', ground2: '#63ab5a',
-                water: '#5ac0e8', water2: '#d0f4ff', flower: ['#f8a0c8', '#ffffff', '#f8e070'] },                         // 風雅庭：庭園
-    t_old:    { path: '#c8a878', path2: '#a08654', pathStyle: 'dirt', roof: '#8a4a3a', roof2: '#5a2e24',
-                ground: '#a8b878', ground2: '#88985a', wall: '#e0d0a8', wall2: '#b0a078', rock: '#9a9488', lamp: '#e84838' }, // 古堞城：舊城
-    t_hall:   { path: '#b8b0a8', path2: '#918a84', roof: '#5a5a68', roof2: '#38384a', ground: '#8ab08a', ground2: '#6a8e6a',
-                wall: '#e8e4dc', fence: '#c8a040', door: '#c83838' },                                                     // 考鐘台：會考會場
+    /* 晨讀村：清晨薄霧、紅瓦矮房 */
+    t_dawn:   { ground: '#a6dc86', ground2: '#86bc66', path: '#f0e4c4', path2: '#d4c8a4', roof: '#d86a50', roof2: '#a84636',
+                flower: ['#f8b0c8', '#fff0a0', '#ffffff'], leaf: '#5ab858', leaf2: '#92dc76' },
+    /* 注音坡：山坡校舍、橘黃屋頂、彩色壁畫 */
+    t_slope:  { ground: '#b4dc72', ground2: '#94bc54', path: '#f4e0b0', path2: '#d8c08c', roof: '#e8a030', roof2: '#b8762a',
+                door: '#f8d860', win: '#d8f0ff', rock: '#c0b49c', flower: ['#f86a8a', '#f8e040', '#8ad0f8'] },
+    /* 抄書巷：窄巷、深紅磚、晾著的紙 */
+    t_alley:  { ground: '#9ab88a', ground2: '#7a986a', path: '#c8b49a', path2: '#a08a72', roof: '#a8463c', roof2: '#742c26',
+                wall: '#e8d8c0', wall2: '#b8a088', lamp: '#f0c860' },
+    /* 典籍港：水岸倉庫、藍灰石板 */
+    t_port:   { ground: '#88c0a0', ground2: '#68a080', path: '#b8bcc4', path2: '#909aa4', pathStyle: 'slab',
+                roof: '#3a6a9a', roof2: '#24466e', water: '#3a9ad8', water2: '#bfe8ff', wall: '#eceee8' },
+    /* 聽雨亭：竹林、青綠、屋簷雨滴 */
+    t_bamboo: { ground: '#7ec880', ground2: '#5ea460', path: '#d8cca8', path2: '#b4a684', roof: '#4a7a5a', roof2: '#2e5a3e',
+                water: '#62c0d8', water2: '#d8f6ff', leaf: '#4aa858', leaf2: '#82d878' },
+    /* 花南街：花市、布招、粉綠拱廊 */
+    t_flower: { ground: '#9ad878', ground2: '#7ab858', path: '#f0d8d0', path2: '#d0b0a8', roof: '#c85a8a', roof2: '#96406a',
+                flower: ['#f86ab0', '#ffe070', '#ffffff'], wall: '#fdf2e8' },
+    /* 碑林關：土黃石道、碑石、燈籠 */
+    t_stele:  { ground: '#aab870', ground2: '#8a9852', path: '#cfae7c', path2: '#a98a5c', pathStyle: 'dirt',
+                roof: '#8a4a3a', roof2: '#5a2e24', wall: '#e2d2aa', wall2: '#b2a27a', rock: '#9a9488', lamp: '#e84838' },
+    /* 墨泉鄉：墨色溫泉、石砌、蒸氣 */
+    t_spring: { ground: '#86ae96', ground2: '#668e76', path: '#b0aab0', path2: '#8a848a', roof: '#4a4a62', roof2: '#2e2e42',
+                water: '#5a7ab0', water2: '#cfe0f4', wall: '#e0e0e4', lamp: '#d8e8ff' },
+    /* 鐘塔台：灰白石階、旗幟、鐘塔 */
+    t_tower:  { ground: '#8ab08a', ground2: '#6a8e6a', path: '#c4bcb4', path2: '#9a928a', roof: '#5a5a68', roof2: '#38384a',
+                wall: '#eeeae2', fence: '#c8a040', door: '#c83838' },
   };
   for (const [k, v] of Object.entries(TOWN_THEMES)) THEMES[k] = Object.assign({}, THEMES.school, v);
   function hash(a, b) { let s = (a * 374761393 + b * 668265263) >>> 0; s = (s ^ (s >>> 13)) * 1274126177 >>> 0; return (s ^ (s >>> 16)) >>> 0; }
@@ -221,6 +237,23 @@ const GFX = (() => {
         break;
       case '^': ground(); R(2, 5, 12, 10, T.rock); R(4, 3, 8, 3, T.rock); R(4, 4, 4, 2, adj(T.rock, .3)); R(2, 13, 12, 2, adj(T.rock, -.3)); break;
       case 'X': R(0, 0, 16, 16, '#16120e'); break;
+      /* ---- 城鎮景物（地圖改版）---- */
+      case 'Y': ground();                                   // 竹叢
+        for (const [x, h0] of [[3, 2], [7, 0], [11, 3]]) { R(x, h0, 2, 16 - h0, '#5a9a4a'); R(x, h0, 1, 16 - h0, '#86c86a'); for (let y = h0 + 3; y < 16; y += 4) R(x - 1, y, 4, 1, '#3a7a34'); }
+        break;
+      case 'Z': R(0, 0, 16, 16, '#7ac8d8'); R(0, 0, 16, 16, 'rgba(255,255,255,.10)');   // 湯池
+        { const o = fr * 3; R((2 + o) % 16, 5, 6, 1, '#d8f4ff'); R((9 + o) % 16, 11, 5, 1, '#d8f4ff'); }
+        R(0, 0, 16, 2, '#b8a890'); R(0, 14, 16, 2, '#b8a890'); break;
+      case 'O': ground(); R(4, 2, 8, 12, '#9a968c'); R(5, 3, 6, 10, '#b4b0a4');          // 石碑
+        R(6, 5, 4, 1, '#6a6a64'); R(6, 7, 4, 1, '#6a6a64'); R(6, 9, 3, 1, '#6a6a64'); R(3, 13, 10, 2, '#7a766e'); break;
+      case 'm': ground(); R(1, 6, 14, 2, '#b8322a'); R(1, 5, 14, 1, '#d84a3a');          // 書攤／市集攤位
+        R(2, 8, 12, 6, '#8a5a2a'); R(3, 9, 4, 4, '#e8dcc0'); R(8, 9, 4, 4, '#c8d8f0'); R(2, 13, 12, 1, '#6a4424'); break;
+      case 'n': ground(); R(7, 1, 2, 14, '#6a4a32');                                      // 布招／旗幟
+        R(2, 2, 5, 8, '#c83838'); R(3, 3, 3, 1, '#f8f0e0'); R(3, 5, 3, 1, '#f8f0e0'); R(9, 2, 5, 8, '#3a68b8'); R(10, 4, 3, 1, '#f8f0e0'); break;
+      case 'A': ground(); R(1, 3, 14, 2, '#8a4a3a'); R(2, 1, 12, 2, '#a85a48');          // 涼亭／朗讀亭
+        R(2, 5, 2, 10, '#8a6a4a'); R(12, 5, 2, 10, '#8a6a4a'); R(4, 12, 8, 2, '#c8b898'); break;
+      case 'Q': ground(); R(2, 4, 12, 10, '#a8763c'); R(3, 5, 10, 8, '#c8964c');         // 木箱堆
+        R(3, 8, 10, 1, '#8a5a2a'); R(7, 5, 2, 8, '#8a5a2a'); R(2, 13, 12, 1, '#6a4424'); break;
       case 'M': g.drawImage(tile(theme, '_'), 0, 0); R(3, 1, 10, 13, '#8a8a92'); R(4, 2, 8, 11, '#a8a8b0'); R(5, 4, 6, 1, '#6a6a74'); R(5, 6, 6, 1, '#6a6a74'); R(5, 8, 4, 1, '#6a6a74'); R(2, 14, 12, 2, '#6a6a74'); break;
       case 'V': g.drawImage(tile(theme, '_'), 0, 0); R(3, 4, 10, 9, '#4a5a70'); R(4, 5, 8, 5, '#8ad0f0'); R(5, 6, 3, 1, '#f8f8f8'); R(4, 11, 8, 1, '#2a3648'); R(5, 13, 6, 2, '#2a3648'); break;
       case 'B': R(0, 0, 16, 16, T.iwall || '#f4ecd4'); R(0, 2, 16, 10, '#6a4424'); R(0, 3, 16, 8, '#2e5a3a'); R(2, 5, 5, 1, '#e8f0e0'); R(9, 7, 4, 1, '#e8f0e0'); R(0, 12, 16, 4, T.iwall2 || '#9ab8d8'); R(3, 11, 3, 1, '#f8f8f8'); break;

@@ -341,7 +341,7 @@ function makePersonFoe(R) {
 
 /* ============ 地圖版型（三個世界共用；外觀由世界主題決定） ============
    . 草地  , 道路  g 草叢  T 樹  ~ 水  # 牆  W 窗  D 門  R 屋頂  = 柵欄  S 告示牌  F 花  L 燈  ^ 岩石 */
-const SOLID = new Set(['T', '#', 'W', 'D', 'R', '~', '=', 'S', 'L', '^', 'X', 'w', 'b', 't', 'k', 'p', 'B', 'M', 'V']);
+const SOLID = new Set(['T', '#', 'W', 'D', 'R', '~', '=', 'S', 'L', '^', 'X', 'w', 'b', 't', 'k', 'p', 'B', 'M', 'V', 'Y', 'Z', 'O', 'm', 'n', 'A', 'Q']);
 const LAYOUTS = {
   town1: { music: 'town', qlv: 1, chapter: 1,
     rows: [
