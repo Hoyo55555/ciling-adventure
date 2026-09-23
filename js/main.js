@@ -163,7 +163,7 @@ async function titleScreen() {
 /* ---------- 存檔資料 ---------- */
 function freshState(world, player, slot) {
   return { v: 2, slot, world, player, map: 'town1', x: 6, y: 5, lv: 3, exp: 0, hp: null, weapons: [], equip: [], cur: 0, wenqi: 0,
-    bag: { heal: 0, heal2: 0, wenqi: 0, hint: 0 }, frags: {}, money: 300, chapter: 1, badges: [], flags: {}, defeated: {}, chests: {}, quests: {}, opened: {},
+    bag: { heal: 0, heal2: 0, wenqi: 0, hint: 0, atkup: 0, defup: 0, dodgeup: 0, cure: 0 }, frags: {}, money: 300, chapter: 1, badges: [], flags: {}, defeated: {}, chests: {}, quests: {}, opened: {}, titles: [],
     stats: {}, chStats: {}, wrong: [], seen: {}, weakKnown: {}, lastHeal: { map: 'town1', x: 6, y: 5 }, ret: { map: 'town1', x: 6, y: 5 }, time: 0, streak: 0, bestStreak: 0, answered: 0, ng: 0 };
 }
 const Flow = {
@@ -176,6 +176,9 @@ const Flow = {
       G.equip = G.equip.map(a => map[a]).filter(Boolean); G.cur = 0;
     }
     if (G.map === 'town2' && !LAYOUTS.town2.rows[G.y]) { G.x = 11; G.y = 12; }
+    for (const id of ITEM_ORDER) if (G.bag[id] == null) G.bag[id] = 0;        // 舊存檔補上新道具欄位
+    if (!Array.isArray(G.titles)) G.titles = [];
+    for (const w of G.weapons) { if (w.bond == null) w.bond = 0; if (w.affix === undefined) w.affix = null; }
     playerStats();
     if (W.story && !G.flags.prologue) { const S0 = W.start; G.map = S0.map; G.x = S0.x; G.y = S0.y; G.weapons = []; G.equip = []; }
     await fade(1, 0.3); UI.clear(); Game.scene = 'overworld'; OW.load(G.map, G.x, G.y, 'down'); await fade(0, 0.3);
@@ -223,7 +226,7 @@ const Flow = {
 /* ---------- 啟動 ---------- */
 const CTX = $('#cv').getContext('2d');
 window.addEventListener('resize', resize); resize();
-UI.init(); QB.init(); Input.bindPad();
+UI.init(); QB.init(); loadQRate(); Input.bindPad();
 $('#muteBtn').addEventListener('click', () => { Sound.unlock(); const m = Sound.toggle(); $('#muteBtn').firstChild.textContent = m ? '✕' : '♪'; });
 if (Sound.muted) $('#muteBtn').firstChild.textContent = '✕';
 window.addEventListener('pointerdown', () => Sound.unlock(), { once: true });

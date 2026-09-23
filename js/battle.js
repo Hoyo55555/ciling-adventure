@@ -7,7 +7,11 @@ const Battle = {
     Input.eat();
     const foe = cfg.foe;
     const s = this.s = { cfg, foe, kind: cfg.kind, first: true,
-      me: { x: 0, dy: 0, a: 1, blink: false, vis: true }, fo: { x: 0, dy: 0, a: 1, blink: false, vis: true }, flash: 0, burst: null, used: new Set() };
+      me: { x: 0, dy: 0, a: 1, blink: false, vis: true }, fo: { x: 0, dy: 0, a: 1, blink: false, vis: true }, flash: 0, burst: null, used: new Set(),
+      st: { me: {}, foe: {} },                       // 狀態異常：{ 名稱: 剩餘回合 }
+      buff: { atk: 0, def: 0, dodge: 0 },            // 本場道具／戰術加成
+      fbuff: { atk: 0, def: 0 }, guardTurn: false };
+    foe.potions = foe.potions == null ? (cfg.role && cfg.role.potions != null ? cfg.role.potions : ({ gym: 1, rival: 1, trainer: 1, wild: 0 }[cfg.kind] || 0)) : foe.potions;
     if (foe.kind === 'mon' && foe.sp) Meta.seeMon(foe.sp);
     if (cfg.role && cfg.role.wenqiFlags) {
       const n = cfg.role.wenqiFlags.filter(f => G.flags[f]).length;
@@ -89,14 +93,71 @@ function hudMe(s, hp) {
   s.hm.innerHTML = `<div class="bh-top"><b>${esc(G.player.name)}</b><span>Lv.${G.lv}</span></div>
     <div class="bh-row"><span class="lab">氣血</span><div class="inkbar"><i class="${r <= .25 ? 'low' : ''}" style="width:${r * 100}%"></i></div><span class="num">${Math.ceil(v)}/${G.maxhp}</span></div>
     <div class="bh-row"><span class="lab">文氣</span>${wenqiDots()}${G.wenqi >= ULT_COST ? '<span class="ready">必殺可用！</span>' : ''}</div>
-    <div class="bh-row wpn"><span class="wicon"></span><span class="rtxt r${w.r}">${esc(weaponName(arch))}</span> <span class="muted">Lv.${weaponLv(w)}</span>${raceChip(ARCH[arch].race)}<span class="muted">親密 ${'♥'.repeat(bondLv(w)) || '－'}</span></div>`;
+    <div class="bh-row wpn"><span class="wicon"></span><span class="rtxt r${w.r}">${esc(weaponName(arch))}</span> <span class="muted">Lv.${weaponLv(w)}</span>${raceChip(ARCH[arch].race)}<span class="muted">親密 ${'♥'.repeat(bondLv(w)) || '－'}</span></div>
+    ${stLine(s, 'me')}`;
   $('.wicon', s.hm).appendChild(GFX.el(GFX.weapon(arch, W.theme), 0.6));
 }
 function hudFoe(s, hp) {
   const f = s.foe, v = hp == null ? f.hp : hp, r = v / f.maxhp, known = G.weakKnown[foeKey(f)];
   s.hf.innerHTML = `<div class="bh-top"><b>${esc(f.name)}</b><span>Lv.${f.lv}</span></div>
     <div class="bh-row"><span class="lab">氣血</span><div class="inkbar foe"><i style="width:${r * 100}%"></i></div></div>
-    <div class="bh-row small">${elChip(f.el)}${f.el ? `<span class="muted">怕</span>${elChip(KE_BY[f.el])}` : '<span class="muted">無屬性</span>'}${f.race ? `　${raceChip(f.race)}<span class="muted">怕</span>${raceChip(RACE_KE_BY[f.race])}` : ''}</div>`;
+    <div class="bh-row small">${elChip(f.el)}${f.el ? `<span class="muted">怕</span>${elChip(KE_BY[f.el])}` : '<span class="muted">無屬性</span>'}${f.race ? `　${raceChip(f.race)}<span class="muted">怕</span>${raceChip(RACE_KE_BY[f.race])}` : ''}</div>
+    ${stLine(s, 'foe')}`;
+}
+/* ---------- 狀態異常 ---------- */
+function stLine(s, who) {
+  if (!s || !s.st) return '';
+  const st = s.st[who], keys = Object.keys(st).filter(k => st[k] > 0);
+  const bf = who === 'me' ? s.buff : s.fbuff;
+  const bl = [];
+  if (bf && bf.atk) bl.push(`<span class="stchip" style="background:#b8322a">▲攻 +${Math.round(bf.atk * 100)}%</span>`);
+  if (bf && bf.def) bl.push(`<span class="stchip" style="background:#3a78d8">▲防 +${Math.round(bf.def * 100)}%</span>`);
+  if (bf && bf.dodge) bl.push(`<span class="stchip" style="background:#3fae4a">▲避 +${Math.round(bf.dodge * 100)}%</span>`);
+  if (!keys.length && !bl.length) return '';
+  return `<div class="bh-row small st">${keys.map(stChip).join('')}${bl.join('')}</div>`;
+}
+const hasSt = (s, who, k) => (s.st[who][k] || 0) > 0;
+async function addSt(s, who, k, turns) {
+  const name = who === 'me' ? G.player.name : s.foe.name;
+  if (who === 'me' && wardBlock(s)) { await amsg(`「${weaponName(curW())}」的辟邪之力擋下了${STATUS[k].name}！`, 700); return false; }
+  if (hasSt(s, who, k)) { await amsg(`${name} 已經處於${STATUS[k].name}狀態了。`, 600); return false; }
+  s.st[who][k] = turns || STATUS[k].turns || 3;
+  Sound.sfx('alert'); hudMe(s); hudFoe(s);
+  await amsg(`${name} ${STATUS[k].hit}`, 800);
+  return true;
+}
+function wardBlock(s) { const w = curW(); return w && w.affix && w.affix.k === 'ward' && Math.random() < w.affix.rate; }
+function clearSt(s, who) { s.st[who] = {}; hudMe(s); hudFoe(s); }
+/* 回合結束的持續傷害與倒數 */
+async function tickStatus(s, who) {
+  const st = s.st[who], isFoe = who === 'foe', target = isFoe ? s.foe : G;
+  for (const k of Object.keys(st)) {
+    if (st[k] <= 0) { delete st[k]; continue; }
+    const D = STATUS[k];
+    if (D.dot) {
+      const dmg = Math.max(1, Math.round((isFoe ? s.foe.maxhp : G.maxhp) * D.dot));
+      const from = isFoe ? s.foe.hp : G.hp, to = Math.max(0, from - dmg);
+      if (isFoe) s.foe.hp = to; else G.hp = to;
+      Sound.sfx('hit'); await tweenHP(s, isFoe, from, to);
+      await amsg(`${isFoe ? s.foe.name : G.player.name} 因為${D.name}損失了 ${dmg} 點氣血！`, 650);
+      if (to <= 0) return;
+    }
+    st[k]--;
+    if (st[k] <= 0) { delete st[k]; hudMe(s); hudFoe(s); await amsg(`${isFoe ? s.foe.name : G.player.name} 的${D.name}解除了。`, 600); }
+  }
+}
+/* 睡眠／麻痺：有機率無法行動 */
+async function stSkip(s, who) {
+  for (const k of ['sleep', 'para']) {
+    if (!hasSt(s, who, k)) continue;
+    const D = STATUS[k];
+    if (Math.random() < D.skip) {
+      await amsg(`${who === 'me' ? G.player.name : s.foe.name} 因為${D.name}無法行動！`, 800);
+      if (k === 'sleep' && Math.random() < 0.5) { delete s.st[who].sleep; hudMe(s); hudFoe(s); await amsg('……醒過來了！', 550); }
+      return true;
+    }
+  }
+  return false;
 }
 async function tweenHP(s, isFoe, from, to) {
   const d = Math.max(0.25, Math.min(0.7, Math.abs(from - to) / 40));
@@ -121,6 +182,15 @@ function combo(cats, f, arch) {
 const effText = (e, a, d) => e > 1 ? `<b class="good">◎ ${a}剋${d} ×1.5</b>` : e < 1 ? `<span class="bad">△ ${d}剋${a} ×0.7</span>` : `○ ${a || '無'}對${d} 普通`;
 const raceText = (r, a, d) => !a || !d ? '' : r > 1 ? `<b class="good">◎ ${a}剋${d} ×1.3</b>` : r < 1 ? `<span class="bad">△ ${d}剋${a} ×0.85</span>` : `○ ${a}對${d} 普通`;
 function calcDmg(a, d, pow, eff) { return Math.max(1, Math.floor(((2 * a.lv / 5 + 2) * pow * a.atk / d.def / 25 + 2) * eff * (0.9 + Math.random() * 0.15))); }
+/* 帶入本場增益／狀態後的攻防值 */
+function statsOf(s, who) {
+  if (who === 'me') {
+    const burn = hasSt(s, 'me', 'burn') ? STATUS.burn.atk : 1;
+    return { lv: G.lv, atk: G.atk * (1 + s.buff.atk) * burn, def: G.def * (1 + s.buff.def) };
+  }
+  const f = s.foe, burn = hasSt(s, 'foe', 'burn') ? STATUS.burn.atk : 1;
+  return { lv: f.lv, atk: f.atk * (1 + s.fbuff.atk) * burn, def: f.def * (1 + s.fbuff.def) };
+}
 const qLv = () => [OW.L ? OW.L.qlv + (G.ng ? 1 : 0) : 3, G.ng ? 2 : 1];
 /* 錯題強化：35% 機率從錯題本中挑同類題目再出一次 */
 const AGAIN_RATE = 0.35;
@@ -148,15 +218,29 @@ async function battleLoop(s) {
   if (tut) { await msg('選「出招」，再選一個招式。\n攻擊時有機會湧現文字的力量——答對問題，那一擊會更強！', { name: C.mentor });
     await msg('招式和敵人都有「五行」屬性（金剋木、木剋土、土剋水、水剋火、火剋金），還有「種族」（筆剋紙、紙剋器、器剋音、音剋兵、兵剋筆）。\n兩種同時剋制，傷害會大幅提升！', { name: C.mentor }); }
   if (s.pas.has('spring')) { G.wenqi = Math.min(ULT_COST, G.wenqi + 2); hudMe(s); await amsg('守護神器「文思泉湧」發動！文氣 +2', 800); }
+  // 屬性／種族被剋制時提醒換武器（教學用）
+  if (C.kind !== 'wild' && G.equip.length > 1) {
+    const w0 = curW(), myEl = elOfCats(ARCH[w0.arch].cats);
+    const elBad = f.el && myEl && elEffect(f.el, myEl) > 1, raBad = f.race && raceEffect(f.race, ARCH[w0.arch].race) > 1;
+    if (elBad || raBad) {
+      const better = G.equip.map(id => wById(id)).filter(w2 => w2 && w2.id !== w0.id)
+        .find(w2 => (f.el ? elEffect(elOfCats(ARCH[w2.arch].cats), f.el) : 1) > 1 || (f.race ? raceEffect(ARCH[w2.arch].race, f.race) : 1) > 1);
+      await amsg(`（${f.name} ${elBad ? `的${f.el}屬性剋制你的${myEl}` : `的${f.race}族剋制你的${ARCH[w0.arch].race}族`}！${better ? `帶著的「${weaponName(better)}」也許更有利——可以用「換武器」切換。` : '試著用「換武器」或戰術應對吧。'}）`, 1400);
+    }
+  }
   let turn = 0;
   while (true) {
     turn++;
+    s.guardTurn = false;
+    if (s.tacticCd > 0) s.tacticCd--;
+    if (await stSkip(s, 'me')) { await foeTurn(s, false); if (await endOfRound(s) === 'lose') return 'lose'; if (G.hp <= 0) { await faint(s.me); await msg('眼前一黑……'); return 'lose'; } continue; }
     const act = await chooseAction(s);
     if (act.type === 'run') {
       if (C.kind !== 'wild') { await msg('這場對決不能撤退！'); continue; }
       if (tut || Math.random() < 0.85) { Sound.sfx('run'); await msg('順利撤退了！'); return 'run'; }
       await msg('撤退失敗！');
     } else if (act.type === 'skill') { await playerAttack(s, act.skill); }
+    else if (act.type === 'tactic') { await useTactic(s); }
     else if (act.type === 'ult') { await playerUlt(s); }
     else if (act.type === 'item') { const r = await useItem(s, act.id); if (r === 'cancel') continue; }
     else if (act.type === 'switch') { G.cur = act.idx; playerStats(); hudMe(s); Sound.sfx('ok'); await msg(`換上了「${weaponName(curW())}」！`); }
@@ -166,11 +250,43 @@ async function battleLoop(s) {
     }
     if (f.hp <= 0) return await victory(s);
     await foeTurn(s, tut && turn === 1);
-    if (s.pas.has('regen') && G.hp > 0 && G.hp < G.maxhp) { const from = G.hp; G.hp = Math.min(G.maxhp, G.hp + Math.ceil(G.maxhp * 0.08)); await tweenHP(s, false, from, G.hp); await amsg(`守護神器「回春」：恢復 ${G.hp - from} 點氣血`, 600); }
+    if (G.hp > 0 && f.hp > 0) { const r = await endOfRound(s); if (r === 'win') return await victory(s); }
+    if (f.hp <= 0) return await victory(s);
     if (G.hp <= 0) {
       if (tut) { G.hp = 1; hudMe(s); await msg('練習戰不會倒下，放心！', { name: C.mentor }); continue; }
       await faint(s.me); await msg('眼前一黑……'); return 'lose';
     }
+  }
+}
+/* 回合結束：守護能力、武器附加效果、狀態傷害 */
+async function endOfRound(s) {
+  const w = curW();
+  if (s.pas.has('regen') && G.hp > 0 && G.hp < G.maxhp) { const from = G.hp; G.hp = Math.min(G.maxhp, G.hp + Math.ceil(G.maxhp * 0.08)); await tweenHP(s, false, from, G.hp); await amsg(`守護神器「回春」：恢復 ${G.hp - from} 點氣血`, 600); }
+  if (w && w.affix && G.hp > 0) {
+    if (w.affix.k === 'regen' && G.hp < G.maxhp && Math.random() < Math.max(0.5, w.affix.rate)) {
+      const from = G.hp; G.hp = Math.min(G.maxhp, G.hp + Math.ceil(G.maxhp * 0.04)); await tweenHP(s, false, from, G.hp);
+      await amsg(`「${weaponName(w)}」的回春之力：恢復 ${G.hp - from} 點氣血`, 600);
+    }
+    if (w.affix.k === 'leak' && Math.random() < w.affix.rate) {
+      const from = G.hp, dmg = Math.max(1, Math.ceil(G.maxhp * 0.03)); G.hp = Math.max(1, G.hp - dmg); await tweenHP(s, false, from, G.hp);
+      await amsg(`「${weaponName(w)}」漏出了墨汁……損失 ${from - G.hp} 點氣血。`, 600);
+    }
+  }
+  await tickStatus(s, 'foe'); if (s.foe.hp <= 0) return 'win';
+  await tickStatus(s, 'me'); if (G.hp <= 0) return 'lose';
+  return null;
+}
+/* 戰術招式：不攻擊，改為強化自己或干擾對手 */
+async function useTactic(s) {
+  const w = curW(), T = ARCH[w.arch].tactic;
+  s.used.add(w.id); s.tacticCd = 3;
+  await amsg(`${G.player.name} 使出了戰術「${T.name}」！`, 500);
+  if (T.kind === 'guard') { s.guardTurn = true; Sound.sfx('ok'); await amsg(T.text, 800); return; }
+  if (T.kind === 'buff') { s.buff[T.stat] = Math.min(0.6, s.buff[T.stat] + T.val); Sound.sfx('heal'); hudMe(s); await amsg(T.text, 800); return; }
+  if (T.kind === 'inflict') {
+    await amsg(T.text, 700);
+    if (Math.random() < T.rate) await addSt(s, 'foe', Math.random() < 0.5 ? T.st : T.alt);
+    else await amsg('可惜……對手沒有受到影響。', 650);
   }
 }
 async function chooseAction(s) {
@@ -191,9 +307,9 @@ async function chooseAction(s) {
 }
 function skillMenu(s) {
   return new Promise(res => {
-    const w = curW(), arch = w.arch, skills = weaponSkills(arch, weaponLv(w)).map(([name, cats, pow]) => ({ name, cats, pow: Math.round(pow * RAR_POW[w.r]) }));
-    const canUlt = G.wenqi >= ULT_COST;
-    const list = skills.concat(canUlt ? [{ name: '★ ' + ARCH[arch].ult, ult: true }] : []);
+    const w = curW(), arch = w.arch, skills = weaponSkills(arch, weaponLv(w)).map(([name, cats, pow, fx]) => ({ name, cats, pow: Math.round(pow * RAR_POW[w.r]), fx }));
+    const canUlt = G.wenqi >= ULT_COST, T = ARCH[arch].tactic, canTactic = weaponLv(w) >= 2 && T && !(s.tacticCd > 0);
+    const list = skills.concat(canTactic ? [{ name: '◆ ' + T.name, tactic: T }] : [], canUlt ? [{ name: '★ ' + ARCH[arch].ult, ult: true }] : []);
     const box = UI.el('box menu bcmd skills'); const info = UI.el('box skillinfo');
     const items = list.map((sk, i) => { const d = h('div', 'opt' + (sk.ult ? ' ult' : ''), esc(sk.name)); d.addEventListener('pointerdown', e => { e.preventDefault(); if (sel === i) pickIt(); else { sel = i; paint(); } }); box.appendChild(d); return d; });
     let sel = 0;
@@ -201,10 +317,12 @@ function skillMenu(s) {
       items.forEach((d, i) => d.classList.toggle('sel', i === sel));
       const sk = list[sel];
       if (sk.ult) { info.innerHTML = `<b>必殺技</b>．消耗 5 格文氣<br>不必答題，必定命中，威力 120！`; return; }
+      if (sk.tactic) { const T = sk.tactic;
+        info.innerHTML = `<b>戰術</b>．不造成傷害，用掉這一回合<br>${T.kind === 'guard' ? '這一回合不會受到傷害' : T.kind === 'buff' ? `${BOND_STAT_NAME[T.stat]} 提升 ${Math.round(T.val * 100)}%（本場有效）` : `${Math.round(T.rate * 100)}% 機率讓對手${STATUS[T.st].name}或${STATUS[T.alt].name}`}`; return; }
       const el = elOfCats(sk.cats), c = combo(sk.cats, s.foe, arch), ra = ARCH[arch].race;
-      info.innerHTML = `${sk.cats.slice(0, 2).map(chip).join('')}　威力 ${sk.pow}<br>${elChip(el)}${effText(c.el, el, s.foe.el)}<br>${raceChip(ra)}${raceText(c.ra, ra, s.foe.race) || '<span class="muted">對手無種族</span>'}${c.dbl ? '<br><b class="good">★ 雙重剋制！再 ×1.2</b>' : ''}`;
+      info.innerHTML = `${sk.cats.slice(0, 2).map(chip).join('')}　威力 ${sk.pow}<br>${elChip(el)}${effText(c.el, el, s.foe.el)}<br>${raceChip(ra)}${raceText(c.ra, ra, s.foe.race) || '<span class="muted">對手無種族</span>'}${c.dbl ? '<br><b class="good">★ 雙重剋制！再 ×1.2</b>' : ''}${sk.fx && sk.fx.inflict ? `<br><b style="color:${STATUS[sk.fx.inflict].col}">${Math.round(sk.fx.rate * 100)}% 機率讓對手${STATUS[sk.fx.inflict].name}</b>` : ''}`;
     };
-    const pickIt = () => { Sound.sfx('ok'); done(list[sel].ult ? { type: 'ult' } : { type: 'skill', skill: list[sel] }); };
+    const pickIt = () => { Sound.sfx('ok'); const it = list[sel]; done(it.ult ? { type: 'ult' } : it.tactic ? { type: 'tactic' } : { type: 'skill', skill: it }); };
     const done = v => { UI.pop(m); info.remove(); res(v); };
     const m = { el: box, update() {
       const d = Input.dir();
@@ -235,15 +353,30 @@ async function playerAttack(s, sk) {
   if (c.el < 1 && w.r >= 5) mul = mul / c.el;                      // 神品：被屬性剋制時威力不降低
   if (c.el > 1 && w.r >= 2) mul *= 1.15;                           // 精品以上：屬性剋制時威力 +15%
   if (c.el > 1 && w.r >= 4 && qBonus > 1) G.wenqi = Math.min(ULT_COST, G.wenqi + 1);
-  const dmg = Math.floor(calcDmg(G, f, sk.pow, mul) * qBonus * (s.pas.has('bane') && s.kind === 'gym' ? 1.5 : 1));
+  let dmg = Math.floor(calcDmg(statsOf(s, 'me'), statsOf(s, 'foe'), sk.pow, mul) * qBonus * (s.pas.has('bane') && s.kind === 'gym' ? 1.5 : 1));
+  let fxMsg = '';
+  const af = w.affix;
+  if (af && Math.random() < af.rate) {
+    if (af.k === 'keen') { dmg = Math.floor(dmg * 1.5); fxMsg = `「${weaponName(w)}」的銳利之力發動，傷害提升！`; }
+    if (af.k === 'brittle') { dmg = Math.max(1, Math.floor(dmg * 0.5)); fxMsg = `「${weaponName(w)}」有些脆裂，威力減半了……`; }
+    if (af.k === 'focus') { G.wenqi = Math.min(ULT_COST, G.wenqi + 1); fxMsg = `「${weaponName(w)}」凝神聚氣，文氣額外 +1！`; }
+    if (af.k === 'heavy') { await amsg(`「${weaponName(w)}」太沉重了，這一擊揮空了……`, 800); return; }
+  }
   await lunge(s.me, 1); Sound.sfx('hit'); inkBurst(s, 178, 72, '#2a2018'); await blink(s.fo);
   const from = f.hp; f.hp = Math.max(0, f.hp - dmg); await tweenHP(s, true, from, f.hp); hudMe(s);
+  if (fxMsg) await amsg(fxMsg, 750);
   const el = elOfCats(sk.cats), ra = ARCH[arch].race;
   if (c.dbl) { G.weakKnown[foeKey(f)] = 1; await amsg(`${el}剋${f.el}、${ra}剋${f.race}——雙重剋制！傷害大幅提升！`, 900); }
   else if (c.el > 1) { G.weakKnown[foeKey(f)] = 1; await amsg(`${el}剋${f.el}！效果絕佳！`, 750); }
   else if (c.ra > 1) await amsg(`${ra}剋${f.race}！種族相剋，傷害提升！`, 750);
   else if (c.el < 1) await amsg(`${f.el}剋${el}……效果不太好。`, 650);
   else if (c.ra < 1) await amsg(`${f.race}剋${ra}……有點吃力。`, 650);
+  // 招式附帶的狀態異常 + 武器附加效果的狀態
+  if (f.hp > 0 && sk.fx && sk.fx.inflict && Math.random() < sk.fx.rate) await addSt(s, 'foe', sk.fx.inflict);
+  if (f.hp > 0 && af && Math.random() < af.rate) {
+    const m = { flame: 'burn', venom: 'poison', numb: 'para', drowse: 'sleep' }[af.k];
+    if (m) { await amsg(`「${weaponName(w)}」的${AFFIX[af.k].name}之力發動！`, 650); await addSt(s, 'foe', m); }
+  }
   // 武器熟練度
   const before = weaponLv(w);
   if (qBonus > 1) w.mastery += (c.mul > 1 ? 2 : 1) + (w.r >= 1 ? 1 : 0);   // 答對題目才會提升熟練度
@@ -260,12 +393,15 @@ async function playerUlt(s) {
   await msg(`文氣凝聚——必殺技「${ARCH[arch].ult}」！`, { auto: 700 });
   s.flash = 1; Sound.sfx('badge'); await Anim.run(0.5, k => s.flash = 1 - k); s.flash = 0;
   await lunge(s.me, 1); Sound.sfx('hit'); inkBurst(s, 178, 72, '#b8322a'); inkBurst(s, 170, 66, '#16120e'); await blink(s.fo);
-  const dmg = Math.floor(calcDmg(G, f, Math.round(120 * RAR_POW[w.r]), 1) * (s.pas.has('bane') && s.kind === 'gym' ? 1.5 : 1)); const from = f.hp; f.hp = Math.max(0, f.hp - dmg); await tweenHP(s, true, from, f.hp);
+  const dmg = Math.floor(calcDmg(statsOf(s, 'me'), statsOf(s, 'foe'), Math.round(120 * RAR_POW[w.r]), 1) * (s.pas.has('bane') && s.kind === 'gym' ? 1.5 : 1)); const from = f.hp; f.hp = Math.max(0, f.hp - dmg); await tweenHP(s, true, from, f.hp);
 }
 async function foeTurn(s, forceQ) {
-  const f = s.foe, mv = pick(f.moves);
+  const f = s.foe;
+  if (await stSkip(s, 'foe')) return;
+  if (await foeUseItem(s)) return;                       // 館主、勁敵等會使用道具
+  const mv = pick(f.moves);
   await amsg(`${f.name} 使出了「${mv.name}」！`, 450);
-  const w = curW(), bl = bondLv(w), chance = BOND_DODGE[bl];
+  const w = curW(), chance = dodgeChance(w, s.buff.dodge);
   if (forceQ || mv.qtype || Math.random() < chance) {
     if (mv.qtype === 'order') await amsg('文章的段落被打亂了！把它排回正確的順序！', 800);
     else await amsg(`「${weaponName(w)}」和你變得更親密了，牠努力想幫你迴避——答對問題就能閃過！`, 900);
@@ -273,16 +409,51 @@ async function foeTurn(s, forceQ) {
     const r = await askQ(s, mv.qtype ? mv.cats : (s.cfg.cats || mv.cats), 'defend', mv.name, mv.qtype);
     if (r.correct) { G.wenqi = Math.min(ULT_COST, G.wenqi + 1); hudMe(s); await amsg('你看穿了招式，漂亮地閃開了！', 750); return; }
   }
+  if (s.guardTurn) { await lunge(s.fo, -1); s.flash = 0.6; await Anim.run(0.25, k => s.flash = 0.6 * (1 - k)); await amsg('你早已架好架式，完全擋下了這一擊！', 800); return; }
   const myEl = elOfCats(ARCH[curW().arch].cats), mvEl = elOfCats(mv.cats);
   const rMul = f.race ? (raceEffect(f.race, ARCH[curW().arch].race) > 1 ? 1.15 : raceEffect(f.race, ARCH[curW().arch].race) < 1 ? 0.9 : 1) : 1;
   const eff = (elEffect(mvEl, myEl) > 1 ? 1.25 : elEffect(mvEl, myEl) < 1 ? 0.8 : 1) * rMul;   // 敵人屬性與種族對你手上武器
   const mul = s.kind === 'wild' ? 0.8 : 0.82;
-  let dmg = Math.max(1, Math.floor(calcDmg(f, G, mv.pow, eff) * mul));
+  let dmg = Math.max(1, Math.floor(calcDmg(statsOf(s, 'foe'), statsOf(s, 'me'), mv.pow, eff) * mul));
+  const wa = curW().affix;
+  if (wa && wa.k === 'ward' && Math.random() < wa.rate) { dmg = Math.max(1, Math.floor(dmg * 0.6)); await amsg(`「${weaponName(curW())}」的辟邪之力減輕了傷害！`, 700); }
   if (s.pas.has('guard')) { dmg = Math.max(1, Math.floor(dmg * 0.6)); if (!s.guardMsg) { s.guardMsg = true; await amsg('守護神器「護心」守護著你，傷害減輕了！', 700); } }
   if (s.pas.has('shield') && !s.shieldUsed) { s.shieldUsed = true; await lunge(s.fo, -1); s.flash = 0.8; await Anim.run(0.3, k => s.flash = 0.8 * (1 - k)); await amsg('守護神器「護心」發動！這次攻擊完全擋下了！', 800); return; }
   await lunge(s.fo, -1); Sound.sfx('hit'); await blink(s.me);
   const from = G.hp; G.hp = Math.max(0, G.hp - dmg); await tweenHP(s, false, from, G.hp);
   if (eff > 1) await amsg(`${mvEl}剋${myEl}！你受到較重的傷害！`, 650); else if (eff < 1) await amsg(`${myEl}剋${mvEl}，你擋下了部分傷害。`, 650);
+  // 反擊：武器附加效果
+  if (wa && wa.k === 'thorn' && G.hp > 0 && Math.random() < wa.rate) {
+    const back = Math.max(1, Math.round(dmg * 0.25)), from2 = f.hp; f.hp = Math.max(0, f.hp - back);
+    Sound.sfx('hit'); await tweenHP(s, true, from2, f.hp);
+    await amsg(`「${weaponName(curW())}」反彈了 ${back} 點傷害！`, 700);
+  }
+  // 敵人的招式也可能造成狀態異常（依對手屬性）
+  if (G.hp > 0 && f.el && EL_STATUS[f.el] && Math.random() < (s.kind === 'wild' ? 0.06 : 0.12)) await addSt(s, 'me', EL_STATUS[f.el]);
+}
+/* 館主／勁敵／天王／魔王：血量偏低時會吃藥，也可能強化自己或解除狀態 */
+async function foeUseItem(s) {
+  const f = s.foe;
+  if (f.kind !== 'person' || !f.potions) return false;
+  const low = f.hp / f.maxhp;
+  const bad = Object.keys(s.st.foe).filter(k => s.st.foe[k] > 0);
+  if (bad.length && Math.random() < 0.35) {
+    f.potions--; clearSt(s, 'foe'); Sound.sfx('heal');
+    await amsg(`${f.name} 用了道具，解除了不良狀態！`, 850);
+    return true;
+  }
+  if (low < 0.4 && Math.random() < 0.5) {
+    f.potions--; const from = f.hp, amt = Math.round(f.maxhp * 0.22);
+    f.hp = Math.min(f.maxhp, f.hp + amt); Sound.sfx('heal'); await tweenHP(s, true, from, f.hp);
+    await amsg(`${f.name} 喝下了補給品，恢復了 ${f.hp - from} 點氣血！`, 900);
+    return true;
+  }
+  if (low < 0.75 && !s.fbuff.atk && Math.random() < 0.18) {
+    f.potions--; s.fbuff.atk = 0.25; hudFoe(s); Sound.sfx('alert');
+    await amsg(`${f.name} 用了提神道具，氣勢變強了！（攻擊提升）`, 900);
+    return true;
+  }
+  return false;
 }
 async function victory(s) {
   const f = s.foe, C = s.cfg;
@@ -311,5 +482,7 @@ async function useItem(s, id) {
   G.bag[id]--;
   if (it.use === 'heal') { const from = G.hp; G.hp = Math.min(G.maxhp, G.hp + it.val); Sound.sfx('heal'); await tweenHP(s, false, from, G.hp); await msg(`用了「${itemName(id)}」，恢復了 ${G.hp - from} 點氣血！`); }
   if (it.use === 'wenqi') { G.wenqi = Math.min(ULT_COST, G.wenqi + it.val); Sound.sfx('heal'); hudMe(s); await msg(`用了「${itemName(id)}」，文氣增加了！`); }
+  if (it.use === 'buff') { s.buff[it.stat] = Math.min(0.6, s.buff[it.stat] + it.val); playerStats(); Sound.sfx('heal'); hudMe(s); await msg(`用了「${itemName(id)}」，${BOND_STAT_NAME[it.stat]}提升了！（本場有效）`); }
+  if (it.use === 'cure') { const had = Object.keys(s.st.me).length; clearSt(s, 'me'); Sound.sfx('heal'); await msg(had ? `用了「${itemName(id)}」，所有不良狀態都解除了！` : `用了「${itemName(id)}」，但現在沒有不良狀態……`); }
   return 'used';
 }

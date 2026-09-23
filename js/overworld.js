@@ -10,7 +10,7 @@ const OW = {
   load(id, x, y, dir) {
     this.id = id; this.L = LAYOUTS[id];
     Object.assign(this.p, { x, y, dir: dir || this.p.dir, moving: false, t: 0 });
-    this.npcs = (this.L.npcs || []).map(s => {
+    this.npcs = (this.L.npcs || []).concat((G.flags.cleared && W.postNpcs && W.postNpcs[id]) || []).map(s => {
       const role = W.roles[s.role]; if (!role) return null;
       if (s.route && G.route !== s.route) return null;                 // 依劇情路線出現的 NPC
       if (s.role === 'rival' && G.flags.rivalGone) return null;        // 勁敵離開步道
@@ -222,8 +222,15 @@ async function useDevice(d) {
   await say(d.text);
   const q = QB.draw([d.cat], OW.L.qlv || 1);
   if (!q) { await say('（題庫裡還沒有這類題目，機關自行解開了。）'); G.flags[d.flag] = true; await afterDevice(d); return; }
-  const r = await UI.question(q, { move: d.label, mode: 'device' });
-  if (!r.correct) { await say(d.fail || '……好像不是這樣。再想想看，之後還能再試一次。'); return; }
+  const tries = (G.devTry = G.devTry || {});
+  const n = tries[d.flag] = (tries[d.flag] || 0) + 1;
+  if (n >= 2) await say(`（這個機關已經試過 ${n - 1} 次了。想一想剛才的解析，或用「${itemName('hint')}」刪掉錯的選項。）`);
+  const r = await UI.question(q, { move: d.label, mode: 'device', hint: true });
+  if (!r.correct) {
+    await say(d.fail || '……好像不是這樣。');
+    await say('（這一題已經收進「錯題本」了，可以在選單裡複習，之後再回來挑戰這個機關。）');
+    return;
+  }
   G.flags[d.flag] = true; Sound.sfx('ok');
   await say(d.ok);
   await afterDevice(d);
@@ -240,6 +247,7 @@ async function talkTo(n) {
     case 'mentor': return mentorTalk(n);
     case 'trainer': case 'rival': case 'gym': return trainerTalk(n);
     case 'quest': return questTalk(n);
+    case 'rematch': return rematchTalk(n);
     case 'guide': { const L = R.lines[Math.min(storyStage(), R.lines.length - 1)]; await say(L.join('\n\n'), R.name); return; }
     case 'healer': {
       Sound.sfx('door'); await say(R.text); G.hp = G.maxhp;
@@ -249,6 +257,22 @@ async function talkTo(n) {
     case 'smith': await say(R.lines.join('\n\n'), R.name); await Forge.open(); n.dir = n.home; return;
     default: await say(R.lines.join('\n\n'), R.name); n.dir = n.home;
   }
+}
+/* 通關後的再戰：等級會跟著玩家成長 */
+async function rematchTalk(n) {
+  const R = n.role;
+  for (const t of R.lines) await say(fmt(t), t.startsWith('（') ? undefined : R.name);
+  const k = await UI.ask(R.ask, ['好，來吧！', '下次吧'], { name: R.name });
+  if (k !== 0) { await say(R.no, R.name); return; }
+  const role = Object.assign({}, R, { foe: Object.assign({}, R.foe, { lv: Math.max(R.foe.lv, G.lv + 2) }) });
+  const res = await Battle.start({ kind: 'gym', foe: makePersonFoe(role), role, cats: role.foe.cats });
+  if (res !== 'win') return;
+  const P = R.prize || {};
+  if (P.frags) { const keys = ARCH_ORDER.filter(a => ARCH[a].ch <= 5); for (let i = 0; i < P.frags; i++) { const a = pick(keys); G.frags[a] = (G.frags[a] || 0) + 1; } }
+  if (P.items) for (const id in P.items) G.bag[id] += P.items[id];
+  Sound.sfx('badge');
+  await say(`得到了${P.frags ? ` 隨機碎片 ×${P.frags}` : ''}${P.items ? `、${Object.entries(P.items).map(([id, n2]) => `「${itemName(id)}」×${n2}`).join('、')}` : ''}！`);
+  autosave();
 }
 async function mentorTalk(n) {
   const R = n.role;
@@ -297,7 +321,7 @@ async function trainerTalk(n) {
     if (!W.story) { await say(`（你選擇了「${W.routeNames[G.route]}」，之後的劇情會跟著改變。）`); G.flags.rivalGone = true; await Anim.run(0.4, k2 => n.oy = -6 * k2); OW.npcs = OW.npcs.filter(x => x !== n); }
   }
   if (R.afterWin && R.afterWin.length) for (const t of R.afterWin) await say(t, t.startsWith('（') ? undefined : R.name);
-  if (R.kind === 'rival' && W.story && !R.choice) { G.flags['gone:' + n.key] = true; await Anim.run(0.4, k2 => n.oy = -8 * k2); OW.npcs = OW.npcs.filter(x => x !== n); }
+  if (((R.kind === 'rival' && !R.choice) || R.leaves) && W.story) { G.flags['gone:' + n.key] = true; await Anim.run(0.4, k2 => n.oy = -8 * k2); OW.npcs = OW.npcs.filter(x => x !== n); }
   if (R.kind === 'gym') {
     G.badges.push(R.badge); Sound.play('victory'); Sound.sfx('badge');
     await say(`${G.player.name} 拿回了「${R.badge}」！（${G.badges.length} / ${W.story ? 5 : 3}）`);

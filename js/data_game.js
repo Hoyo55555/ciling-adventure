@@ -28,12 +28,81 @@ const RACE_KE_BY = Object.fromEntries(Object.entries(RACE_KE).map(([a, b]) => [b
 const raceChip = r => r ? `<span class="chip race" style="background:${RACE[r]}">${r}</span>` : '';
 function raceEffect(a, d) { if (!a || !d) return 1; if (RACE_KE[a] === d) return 1.3; if (RACE_KE[d] === a) return 0.85; return 1; }
 const DOUBLE_BONUS = 1.2;          // 屬性與種族同時剋制的額外加成
-const ATTACK_Q_RATE = 0.3;         // 攻擊時出題的機率
+let ATTACK_Q_RATE = 0.3;           // 攻擊時出題的機率（教師可調整）
+function loadQRate() { const v = Store.get('ciling_qrate', null); if (v != null) ATTACK_Q_RATE = Math.min(1, Math.max(0.1, +v)); }
+function setQRate(v) { ATTACK_Q_RATE = Math.min(1, Math.max(0.1, +v)); Store.set('ciling_qrate', ATTACK_Q_RATE); }
 const ATTACK_Q_POW = 1.3;          // 答對後的威力加成
 /* 武器親密度：每打完一場戰鬥 +1，分三級，越高越容易觸發「迴避出題」 */
 const BOND_STEPS = [10, 20, 35];
 const BOND_DODGE = [0, 0.10, 0.15, 0.20];
 const bondLv = w => BOND_STEPS.filter(x => (w.bond || 0) >= x).length;
+/* 親密度滿級（三級）時，武器依種族再給一項小加成 */
+const BOND_MAX_BONUS = 0.05;
+const RACE_BOND_STAT = { 筆: 'atk', 紙: 'hp', 器: 'def', 音: 'dodge', 兵: 'atk' };
+const BOND_STAT_NAME = { atk: '攻擊', def: '防禦', hp: '氣血上限', dodge: '迴避機率' };
+const bondStatOf = w => RACE_BOND_STAT[ARCH[archOf(w)].race] || 'atk';
+const bondBonus = (w, stat) => (w && bondLv(w) >= 3 && bondStatOf(w) === stat) ? BOND_MAX_BONUS : 0;
+
+/* ============ 狀態異常 ============ */
+const STATUS = {
+  poison: { name: '中毒', icon: '☠', col: '#7a4ac8', dot: 0.06, turns: 3, hit: '陷入中毒！每回合會損失氣血。' },
+  burn: { name: '燒傷', icon: '♨', col: '#d8502a', dot: 0.05, atk: 0.88, turns: 3, hit: '被燒傷了！每回合損血，攻擊也下降。' },
+  sleep: { name: '睡眠', icon: '☾', col: '#4a78c8', skip: 0.6, turns: 2, hit: '睡著了！可能無法行動。' },
+  para: { name: '麻痺', icon: '⚡', col: '#c8a020', skip: 0.35, turns: 3, hit: '麻痺了！可能無法行動。' },
+};
+const ST_ORDER = ['poison', 'burn', 'sleep', 'para'];
+const stChip = k => `<span class="stchip" style="background:${STATUS[k].col}">${STATUS[k].icon} ${STATUS[k].name}</span>`;
+const EL_STATUS = { 火: 'burn', 木: 'poison', 水: 'sleep', 金: 'para', 土: 'poison' };
+
+/* ============ 武器附加效果（鍛造時有機率出現，升階保留） ============ */
+const AFFIX = {
+  regen: { name: '回春', good: 1, desc: '每回合結束時恢復少量氣血' },
+  thorn: { name: '反擊', good: 1, desc: '被攻擊時反彈部分傷害' },
+  keen: { name: '銳利', good: 1, desc: '攻擊時有機會造成 1.5 倍傷害' },
+  focus: { name: '凝神', good: 1, desc: '攻擊時有機會額外累積文氣' },
+  ward: { name: '辟邪', good: 1, desc: '有機會免疫狀態異常並減輕傷害' },
+  flame: { name: '燃墨', good: 1, desc: '攻擊時有機會讓對手燒傷' },
+  venom: { name: '浸墨', good: 1, desc: '攻擊時有機會讓對手中毒' },
+  numb: { name: '震響', good: 1, desc: '攻擊時有機會讓對手麻痺' },
+  drowse: { name: '催眠', good: 1, desc: '攻擊時有機會讓對手睡著' },
+  brittle: { name: '脆裂', good: 0, desc: '攻擊時有機會威力減半' },
+  heavy: { name: '沉重', good: 0, desc: '有機會因為太重而無法行動' },
+  leak: { name: '漏墨', good: 0, desc: '每回合有機會自己損失少量氣血' },
+};
+const AFFIX_GOOD = Object.keys(AFFIX).filter(k => AFFIX[k].good);
+const AFFIX_BAD = Object.keys(AFFIX).filter(k => !AFFIX[k].good);
+const AFFIX_RATE = 0.32;          // 鍛造出來的武器帶附加效果的機率
+const AFFIX_BAD_RATE = 0.25;      // 其中是負面效果的比例
+const AFFIX_BASE = 0.25, AFFIX_STEP = 0.1, AFFIX_MAX = 0.6;   // 觸發機率：基礎、每多一把 +、上限
+const affixText = w => { const a = w && w.affix; return a ? `${AFFIX[a.k].good ? '✦' : '✧'} ${AFFIX[a.k].name}（${AFFIX[a.k].desc}，機率 ${Math.round(a.rate * 100)}%）` : ''; };
+function rollAffix() {
+  if (Math.random() > AFFIX_RATE) return null;
+  const bad = Math.random() < AFFIX_BAD_RATE;
+  return { k: pick(bad ? AFFIX_BAD : AFFIX_GOOD), rate: AFFIX_BASE };
+}
+/* 合成升階：只保留一個附加效果，但每多一把帶效果的武器就提高觸發機率 */
+function mergeAffix(list) {
+  const withFx = list.filter(w => w.affix);
+  if (!withFx.length) return null;
+  const good = withFx.filter(w => AFFIX[w.affix.k].good);
+  const base = (good.length ? good : withFx)[0].affix;
+  const rate = Math.min(AFFIX_MAX, Math.max(base.rate, AFFIX_BASE) + (withFx.length - 1) * AFFIX_STEP);
+  return { k: base.k, rate };
+}
+
+/* ============ 圖鑑稱號：每收集 10 種妖怪解鎖一個，收得越多加成越高 ============ */
+const DEX_TITLES = [
+  { id: 'd10', n: 10, name: '妖怪見習生', stat: 'atk', val: 0.03 },
+  { id: 'd20', n: 20, name: '筆墨博物家', stat: 'hp', val: 0.05 },
+  { id: 'd30', n: 30, name: '校園妖怪通', stat: 'def', val: 0.07 },
+  { id: 'd40', n: 40, name: '圖鑑大師', stat: 'dodge', val: 0.10 },
+  { id: 'd50', n: 50, name: '萬象皆知', stat: 'atk', val: 0.13 },
+];
+const TITLE_SLOTS = 2;            // 最多同時配戴兩個稱號，可自由組合
+const dexCount = () => Object.keys((Meta.d && Meta.d.dex) || {}).length;
+const titleUnlocked = t => dexCount() >= t.n;
+const equippedTitles = () => ((G && G.titles) || []).map(id => DEX_TITLES.find(t => t.id === id)).filter(t => t && titleUnlocked(t));
+const titleBonus = stat => equippedTitles().filter(t => t.stat === stat).reduce((a, t) => a + t.val, 0);
 
 /* ============ 武器系統（30 種 × 3 世界名稱）============
    同一列是同一種武器在三個世界的名稱，轉生時依此轉換。
@@ -104,17 +173,32 @@ function skillsFor(cats) {
     ? [[CAT_SKILLS[a][0], [a], 40], [CAT_SKILLS[a][1], [a], 45], [CAT_SKILLS[a][2], [a], 60], [CAT_SKILLS[a][3], [a], 85]]
     : [[CAT_SKILLS[a][0], [a], 40], [CAT_SKILLS[b][0], [b], 40], [CAT_SKILLS[a][2], both, 60], [CAT_SKILLS[b][3], both, 85]];
 }
+/* 第三招會依武器五行附帶狀態異常；守護神器的第三招必定附帶 */
+function withEffects(list, cats) {
+  const el = elOfCats(cats), st = EL_STATUS[el];
+  if (st && list[2]) list[2] = list[2].concat([{ inflict: st, rate: 0.4 }]);
+  return list;
+}
+/* 戰術招式：不造成傷害，改為強化自己或干擾對手（武器 Lv.2 以上可用） */
+const RACE_TACTIC = {
+  筆: { name: '凝神運筆', kind: 'guard', text: '架起筆勢，這一回合不會受到傷害！' },
+  紙: { name: '紙上談兵', kind: 'buff', stat: 'atk', val: 0.3, turns: 3, text: '推演戰局，攻擊提升了！' },
+  器: { name: '鐵壁陣', kind: 'buff', stat: 'def', val: 0.4, turns: 3, text: '穩住架式，防禦提升了！' },
+  音: { name: '亂心音', kind: 'inflict', st: 'para', alt: 'sleep', rate: 0.75, text: '奏出擾人心神的聲音！' },
+  兵: { name: '凌厲身法', kind: 'buff', stat: 'dodge', val: 0.25, turns: 3, text: '身法變得輕盈，更容易看穿對手！' },
+};
 for (const [key, cats, ch, ult, sc, li, wu, col] of WEAPON_TABLE)
-  ARCH[key] = { cats, ch, ult, col, names: { school: sc[0], literati: li[0], wuxia: wu[0] }, shapes: { school: sc[1], literati: li[1], wuxia: wu[1] }, skills: skillsFor(cats) };
+  ARCH[key] = { cats, ch, ult, col, names: { school: sc[0], literati: li[0], wuxia: wu[0] }, shapes: { school: sc[1], literati: li[1], wuxia: wu[1] }, skills: withEffects(skillsFor(cats), cats) };
 for (const [key, g] of Object.entries(GUARDIANS))
   ARCH[key] = { cats: ALL_CATS, ch: 9, ult: g.ult, col: g.col, guardian: true, passive: g.passive, names: { school: g.name, literati: g.name, wuxia: g.name }, shapes: { school: g.shape, literati: g.shape, wuxia: g.shape },
-    skills: [['守護', ALL_CATS, 48], ['神威', ALL_CATS, 55], ['天啟', ALL_CATS, 65], ['永恆', ALL_CATS, 78]] };
+    skills: [['守護', ALL_CATS, 48], ['神威', ALL_CATS, 55], ['天啟', ALL_CATS, 65, { inflict: 'para', rate: 0.5 }], ['永恆', ALL_CATS, 78]] };
 const ARCH_RACE = {
   brush: '筆', maobi: '筆', marker: '筆', chalk: '筆', fan: '兵', tome: '紙', dict: '紙', notebook: '紙', idiom: '紙', poemcard: '紙',
   bookmark: '紙', classic: '紙', scroll: '紙', trophy: '器', ruler: '器', eraser: '器', compass: '器', globe: '器', glasses: '器',
   seal: '器', abacus: '器', tablet: '器', palette: '器', zhuyin: '紙', bell: '音', mic: '音', whistle: '音', lamp: '器', chess: '器', legend: '兵',
 };
 for (const k in ARCH) if (!ARCH[k].race) ARCH[k].race = ARCH_RACE[k] || (ARCH[k].guardian ? '兵' : '器');
+for (const k in ARCH) ARCH[k].tactic = RACE_TACTIC[ARCH[k].race];
 const ARCH_ORDER = WEAPON_TABLE.map(r => r[0]);
 const STARTER_ARCHS = ['brush', 'tome', 'scroll'];
 const weaponDesc = a => (W.weapons && W.weapons[a] && W.weapons[a][1]) || (ARCH[a].guardian ? `守護神器．特殊能力「${PASSIVES[ARCH[a].passive].name}」：${PASSIVES[ARCH[a].passive].desc}` : `擅長「${ARCH[a].cats.join('」「')}」題型的武器。`);
@@ -136,7 +220,7 @@ const FRAG_RATE = 0.45;             // 打倒武器怪掉落碎片的機率
 const RAR_ATK = [0, 2, 4, 7, 10, 14, 14], RAR_POW = [1, 1.1, 1.2, 1.35, 1.5, 1.7, 1.6];
 const RAR_BONUS = ['', '答對時熟練度額外 +1', '剋制屬性時威力 +15%', '答對時恢復 3% 氣血', '剋制屬性時文氣額外 +1', '被剋制時威力不降低'];
 const bonusList = r => RAR_BONUS.slice(1, Math.min(r, 5) + 1);
-const newWeapon = (arch, r = 0) => ({ id: 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), arch, r, mastery: 0, bond: 0 });
+const newWeapon = (arch, r = 0, affix = null) => ({ id: 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), arch, r, mastery: 0, bond: 0, affix });
 const wById = id => G.weapons.find(w => w.id === id);
 const curW = () => wById(G.equip[G.cur]);
 const rarChip = r => `<span class="rchip r${r}">${RARITY[r].n}</span>`;
@@ -182,16 +266,25 @@ const ITEMS = {
   heal2: { price: 200, desc: '恢復 80 點氣血。', use: 'heal', val: 80 },
   wenqi: { price: 150, desc: '文氣增加 2 格。', use: 'wenqi', val: 2 },
   hint: { price: 120, desc: '答選擇題時使用，刪去兩個錯誤選項。', use: 'hint' },
+  atkup: { price: 160, desc: '本場戰鬥攻擊提升 25%。', use: 'buff', stat: 'atk', val: 0.25 },
+  defup: { price: 160, desc: '本場戰鬥防禦提升 25%。', use: 'buff', stat: 'def', val: 0.25 },
+  dodgeup: { price: 180, desc: '本場戰鬥迴避出題的機率 +20%。', use: 'buff', stat: 'dodge', val: 0.2 },
+  cure: { price: 120, desc: '解除中毒、燒傷、睡眠、麻痺等狀態。', use: 'cure' },
 };
-const ITEM_ORDER = ['heal', 'heal2', 'wenqi', 'hint'];
+const ITEM_ORDER = ['heal', 'heal2', 'cure', 'atkup', 'defup', 'dodgeup', 'wenqi', 'hint'];
 const itemName = id => W.items[id];
 
 /* ============ 數值 ============ */
 function playerStats() {
   const lv = G.lv, w = G.weapons && G.equip.length ? curW() : null;
-  G.maxhp = 28 + lv * 6; G.atk = 7 + lv * 2 + (w ? (weaponLv(w) - 1) * 2 + RAR_ATK[w.r] : 0); G.def = 6 + lv * 2;
+  const mHp = 1 + titleBonus('hp') + bondBonus(w, 'hp'), mAtk = 1 + titleBonus('atk') + bondBonus(w, 'atk'), mDef = 1 + titleBonus('def') + bondBonus(w, 'def');
+  G.maxhp = Math.round((28 + lv * 6) * mHp);
+  G.atk = Math.round((7 + lv * 2 + (w ? (weaponLv(w) - 1) * 2 + RAR_ATK[w.r] : 0)) * mAtk);
+  G.def = Math.round((6 + lv * 2) * mDef);
   if (G.hp == null || G.hp > G.maxhp) G.hp = G.maxhp;
 }
+/* 迴避出題的機率：親密度 + 稱號 + 本場道具加成 */
+function dodgeChance(w, extra = 0) { return Math.min(0.6, BOND_DODGE[bondLv(w)] + bondBonus(w, 'dodge') + titleBonus('dodge') + extra); }
 const expNeed = lv => lv * 12 + 20;
 const monName = key => monDef(key).name;
 function makeFoe(key, lv) {
@@ -243,7 +336,7 @@ const LAYOUTS = {
     doorWarps: { '6,4': { to: 'home', tx: 4, ty: 5, dir: 'up', ret: { x: 6, y: 5 } }, '3,11': { to: 'clinic', tx: 4, ty: 5, dir: 'up', ret: { x: 3, y: 12 } }, '20,11': { to: 'store', tx: 4, ty: 5, dir: 'up', ret: { x: 20, y: 12 } } },
     signs: { '10,11': 'sign_town1' },
     npcs: [{ role: 'mentor', x: 13, y: 8, dir: 'down' }, { role: 'tip1', x: 7, y: 14, dir: 'down', wander: 1 }, { role: 'tip2', x: 16, y: 7, dir: 'left', wander: 1 }, { role: 'tip6', x: 19, y: 5, dir: 'down' }],
-    shop: ['heal', 'heal2', 'wenqi', 'hint'] },
+    shop: ['heal', 'heal2', 'cure', 'atkup', 'defup', 'dodgeup', 'wenqi', 'hint'] },
   route1: { music: 'route', qlv: 2, chapter: 1,
     rows: [
       'TTTTTTTT,,TTTTTTTTTT',
@@ -305,7 +398,7 @@ const LAYOUTS = {
     npcs: [{ role: 'gymguide', x: 5, y: 5, dir: 'down' }, { role: 'locked2', x: 19, y: 5, dir: 'down' }, { role: 'guard', x: 13, y: 1, dir: 'left' },
       { role: 'tip4', x: 8, y: 8, dir: 'down', wander: 1 }, { role: 'tip5', x: 16, y: 15, dir: 'up', wander: 1 }, { role: 'smith', x: 15, y: 8, dir: 'down' },
       { role: 'rivalA', x: 9, y: 12, dir: 'down', route: 'a' }],
-    shop: ['heal', 'heal2', 'wenqi', 'hint'] },
+    shop: ['heal', 'heal2', 'cure', 'atkup', 'defup', 'dodgeup', 'wenqi', 'hint'] },
   /* 室內：_ 地板  w 牆  b 床  t 桌子／櫃檯  k 書櫃  p 盆栽  r 地毯；出口回到進來的地方 */
   home: { music: 'town', qlv: 1, chapter: 1, indoor: 1,
     rows: ['wwwwwwwwww', 'wkk____pbw', 'w_______bw', 'w__tt____w', 'w__tt__r_w', 'wp_______w', 'wwww__wwww'],
@@ -376,6 +469,7 @@ Object.assign(LAYOUTS, {
       'wp________pw',
       'wwwwww__wwww'],
     warps: [{ x: 6, y: 8, to: 'hallway', tx: 19, ty: 1, dir: 'down' }, { x: 7, y: 8, to: 'hallway', tx: 20, ty: 1, dir: 'down' }],
+    chests: [{ id: 'c1a1', x: 10, y: 6, items: { heal: 2, hint: 1 } }],
     npcs: [{ role: 'boss1', x: 5, y: 1, dir: 'down' }, { role: 'c1aTip', x: 2, y: 5, dir: 'right' }],
     devices: {
       '4,0': { group: 'bb', flag: 'bb1', cat: '字形', label: '錯字黑板', text: '黑板上浮著扭曲的錯字，正一個個滴下黑墨……\n（找出正確的寫法，就能淨化它！）', ok: '錯字被擦掉了，黑板恢復了乾淨！', allText: '三塊黑板都被淨化了！小老師身上的錯字怨念淡了許多。' },
@@ -410,8 +504,10 @@ Object.assign(LAYOUTS, {
       '22,3': { to: 'aud', tx: 7, ty: 11, dir: 'up', need: 4, gate: 'need4' }, '23,3': { to: 'aud', tx: 8, ty: 11, dir: 'up', need: 4, gate: 'need4' },
       '3,15': { to: 'clinic', tx: 4, ty: 5, dir: 'up', ret: { x: 3, y: 16 } }, '26,15': { to: 'store', tx: 4, ty: 5, dir: 'up', ret: { x: 26, y: 16 } } },
     signs: {},
+    chests: [{ id: 'cam1', x: 2, y: 18, items: { heal: 2, cure: 1 } }, { id: 'cam2', x: 27, y: 4, items: { atkup: 1, defup: 1 } }],
+    foes: { n: 4, lv: [3, 6], scale: 3, auto: 1 },
     npcs: [{ role: 'xiaomo', x: 16, y: 7, dir: 'down' }, { role: 'tipA', x: 10, y: 7, dir: 'down', wander: 1 }, { role: 'tipB', x: 20, y: 13, dir: 'left', wander: 1 }, { role: 'tipC', x: 5, y: 18, dir: 'right', wander: 1 }],
-    shop: ['heal', 'heal2', 'wenqi', 'hint'] },
+    shop: ['heal', 'heal2', 'cure', 'atkup', 'defup', 'dodgeup', 'wenqi', 'hint'] },
   lib: { music: 'hall', qlv: 2, indoor: 1, rows: [
       'wwwwwwwwwwwwwwww',
       'wkk____t_____kkw',
@@ -426,6 +522,7 @@ Object.assign(LAYOUTS, {
       'w______________w',
       'wwwwwww__wwwwwww'],
     warps: [{ x: 7, y: 11, to: 'campus', tx: 4, ty: 11, dir: 'down' }, { x: 8, y: 11, to: 'campus', tx: 4, ty: 11, dir: 'down' }],
+    chests: [{ id: 'lib1', x: 1, y: 10, items: { hint: 2, dodgeup: 1 }, frags: { tome: 2 } }],
     npcs: [{ role: 'rival1', x: 6, y: 10, dir: 'right', sight: 2 }, { role: 'boss2', x: 8, y: 1, dir: 'down' }],
     devices: {
       '2,3': { group: 'bk', flag: 'bk1', cat: '成語', label: '飛舞的成語辭典', text: '一本成語辭典在書架前飛來飛去，書頁上缺了一個字……', ok: '辭典安靜地飛回了書架！', allText: '三本辭典都歸位了——中央的書架緩緩讓開，露出通往股長的路！', open: [[7, 2], [8, 2]] },
@@ -449,6 +546,7 @@ Object.assign(LAYOUTS, {
       'T....................T',
       'TTTTTTTTTTTTTTTTTTTTTT'],
     warps: [{ x: 10, y: 0, to: 'campus', tx: 15, ty: 18, dir: 'up' }],
+    chests: [{ id: 'yard1', x: 1, y: 14, items: { heal2: 1, cure: 1 } }, { id: 'yard2', x: 20, y: 2, weapon: 'fan', r: 1 }],
     npcs: [{ role: 'm1', x: 4, y: 9, dir: 'right', sight: 3 }, { role: 'm2', x: 16, y: 11, dir: 'left', sight: 3 }, { role: 'm3', x: 10, y: 14, dir: 'up', sight: 1 }, { role: 'boss3', x: 10, y: 8, dir: 'down' }],
     devices: {
       '3,10': { group: 'fl', flag: 'fl1', cat: '修辭', label: '枯萎的花', text: '一朵花因為墨塵而低著頭。\n（用心感受文字，也許它會重新綻放。）', ok: '花瓣舒展開來，散發出淡淡的香氣！', allText: '三朵花都開了，中庭恢復了生氣——助教的氣勢也弱了下來。' },
@@ -468,6 +566,7 @@ Object.assign(LAYOUTS, {
       'w____________w',
       'wwwwww__wwwwww'],
     warps: [{ x: 6, y: 11, to: 'campus', tx: 24, ty: 11, dir: 'down' }, { x: 7, y: 11, to: 'campus', tx: 24, ty: 11, dir: 'down' }],
+    chests: [{ id: 'hist1', x: 1, y: 10, items: { heal2: 2, atkup: 1 }, frags: { classic: 2 } }],
     npcs: [{ role: 'rival2', x: 6, y: 7, dir: 'down', sight: 3 }, { role: 'boss4', x: 7, y: 1, dir: 'down' }],
     devices: {
       '5,6': { group: 'st', flag: 'st1', cat: '文言', label: '古文石碑', text: '石碑上刻著一段古文，字跡被墨塵遮住了一半……\n（讀懂它，石碑就會亮起。）', ok: '石碑亮起了柔和的光！', allText: '三座石碑同時亮起，擋路的石碑緩緩沉入地面，通往檔案室的路開了！', open: [[5, 6], [6, 6], [7, 6], [8, 6]] },
@@ -488,6 +587,7 @@ Object.assign(LAYOUTS, {
       'w______rr______w',
       'wwwwwww__wwwwwww'],
     warps: [{ x: 7, y: 12, to: 'campus', tx: 22, ty: 4, dir: 'down' }, { x: 8, y: 12, to: 'campus', tx: 23, ty: 4, dir: 'down' }],
+    chests: [{ id: 'aud1', x: 1, y: 1, items: { heal2: 2, cure: 2, dodgeup: 1 } }, { id: 'aud2', x: 14, y: 1, items: { atkup: 2, defup: 2 } }],
     npcs: [{ role: 'e1', x: 1, y: 9, dir: 'right', sight: 14 }, { role: 'e2', x: 14, y: 7, dir: 'left', sight: 14 }, { role: 'e3', x: 1, y: 5, dir: 'right', sight: 14 }, { role: 'boss5', x: 7, y: 1, dir: 'down' }],
     devices: {
       '5,6': { group: 'ad', flag: 'ad1', cat: '閱讀', label: '准考證感應台', text: '講台前的感應台亮著微光，上面寫著：「答對即可凝聚文氣。」', ok: '感應台亮起，一股文氣湧入你的身體！（下場戰鬥文氣 +1）' },

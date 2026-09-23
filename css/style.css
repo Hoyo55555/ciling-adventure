@@ -351,3 +351,10 @@ body{ background:#16120e radial-gradient(ellipse at top,#3a3026 0%,#16120e 70%);
 .bad{ color:#b8322a; }
 .chip.el{ border-radius:50%; min-width:1.6em; text-align:center; padding:0 calc(var(--u)*1); }
 .bonus{ margin:calc(var(--u)*1.5) 0; padding:calc(var(--u)*1.5) calc(var(--u)*3); background:#fff4d8; border:calc(var(--u)*.6) solid #e0b040; border-radius:calc(var(--u)*2); font-size:calc(var(--u)*6.5); }
+
+/* 狀態異常 / 本場增益的小標籤 */
+.stchip{ display:inline-block; padding:0 calc(var(--u)*2.4); border-radius:calc(var(--u)*5); color:#fff; font-size:calc(var(--u)*5.6); font-weight:700; line-height:1.7; margin-right:calc(var(--u)*1.2); white-space:nowrap; text-shadow:none; }
+.bh-row.st{ margin-top:calc(var(--u)*0.6); }
+.affix{ color:#b8322a; font-weight:700; }
+.affix.bad{ color:#6a6a78; }
+.tchip{ display:inline-block; padding:0 calc(var(--u)*3); border-radius:calc(var(--u)*5); background:#2e261e; color:#f0e6cc; font-size:calc(var(--u)*6); font-weight:700; margin-right:calc(var(--u)*2); }
