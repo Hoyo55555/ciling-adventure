@@ -246,6 +246,27 @@ const GFX = (() => {
         break;
       case '^': ground(); R(2, 5, 12, 10, T.rock); R(4, 3, 8, 3, T.rock); R(4, 4, 4, 2, adj(T.rock, .3)); R(2, 13, 12, 2, adj(T.rock, -.3)); break;
       case 'X': R(0, 0, 16, 16, '#16120e'); break;
+      /* ---- 城鎮地標 ---- */
+      case 'J': R(0, 0, 16, 16, '#d8c470'); R(0, 0, 16, 2, '#a8945a');             // 梯田
+        for (let y = 3; y < 16; y += 4) { R(0, y, 16, 2, '#c8b060'); R(1, y, 14, 1, '#e8d890'); }
+        R(0, 14, 16, 2, '#8a7a4a'); break;
+      case 'U': R(0, 0, 16, 16, '#eedcb0'); R(0, 0, 16, 1, '#cfbc90');             // 沙坑
+        { const h1 = hash(0, 0); [[3, 4], [9, 6], [12, 11], [5, 12]].forEach(([x, y]) => R(x, y, 2, 1, '#dcc89a')); } break;
+      case 'K': R(0, 0, 16, 16, '#7ec060'); R(0, 0, 16, 16, 'rgba(255,255,255,.05)');// 球場草皮
+        R(0, 7, 16, 1, '#f0f0e8'); break;
+      case 'i': R(0, 0, 16, 16, '#c8c2b8'); R(0, 0, 16, 3, '#e0dcd2');             // 石階
+        R(0, 5, 16, 1, '#9a948c'); R(0, 10, 16, 1, '#9a948c'); R(0, 15, 16, 1, '#8a847c'); break;
+      case 'P': R(0, 10, 16, 6, '#3a9ad8'); R(0, 10, 16, 1, '#bfe8ff');            // 碼頭小船
+        { const o = fr * 2; R((3 + o) % 16, 13, 4, 1, '#bfe8ff'); }
+        R(3, 7, 10, 4, '#8a5a2a'); R(4, 8, 8, 2, '#b07a3a'); R(7, 1, 1, 6, '#6a4424');
+        { const sail = [[8, 2], [13, 6], [8, 6]]; g.fillStyle = '#f4ecd8'; g.beginPath(); g.moveTo(8, 2); g.lineTo(13, 6); g.lineTo(8, 6); g.closePath(); g.fill(); } break;
+      case 'E': R(0, 0, 16, 16, '#5a5a68');                                         // 鐘塔（有時鐘）
+        R(0, 0, 16, 2, '#7a7a90'); R(2, 3, 12, 11, '#8a8a9c');
+        { g.fillStyle = '#f4ecd8'; g.beginPath(); g.arc(8, 8, 4.5, 0, Math.PI * 2); g.fill(); }
+        R(7, 4, 1, 5, '#2a2a34'); R(8, 8, 4, 1, '#2a2a34'); break;
+      case 'I': ground(); R(1, 2, 14, 3, '#a8463c'); R(0, 1, 16, 2, '#c85a4a');    // 牌坊／拱門
+        R(2, 5, 3, 11, '#8a5a2a'); R(11, 5, 3, 11, '#8a5a2a');
+        R(2, 8, 12, 1, '#a8463c'); break;
       /* ---- 特別建築的屋頂與門牌 ---- */
       case 'h': R(0, 0, 16, 16, '#d83a3a'); R(0, 0, 16, 3, '#f05a52'); R(0, 13, 16, 3, '#a02424');   // 保健室（紅）
         R(6, 5, 4, 6, '#ffffff'); R(4, 7, 8, 2, '#ffffff'); break;
@@ -350,14 +371,19 @@ const GFX = (() => {
   };
   function weapon(arch, theme) {
     const key = 'w:' + arch + theme; if (cache.has(key)) return cache.get(key);
+    const qw = qart(arch + '_w');
+    if (qw) { const n = qw.size || 16; const cv1 = toCanvas(n, n, raster(n, n, qw.parts, null)); cache.set(key, cv1); return cv1; }
     const A = ARCH[arch]; const special = !A.guardian && WOVR[theme + '.' + arch];
     const pal = Object.assign({}, WPAL[theme] || WPAL.school, special ? {} : { a: A.col });
     const cv = toCanvas(16, 16, raster(16, 16, special || SHAPES[A.shapes[theme]] || SHAPES.pen, pal));
     cache.set(key, cv); return cv;
   }
   /* 武器妖：把武器圖示放大成 32×32，加上眼睛、腳、腮紅 */
+  const qart = k => (typeof QART !== 'undefined') && QART[k];
   function weaponMon(monKey, theme) {
     const key = 'm:' + monKey; if (cache.has(key)) return cache.get(key);
+    const q = qart(monKey);
+    if (q) { const cv0 = toCanvas(q.size || 32, q.size || 32, raster(q.size || 32, q.size || 32, q.parts, null)); cache.set(key, cv0); return cv0; }
     const M = monDef(monKey); const k = 1.6, ox = 16 - 8 * k, oy = 0;
     const src = SHAPES[M.shape] || SHAPES.pen; const P = [];
     for (const q of src) {
@@ -376,6 +402,8 @@ const GFX = (() => {
   /* 劇情角色：小墨（水墨小精靈）、總複習大魔王（考卷與黑墨揉成的怪獸） */
   function special(kind) {
     const key = 'sp:' + kind; if (cache.has(key)) return cache.get(key);
+    const q = qart(kind);
+    if (q) { const n = q.size || 32; const cv0 = toCanvas(n, n, raster(n, n, q.parts, null)); cache.set(key, cv0); return cv0; }
     let cv;
     if (kind === 'xiaomo') {
       cv = toCanvas(16, 16, raster(16, 16, [

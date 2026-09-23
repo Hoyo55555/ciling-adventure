@@ -265,7 +265,10 @@ const Armory = {
       ctl.box.innerHTML = `<h2>兵器譜．${esc(W.name)}　<span class="small muted">${got} / ${ARCH_ORDER.length}（三世界合計 ${all} / ${ARCH_ORDER.length * 3}）</span></h2><div class="scroll"><div class="armory"></div><div class="qsec">守護神器（依劇情選擇取得）</div><div class="armory g"></div></div>` + footKeys('↑↓ 捲動　B 返回');
       const wrap = $('.armory', ctl.box), gw = $('.armory.g', ctl.box);
       const card = (a, box) => { const seen = Meta.d.armory[G.world + ':' + a]; const c = h('div', 'arm' + (seen ? '' : ' unk'));
-        const pic = wIcon(a, seen ? seen - 1 : (ARCH[a].guardian ? 6 : 0), 1.3); if (!seen) pic.style.filter = 'brightness(0) opacity(.35)'; c.appendChild(pic);
+        let pic;
+        if (ARCH[a].guardian && typeof QART !== 'undefined' && QART[a]) { pic = h('span', 'wbox r6'); pic.appendChild(GFX.el(GFX.special(a), 0.9)); }
+        else pic = wIcon(a, seen ? seen - 1 : (ARCH[a].guardian ? 6 : 0), 1.3);
+        if (!seen) pic.style.filter = 'brightness(0) opacity(.35)'; c.appendChild(pic);
         const info = ARCH[a].guardian ? (seen ? '能力：' + passiveList(a).map(p => PASSIVES[p].name).join('、') : (ARCH[a].ng ? '二週目取得' : '劇情取得')) : (seen ? '最高：' + RARITY[seen - 1].n : '尚未取得');
         c.insertAdjacentHTML('beforeend', `<div><b>${seen ? esc(weaponName(a)) : '？？？'}</b><div class="small muted">${info}</div></div>`); box.appendChild(c); };
       ARCH_ORDER.forEach(a => card(a, wrap)); Object.values(W.guardians).forEach(a => card(a, gw));
@@ -728,7 +731,7 @@ const Guardian = {
     await say(`（文房四寶之一——「${weaponName(a)}」現身了！）`);
     await say(ARCH[a].gdesc || '');
     await say('（牠沒有要直接跟你走的意思——牠在等你證明自己。）');
-    const role = { kind: 'gym', name: weaponName(a), look: { sprite: 'stone' }, reward: 800,
+    const role = { kind: 'gym', name: weaponName(a), look: { sprite: a }, reward: 800,
       win: `（${weaponName(a)}收起光芒，輕輕落在你手上。）`,
       foe: { lv: clamp(G.lv, 16, 28), hpMul: 1.5, el: 'none', race: ARCH[a].race, cats: ALL_CATS,
         moves: [['器靈之威', ALL_CATS, 54], ['文心一擊', ALL_CATS, 58]] }, potions: 1 };

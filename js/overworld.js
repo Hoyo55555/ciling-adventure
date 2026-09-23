@@ -404,7 +404,7 @@ async function roamerTalk(n) {
   const a = n.arch;
   await say(`（空氣突然安靜下來——${weaponName(a)}出現了！）`);
   await say(ARCH[a].gdesc || '');
-  const role = { kind: 'gym', name: weaponName(a), look: { sprite: 'stone' }, reward: 900,
+  const role = { kind: 'gym', name: weaponName(a), look: { sprite: a }, reward: 900,
     win: `（${weaponName(a)}輕輕落在你手上。）`,
     foe: { lv: clamp(G.lv, 16, 30), hpMul: 1.5, el: 'none', race: ARCH[a].race, cats: ALL_CATS,
       moves: [['器靈之威', ALL_CATS, 56], ['文心一擊', ALL_CATS, 60]] }, potions: 1 };

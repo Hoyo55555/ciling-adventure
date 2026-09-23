@@ -588,7 +588,7 @@ const WORLD_ORDER = ['school', 'literati', 'wuxia'];
 
   /* 二週目：硯海龍君（隱藏地圖隨機出現） */
   Object.assign(S.roles, {
-    stoneSpirit: { kind: 'spirit', name: '硯海龍君', look: { sprite: 'stone' },
+    stoneSpirit: { kind: 'spirit', name: '硯海龍君', look: { sprite: 'g_stone' },
       appear: '（墨池的水面突然翻湧，一方古硯從墨海中浮了上來——硯海龍君！）',
       quiz: '硯海龍君低聲問道：「要拿走文房四寶之首，先讓我看看你的底子。」\n（答對才能挑戰牠。）',
       wrong: '硯海龍君搖了搖頭，化成一灘墨水滲進地面……（牠會在墨池的其他地方再出現）',

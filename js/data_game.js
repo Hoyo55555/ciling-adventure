@@ -289,9 +289,9 @@ const MONSTERS = {
   sound_mic: ['麥克風妖', '音', '水', 'mic', '#5a6a80', 'mic', 3], sound_harmonica: ['口琴妖', '音', '火', 'block', '#a85040', 'mic', 3],
   sound_tamb: ['鈴鼓妖', '音', '木', 'orb', '#d8a060', 'bell', 3], sound_triangle: ['三角鐵妖', '音', '金', 'star', '#c8c8d8', 'bell', 4],
   sound_metro: ['節拍器妖', '音', '土', 'tablet', '#8a6a4a', 'mic', 4],
-  arm_fan: ['紙扇妖', '兵', '水', 'fan', '#f0f0f8', 'fan', 3], arm_bamboo: ['竹劍妖', '兵', '木', 'sword', '#8ab858', 'legend', 4],
-  arm_wood: ['木刀妖', '兵', '木', 'sword', '#a8784a', 'legend', 4], arm_dart: ['飛鏢妖', '兵', '金', 'star', '#b8c4d4', 'seal', 4],
-  arm_stick: ['棍棒妖', '兵', '木', 'stick', '#8a6a3a', 'trophy', 4],
+  arm_fan: ['紙扇妖', '兵', '水', 'fan', '#f0f0f8', 'fan', 3], arm_bamboo: ['竹刀妖', '兵', '木', 'sword', '#8ab858', 'legend', 4],
+  arm_broom: ['掃把妖', '兵', '木', 'stick', '#d8b060', 'trophy', 4], arm_plane: ['紙飛機妖', '兵', '金', 'card', '#fdfaf0', 'bookmark', 4],
+  arm_bat: ['球棒妖', '兵', '木', 'stick', '#b0824a', 'legend', 4],
   ink_stick: ['墨條妖', '墨', '木', 'block', '#2a2a34', 'maobi', 2], ink_pad: ['印泥妖', '墨', '火', 'block', '#b8322a', 'seal', 3],
   ink_duster: ['板擦妖', '墨', '土', 'block', '#8a7a5a', 'chalk', 2],
 };
@@ -349,7 +349,7 @@ function makePersonFoe(R) {
 
 /* ============ 地圖版型（三個世界共用；外觀由世界主題決定） ============
    . 草地  , 道路  g 草叢  T 樹  ~ 水  # 牆  W 窗  D 門  R 屋頂  = 柵欄  S 告示牌  F 花  L 燈  ^ 岩石 */
-const SOLID = new Set(['T', '#', 'W', 'D', 'R', '~', '=', 'S', 'L', '^', 'X', 'w', 'b', 't', 'k', 'p', 'B', 'M', 'V', 'Y', 'Z', 'O', 'm', 'n', 'A', 'Q', 'h', 'c', 'G', 'N']);
+const SOLID = new Set(['T', '#', 'W', 'D', 'R', '~', '=', 'S', 'L', '^', 'X', 'w', 'b', 't', 'k', 'p', 'B', 'M', 'V', 'Y', 'Z', 'O', 'm', 'n', 'A', 'Q', 'h', 'c', 'G', 'N', 'J', 'P', 'E', 'I']);
 const LAYOUTS = {
   town1: { music: 'town', qlv: 1, chapter: 1,
     rows: [
