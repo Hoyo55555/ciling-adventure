@@ -136,6 +136,21 @@ const GFX = (() => {
       water: '#4a90b8', water2: '#b0d8f0', wall: '#b07a4a', wall2: '#7a5030', roof: '#6a4a3a', roof2: '#48301f',
       door: '#5a3a22', door2: '#c8a060', win: '#f0e0b8', win2: '#6a4a2a', fence: '#8a6a3a', fence2: '#5a4020', flower: ['#f8e040', '#f07050', '#ffffff'], lamp: '#e04030', rock: '#98948a', floor: '#a8784a', floor2: '#86582e', iwall: '#d8b888', iwall2: '#6a4424', blanket: '#a83838' },
   };
+  /* 城鎮主題（地圖改版草案）：以 school 為底，換掉地面、屋頂、樹木等顏色 */
+  const TOWN_THEMES = {
+    t_home:   { path: '#e8dcb8', roof: '#d85848', roof2: '#a03838', ground: '#9ad870', ground2: '#7ab858' },            // 青嵐鎮：紅瓦住宅
+    t_school: { path: '#f0e2c0', roof: '#e8a030', roof2: '#b8762a', ground: '#a8dc7a', ground2: '#84bc5c',
+                door: '#f8d860', win: '#d8f0ff', flower: ['#f86a8a', '#f8e040', '#8ad0f8'] },                            // 甲班町：粉筆蠟筆色
+    t_city:   { path: '#c8c8c0', path2: '#a0a098', pathStyle: 'slab', roof: '#4a6a9a', roof2: '#2e4670',
+                ground: '#8ac098', ground2: '#6aa078', wall: '#f0f0e8', lamp: '#f8e878' },                               // 典籍市：石板書香都市
+    t_garden: { path: '#d8c8a0', roof: '#5a8a6a', roof2: '#3a6a4a', ground: '#86cf78', ground2: '#63ab5a',
+                water: '#5ac0e8', water2: '#d0f4ff', flower: ['#f8a0c8', '#ffffff', '#f8e070'] },                         // 風雅庭：庭園
+    t_old:    { path: '#c8a878', path2: '#a08654', pathStyle: 'dirt', roof: '#8a4a3a', roof2: '#5a2e24',
+                ground: '#a8b878', ground2: '#88985a', wall: '#e0d0a8', wall2: '#b0a078', rock: '#9a9488', lamp: '#e84838' }, // 古堞城：舊城
+    t_hall:   { path: '#b8b0a8', path2: '#918a84', roof: '#5a5a68', roof2: '#38384a', ground: '#8ab08a', ground2: '#6a8e6a',
+                wall: '#e8e4dc', fence: '#c8a040', door: '#c83838' },                                                     // 考鐘台：會考會場
+  };
+  for (const [k, v] of Object.entries(TOWN_THEMES)) THEMES[k] = Object.assign({}, THEMES.school, v);
   function hash(a, b) { let s = (a * 374761393 + b * 668265263) >>> 0; s = (s ^ (s >>> 13)) * 1274126177 >>> 0; return (s ^ (s >>> 16)) >>> 0; }
   function tile(theme, code, fr = 0) {
     const key = 't:' + theme + code + fr; if (cache.has(key)) return cache.get(key);
