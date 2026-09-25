@@ -45,6 +45,7 @@ const ArtMap = (() => {
     scene[id] = cv;
     const hide = (typeof TOWN_HIDE !== 'undefined' && TOWN_HIDE[id]) || [];
     if (hide.length) coverAll(g, MW, MH, hide);
+    if (typeof TOWN_GATE !== 'undefined' && TOWN_GATE[id]) decorate(g, id);
   }
 
   /* 把 hide 清單上的格子用附近地面蓋掉 */
@@ -58,14 +59,18 @@ const ArtMap = (() => {
       const x0 = c * 16, y0 = r * 16, ww = w * 16, hh = h * 16;
       /* 候選取樣位移：上下左右各三段距離，另外加上斜角 */
       const cand = [];
-      for (const d of [1, 2, 3]) cand.push([0, (hh + 6) * d], [0, -(hh + 6) * d], [(ww + 6) * d, 0], [-(ww + 6) * d, 0]);
-      for (const sx2 of [-1, 1]) for (const sy2 of [-1, 1]) cand.push([(ww + 6) * sx2, (hh + 6) * sy2]);
+      for (const d of [1, 2, 3, 4, 5, 6, 8]) cand.push([0, (hh + 6) * d], [0, -(hh + 6) * d], [(ww + 6) * d, 0], [-(ww + 6) * d, 0]);
+      for (const sx2 of [-1, 1]) for (const sy2 of [-1, 1]) for (const d of [1, 2]) cand.push([(ww + 6) * sx2 * d, (hh + 6) * sy2 * d]);
       /* 用「外框一圈」的顏色差挑最像周圍的三塊，才不會把屋頂蓋到路上 */
       const ring = (ox, oy) => { const a = [];
         for (let x = 0; x < ww; x += 2) { a.push(((y0 + oy - 1) * MW + x0 + ox + x) * 4); a.push(((y0 + oy + hh) * MW + x0 + ox + x) * 4); }
         for (let y = 0; y < hh; y += 2) { a.push(((y0 + oy + y) * MW + x0 + ox - 1) * 4); a.push(((y0 + oy + y) * MW + x0 + ox + ww) * 4); }
         return a; };
       const base = ring(0, 0);
+      /* 一塊候選地面好不好用，看兩件事：
+         1. 外框一圈跟目標的外框像不像（接得上去嗎）
+         2. 這塊本身夠不夠「空」——裡面跟它自己的外框差很多，代表裡面也站了一個人，
+            那就不能拿來蓋，不然只是把隔壁的路人複製過來而已。 */
       const pick = skipTaken => {
         const a = [];
         for (const [dx, dy] of cand) {
@@ -74,7 +79,15 @@ const ArtMap = (() => {
           const r2 = ring(dx, dy); let d2 = 0;
           for (let i = 0; i < base.length; i++)
             for (let k = 0; k < 3; k++) d2 += Math.abs(src[base[i] + k] - src[r2[i] + k]);
-          a.push({ dx, dy, d: d2 / base.length });
+          /* 這塊自己的外框中位數＝它的地面顏色 */
+          const m = k => { const v = r2.map(i => src[i + k]).sort((u, w2) => u - w2); return v[v.length >> 1]; };
+          const g1 = [m(0), m(1), m(2)];
+          let inner = 0, n2 = 0;
+          for (let y = 2; y < hh - 2; y += 2) for (let x = 2; x < ww - 2; x += 2) {
+            const i = ((y0 + y + dy) * MW + x0 + x + dx) * 4;
+            inner += Math.abs(src[i] - g1[0]) + Math.abs(src[i + 1] - g1[1]) + Math.abs(src[i + 2] - g1[2]); n2++;
+          }
+          a.push({ dx, dy, d: d2 / base.length + (inner / Math.max(1, n2)) * 2.2 });
         }
         a.sort((p2, q2) => p2.d - q2.d);
         return a;
@@ -110,6 +123,56 @@ const ArtMap = (() => {
     g.fillStyle = '#12100e'; g.fillRect(0, 0, 240, 160);        // 地圖比畫面小時的黑邊
     const cv = scene[id]; if (!cv || !ready[id]) return;
     g.drawImage(cv, -cx, -cy);
+  }
+
+  /* ---------- 三大設施的統一外觀 ---------- */
+  const F_STYLE = () => (typeof FACILITY_STYLE === 'undefined' ? 'off' : FACILITY_STYLE);
+  const facilityOf = to => (typeof FACILITY_OF !== 'undefined' && FACILITY_OF[to]) || null;
+
+  /* 統一建築（80×64＋下方 10px 陰影）門口在 x 32-48、底邊 y 64，
+     換算成格子：門在左起第 3 欄、最下面那一列。
+     所以要讓門對準 (dc,dr)，左上角就放在 (dc-2, dr-3)。 */
+  function bldBox(gate) {
+    const kind = facilityOf(gate.to);
+    if (kind !== 'clinic' && kind !== 'store') return null;
+    const [c, r, w] = gate.r;
+    const dc = c + (w >> 1);
+    return { kind, col: dc - 2, row: r - 3, w: 5, h: 4, door: [dc, r] };
+  }
+
+  /* 24×20 的小招牌：紅十字／黃貨牌／金匾，三座城鎮長得一模一樣 */
+  const placed = {};                  // id -> [box]，install() 決定、bake() 照畫
+  const SIGNS = {};
+  function signOf(kind) {
+    if (SIGNS[kind]) return SIGNS[kind];
+    const c = document.createElement('canvas'); c.width = 24; c.height = 22;
+    const g = c.getContext('2d');
+    const R = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+    g.fillStyle = 'rgba(20,16,12,.28)'; g.fillRect(3, 16, 18, 3);      // 落在牆上的影子
+    R(11, 15, 2, 7, '#4a3420');                                        // 吊桿
+    R(1, 0, 22, 16, '#221a12');
+    if (kind === 'clinic') { R(2, 1, 20, 14, '#efe6d2'); R(11, 3, 3, 10, '#b8382c'); R(8, 6, 9, 3, '#b8382c'); }
+    else if (kind === 'store') { R(2, 1, 20, 14, '#d8a63c'); R(6, 4, 12, 2, '#5a3e14'); R(6, 9, 8, 2, '#5a3e14'); R(16, 9, 2, 2, '#5a3e14'); }
+    else { R(2, 1, 20, 14, '#7a2a1e'); R(3, 2, 18, 12, '#c8a040');
+      R(5, 4, 4, 3, '#7a2a1e'); R(10, 4, 4, 3, '#7a2a1e'); R(15, 4, 4, 3, '#7a2a1e'); R(5, 9, 14, 2, '#7a2a1e'); }
+    SIGNS[kind] = c; return c;
+  }
+
+  /* 把統一建築與招牌畫到烘好的地圖上 */
+  function decorate(g, id) {
+    const style = F_STYLE(); if (style === 'off') return;
+    for (const gate of (TOWN_GATE[id] || [])) {
+      if (gate.exit) continue;
+      const kind = facilityOf(gate.to); if (!kind) continue;
+      const [c, r, w] = gate.r, dc = c + (w >> 1);
+      const box = (placed[id] || []).find(b => b.door[0] === dc && b.door[1] === r);
+      if (box) {
+        g.drawImage(GFX.building(box.kind), box.col * 16, box.row * 16);
+        continue;                                    // 建築本身就有招牌，不用再掛
+      }
+      const sg = signOf(kind);
+      g.drawImage(sg, Math.round(dc * 16 + 8 - 12), Math.max(0, r * 16 - 24));
+    }
   }
 
   /* 依門口感應區產生 doorWarps／warps，並套用到 LAYOUTS */
@@ -155,6 +218,24 @@ const ArtMap = (() => {
         }
         /* 門格一律設成不可走：只有「撞上去」才會進門，走過路邊不會被吸進去 */
         for (let y = r; y < r + h; y++) for (let x = c; x < c + w; x++) setWall(x, y);
+        /* 換成統一建築的話，整棟的地基也要擋住（門那一格除外，門要撞得進去）。
+           但如果蓋下去會把自己的門堵死（例如碑林關商店的門是從側邊進的），
+           那就不要蓋，改成只掛招牌。 */
+        const box = F_STYLE() === 'hybrid' && bldBox(gate);
+        if (box) {
+          const inBox = (x, y) => x >= box.col && x < box.col + box.w && y >= box.row && y < box.row + box.h;
+          const stillIn = [[0, 1], [0, -1], [1, 0], [-1, 0]].some(([dx, dy]) => {
+            const nx = box.door[0] + dx, ny = box.door[1] + dy;
+            return !inBox(nx, ny) && walkable(nx, ny);
+          });
+          const onMap = box.col >= 0 && box.row >= 0 && box.col + box.w <= RW && box.row + box.h <= RH;
+          if (stillIn && onMap) {
+            for (let y = box.row; y < box.row + box.h; y++)
+              for (let x = box.col; x < box.col + box.w; x++)
+                if (!(x === box.door[0] && y === box.door[1])) setWall(x, y);
+            (placed[id] = placed[id] || []).push(box);
+          }
+        }
       }
       L.doorWarps = dw; L.warps = warps;
       /* 以下一律用 L.rows（門格已改成牆），免得有人被放在門上 */
