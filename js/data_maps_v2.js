@@ -35,6 +35,8 @@ const TILES = {
   'g': { walk: 1, name: '草叢（會遇敵）' },
   '_': { walk: 1, name: '室內地板' },
   'i': { walk: 1, name: '石階' },
+  'U': { walk: 1, name: '沙坑' },
+  'K': { walk: 1, name: '球場' },
   /* ---- 走不過去 ---- */
   'T': { walk: 0, name: '樹' },
   '#': { walk: 0, name: '牆' },
@@ -77,7 +79,7 @@ for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
        exits:  [ { x: 16, y: 21, to: 'r1', tx: 11, ty: 15, dir: 'up' } ],
        npcs: [], chests: [], signs: {},
      };
-   已完成：chendu（晨讀村）、r1（晨讀田埂道）
+   已完成：chendu（晨讀村）、r1（晨讀田埂道）、zhuyin（注音坡）
    ------------------------------------------------------------ */
 const MAPS = {};
 
@@ -173,8 +175,8 @@ MAPS.r1 = {
   warps: [
     { x: 9,  y: 24, to: 'chendu', tx: 11, ty: 1, dir: 'down' },
     { x: 10, y: 24, to: 'chendu', tx: 12, ty: 1, dir: 'down' },
-    { x: 9,  y: 0,  to: 'zhuyin', tx: 9,  ty: 1, dir: 'up' },
-    { x: 10, y: 0,  to: 'zhuyin', tx: 10, ty: 1, dir: 'up' },
+    { x: 9,  y: 0,  to: 'zhuyin', tx: 11, ty: 16, dir: 'up' },
+    { x: 10, y: 0,  to: 'zhuyin', tx: 12, ty: 16, dir: 'up' },
   ],
   foes: { n: 6, lv: [2, 4], scale: 1, auto: 1 },
   npcs: [
@@ -183,6 +185,55 @@ MAPS.r1 = {
     { role: 'roamHint2', x: 4,  y: 9,  dir: 'down' },
   ],
   chests: [{ x: 5, y: 12, id: 'r1a', items: { heal: 2, hint: 1 } }],
+};
+
+/* ============================================================
+   ③ 注音坡 zhuyin　25×18　低年級校舍（橘黃＋粉筆色）
+   ------------------------------------------------------------
+   上半是校舍（道館①），下半是補給站與商店，
+   右邊沙坑、石階、球場＝小學部的遊戲區。
+   南接晨讀田埂道、北接抄書石階。
+   ============================================================ */
+MAPS.zhuyin = {
+  music: 'town', qlv: 1, chapter: 1, theme: 't_slope',
+  rows: [
+    'TTTTTTTTTTT,,TTTTTTTTTTTT',
+    'TT........S,,..........TT',
+    'TT.GGyyyGG.,,..UUUUU...TT',
+    'TT.GGGGGGG.,,..UUUUU...TT',
+    'TT.GGGGGGG.,,..UUUUU...TT',
+    'TT.#WWDWW#S,,..........TT',
+    'TT.,,,,,,,,,,,,,,,,,,..TT',
+    'TT.........,,..........TT',
+    'TT.........,,.iiiiiii..TT',
+    'TT.........,,..........TT',
+    'TT.hhHhh...,,...ccCcc..TT',
+    'TT.hhhhh...,,...ccccc..TT',
+    'TT.#WDW#...,,...#WDW#..TT',
+    'TT.,,,,,,,,,,,,,,,,,,..TT',
+    'TT.........,,.KKKKKKK..TT',
+    'TT..F......,,.KKKKKKK..TT',
+    'TT......F..,,.KKKKKKK..TT',
+    'TTTTTTTTTTT,,TTTTTTTTTTTT',
+  ],
+  doorWarps: {
+    '6,5':   { to: 'c1a',      tx: 8, ty: 7, dir: 'up', ret: { x: 6,  y: 6 } },
+    '5,12':  { to: 'clinic_h', tx: 5, ty: 5, dir: 'up', ret: { x: 5,  y: 13 } },
+    '18,12': { to: 'store_h',  tx: 5, ty: 5, dir: 'up', ret: { x: 18, y: 13 } },
+  },
+  warps: [
+    { x: 11, y: 17, to: 'r1', tx: 9,  ty: 1, dir: 'down' },
+    { x: 12, y: 17, to: 'r1', tx: 10, ty: 1, dir: 'down' },
+    { x: 11, y: 0,  to: 'r2', tx: 11, ty: 1, dir: 'up' },
+    { x: 12, y: 0,  to: 'r2', tx: 12, ty: 1, dir: 'up' },
+  ],
+  signs: { '10,1': 'sign_zhuyin', '10,5': 'sg29' },
+  npcs: [
+    { role: 'gymTip1', x: 10, y: 6,  dir: 'up' },
+    { role: 't_zy_a',  x: 8,  y: 9,  dir: 'down' },
+    { role: 't_zy_b',  x: 15, y: 7,  dir: 'down', wander: 1 },
+  ],
+  chests: [{ x: 21, y: 15, id: 'zy1', items: { heal: 2 } }],
 };
 
 /* 全部地圖一次掛進引擎（新地圖請加在這一行之前） */

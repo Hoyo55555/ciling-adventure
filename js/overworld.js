@@ -209,11 +209,6 @@ const OW = {
     // 任務提示：該對話的對象頭上閃爍
     const marks = questMarks();
     for (const n of this.npcs) { const m = marks[n.role === W.roles.questGiver ? 'questGiver' : n.key.split(':')[1]]; if (m) drawMark(g, n.x * 16 + n.ox - cx + 3, n.y * 16 + n.oy - cy - (n.look.sprite === 'boss' ? 28 : 15), m, now); }
-    for (const [mp, tx, ty] of storyTiles()) if (mp === this.id) {
-      const dx = tx - this.p.x, dy = ty - this.p.y;
-      const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-      drawMark(g, tx * 16 - cx + 4, ty * 16 - cy - 10, 'way', now, dir);
-    }
     for (const [k, d] of Object.entries(this.L.devices || {})) if (!G.flags[d.flag]) { const [dx2, dy2] = k.split(',').map(Number); drawMark(g, dx2 * 16 - cx + 4, Math.max(2, dy2 * 16 - cy - 9), 'side', now); }
     for (const f of this.fx || []) f(g, cx, cy);
     if (this.dark > 0) { g.fillStyle = `rgba(8,6,14,${this.dark})`; g.fillRect(0, 0, 240, 160); }
@@ -224,7 +219,6 @@ const OW = {
 };
 /* 目前該找誰：main 主線（黃 !）、side 可接支線（藍 !）、report 可回報（黃 ?） */
 function storyStage() { return G.badges.length; }
-function storyTiles() { if (!W.story || !G.flags.prologue) return []; const st = W.stages[storyStage()]; return st && st.roles.some(r => !isDone(r)) ? st.tiles : []; }
 const roleKey = r => { for (const [k, L] of Object.entries(LAYOUTS)) if ((L.npcs || []).some(s => s.role === r)) return k + ':' + r; return r; };
 const isDone = r => !!G.defeated[roleKey(r)];
 const roleReady = r => { const R = W.roles[r]; return !R.needDefeated || R.needDefeated.every(k => G.defeated[k]); };
@@ -243,22 +237,12 @@ function questMarks() {
   return m;
 }
 const GLYPH = { '!': ['..#..', '..#..', '..#..', '..#..', '.....', '..#..'], '?': ['.###.', '#...#', '...#.', '..#..', '.....', '..#..'] };
-/* 對話用「！」、指路用箭頭；整體縮小 */
+/* 只在人物頭上標示：黃「！」主線、藍「！」支線、黃「？」可回報。
+   地圖上的出入口不再標箭頭（玩家說看不懂，而且路本身就看得出來）。 */
 function drawMark(g, x, y, type, now, dir) {
   const blink = (Math.sin(now / 180) + 1) / 2; if (blink < 0.15) return;
   const bob = Math.round(Math.sin(now / 250) * 1.2); y += bob;
   g.globalAlpha = 0.6 + 0.4 * blink;
-  if (type === 'way') {                                   // 指路箭頭
-    g.fillStyle = '#2a2018';
-    const A = { up: [[3, 0], [2, 1], [4, 1], [1, 2], [5, 2], [0, 3], [6, 3], [2, 4], [4, 4], [2, 5], [4, 5], [2, 6], [4, 6]],
-      down: [[3, 6], [2, 5], [4, 5], [1, 4], [5, 4], [0, 3], [6, 3], [2, 2], [4, 2], [2, 1], [4, 1], [2, 0], [4, 0]],
-      left: [[0, 3], [1, 2], [1, 4], [2, 1], [2, 5], [3, 0], [3, 6], [4, 2], [4, 4], [5, 2], [5, 4], [6, 2], [6, 4]],
-      right: [[6, 3], [5, 2], [5, 4], [4, 1], [4, 5], [3, 0], [3, 6], [2, 2], [2, 4], [1, 2], [1, 4], [0, 2], [0, 4]] }[dir || 'down'];
-    for (const [ax, ay] of A) g.fillRect(x + ax, y + ay - 1, 2, 2);
-    g.fillStyle = '#f8c830';
-    for (const [ax, ay] of A) g.fillRect(x + ax, y + ay, 1, 1);
-    g.globalAlpha = 1; return;
-  }
   const col = type === 'side' ? '#4aa0f0' : '#f8c830';
   g.fillStyle = '#2a2018'; g.fillRect(x, y, 8, 8); g.fillRect(x + 3, y + 8, 2, 2);
   g.fillStyle = col; g.fillRect(x + 1, y + 1, 6, 6); g.fillRect(x + 3, y + 7, 1, 2);
