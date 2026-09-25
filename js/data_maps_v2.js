@@ -77,7 +77,7 @@ for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
        exits:  [ { x: 16, y: 21, to: 'r1', tx: 11, ty: 15, dir: 'up' } ],
        npcs: [], chests: [], signs: {},
      };
-   已完成：chendu（晨讀村）
+   已完成：chendu（晨讀村）、r1（晨讀田埂道）
    ------------------------------------------------------------ */
 const MAPS = {};
 
@@ -122,8 +122,8 @@ MAPS.chendu = {
   },
   /* 出城：踩上去就走（一定在樹牆的缺口上） */
   warps: [
-    { x: 11, y: 0, to: 'r1', tx: 11, ty: 15, dir: 'up' },
-    { x: 12, y: 0, to: 'r1', tx: 12, ty: 15, dir: 'up' },
+    { x: 11, y: 0, to: 'r1', tx: 9,  ty: 23, dir: 'up' },
+    { x: 12, y: 0, to: 'r1', tx: 10, ty: 23, dir: 'up' },
   ],
   signs: { '8,2': 'sign_chendu' },
   npcs: [
@@ -133,4 +133,57 @@ MAPS.chendu = {
   chests: [{ x: 21, y: 1, id: 'chendu1', items: { potion: 2 } }],
 };
 
+
+
+/* ============================================================
+   ② 晨讀田埂道 r1　20×25　田埂（稻田夾道，t_dawn 同一組配色）
+   ------------------------------------------------------------
+   南接晨讀村、北接注音坡，中央一條直路；西邊繞一圈到寶箱。
+   草叢共 60 格，是第一次遇到武器妖的地方。
+   ============================================================ */
+MAPS.r1 = {
+  music: 'route', qlv: 1, chapter: 1, theme: 't_dawn',
+  rows: [
+    'TTTTTTTTT,,TTTTTTTTT',
+    'TT.......,,.......TT',
+    'TT.ggggg.,,.......TT',
+    'TT.ggggg.,,.=====.TT',
+    'TT.ggggg.,,.=JJJ=.TT',
+    'TT.......,,.=JJJ=.TT',
+    'TT.......,,.=====.TT',
+    'TT.......,,.......TT',
+    'TT,,,,,,,,,.......TT',
+    'TT,......,,.......TT',
+    'TT,.^^^..,,.ggggg.TT',
+    'TT,.^^^..,,.ggggg.TT',
+    'TT,......,,.ggggg.TT',
+    'TT,,,,,,,,,.......TT',
+    'TT.......,,.......TT',
+    'TT.ggggg.,,.=====.TT',
+    'TT.ggggg.,,.=JJJ=.TT',
+    'TT.ggggg.,,.=====.TT',
+    'TT.......,,.......TT',
+    'TT.......,,.ggggg.TT',
+    'TT.......,,.ggggg.TT',
+    'TT..F....,,.ggggg.TT',
+    'TT.......,,...F...TT',
+    'TT.......,,.......TT',
+    'TTTTTTTTT,,TTTTTTTTT',
+  ],
+  warps: [
+    { x: 9,  y: 24, to: 'chendu', tx: 11, ty: 1, dir: 'down' },
+    { x: 10, y: 24, to: 'chendu', tx: 12, ty: 1, dir: 'down' },
+    { x: 9,  y: 0,  to: 'zhuyin', tx: 9,  ty: 1, dir: 'up' },
+    { x: 10, y: 0,  to: 'zhuyin', tx: 10, ty: 1, dir: 'up' },
+  ],
+  foes: { n: 6, lv: [2, 4], scale: 1, auto: 1 },
+  npcs: [
+    { role: 'dictA',     x: 8,  y: 7,  dir: 'right', sight: 3 },
+    { role: 'dictB',     x: 11, y: 18, dir: 'left',  sight: 3 },
+    { role: 'roamHint2', x: 4,  y: 9,  dir: 'down' },
+  ],
+  chests: [{ x: 5, y: 12, id: 'r1a', items: { heal: 2, hint: 1 } }],
+};
+
+/* 全部地圖一次掛進引擎（新地圖請加在這一行之前） */
 Object.assign(LAYOUTS, MAPS);

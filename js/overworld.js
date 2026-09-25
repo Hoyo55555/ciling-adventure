@@ -283,7 +283,7 @@ async function warpTo(map, x, y, dir) {
     return;
   }
   Sound.sfx('door'); await fade(1, 0.22); OW.load(map, x, y, dir); autosave(); await sleep(60); await fade(0, 0.22);
-  if (map === 'route1' && G.flags.tut === 'pending') {   // 教學戰在步道入口進行（城鎮裡不戰鬥）
+  if (map === 'r1' && G.flags.tut === 'pending') {       // 教學戰在步道入口進行（城鎮裡不戰鬥）
     G.flags.tut = 'done'; const M = W.roles.mentor.name;
     await say('就在這裡練習吧！', M);
     await Battle.start({ kind: 'wild', foe: makeFoe('pen_auto', 2), tutorial: true, mentor: M });
