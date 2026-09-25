@@ -63,10 +63,8 @@ const GFX = (() => {
     const girl = L.gender === 'f', side = dir === 'left';
     const outfit = L.outfit || 'pants', robe = L.style === 'literati' || L.robe || outfit === 'suit';
     const legC = outfit === 'skirt' ? (L.sock || '#f4f4f4') : pt;
-    // 腿
     if (side) { if (fr === 0) R(6, 12, 4, 3, legC); else if (fr === 1) { R(5, 12, 2, 3, legC); R(9, 12, 2, 2, legC); } else { R(6, 12, 2, 2, legC); R(8, 12, 2, 3, legC); } }
     else { R(5, 12, 2, fr === 1 ? 2 : 3, legC); R(9, 12, 2, fr === 2 ? 2 : 3, legC); }
-    // 身體
     if (side) { R(5, 8, 6, robe ? 6 : 5, cl); }
     else { R(4, 8, 8, robe ? 6 : 5, cl); R(3, 8, 1, 4, cl, 1); D([[3, 12]], sk, 1); }
     if (outfit === 'skirt') { if (side) R(4, 11, 7, 3, pt); else R(3, 11, 10, 3, pt); }
@@ -77,14 +75,11 @@ const GFX = (() => {
     if (L.style === 'school' && dir === 'up') { R(5, 8, 6, 4, L.bag || '#c8504a'); }
     if (L.style === 'school' && side) { R(10, 8, 2, 4, L.bag || '#c8504a'); }
     if (side) { R(6, 9, 2, 3, c2); D([[6, 12]], sk); }
-    // 頭
     E([side ? 7.5 : 8, 5, 4.6, 4.2], sk);
-    // 頭髮
     if (dir === 'up') { E([8, 4.6, 4.9, 4.4], hr); if (girl) R(4, 6, 8, 4, hr); }
     else if (side) { E([8.3, 3, 4.7, 2.7], hr); R(9, 3, 3, 5, hr); if (girl) R(9, 3, 4, 7, hr); }
     else { E([8, 3, 4.9, 2.7], hr); R(3, 3, 1, 3, hr, 1); if (girl) R(3, 3, 2, 7, hr, 1); }
     if (L.bun) { E([8, 0.8, 2, 1.4], hr); }
-    // 眼睛與臉部
     const face = L.face || 'normal', mouth = '#c0504a', eyes = [[6, 6], [6, 7]];
     if (dir === 'down') {
       if (face === 'happy') { D([[5, 7], [6, 6]], OUT, 1); D([[7, 8], [8, 8]], mouth); }
@@ -104,7 +99,6 @@ const GFX = (() => {
       else { D([[4, 6], [4, 7]], OUT); if (face === 'blush') D([[5, 8]], '#f08a8a'); if (face === 'smile' || face === 'happy' || face === 'wink') D([[3, 8]], mouth); if (face === 'surprise') D([[3, 8]], '#602828'); }
       if (L.glasses) D([[3, 6], [5, 6]], '#8090a8'); if (L.beard) { R(4, 8, 4, 2, '#f0f0f0'); D([[5, 10]], '#f0f0f0'); }
     }
-    // 配件
     if (L.style === 'literati' || L.cap) { const cc = L.cap || '#26262e'; R(4, 0, 8, 2, cc); if (side) D([[12, 2], [13, 3], [13, 4]], cc); else if (dir === 'up') D([[4, 2], [11, 2]], cc); }
     if (L.style === 'wuxia') { const bc = L.band || '#d03838'; if (dir !== 'up') R(3, 3, 10, 1, bc); else R(3, 4, 10, 1, bc);
       if (side) D([[12, 4], [13, 5], [13, 6]], bc); if (dir === 'up') { D([[7, 5], [8, 6], [7, 7]], bc); D([[12, 6], [11, 7], [10, 8], [9, 9], [8, 10], [7, 11], [6, 12]], '#c8d0e0'); D([[13, 5], [12, 5]], '#8a5a2a'); }
@@ -121,6 +115,33 @@ const GFX = (() => {
     cache.set(key, cv); return cv;
   }
 
+  /* 沿著建築輪廓加一圈深色描邊（草圖裡的物件都有描邊） */
+  function outlineBuilding(g, cv, W, H) {
+    const d = g.getImageData(0, 0, cv.width, cv.height), p = d.data, w = cv.width, h = cv.height;
+    const solid = new Uint8Array(w * h);
+    for (let i = 0, q = 0; i < p.length; i += 4, q++) solid[q] = p[i + 3] > 12 ? 1 : 0;
+    const OUTL = [34, 26, 22];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const q = y * w + x; if (solid[q]) continue;
+      let near = false;
+      for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        if (solid[ny * w + nx]) { near = true; break; }
+      }
+      if (!near) continue;
+      const i = q * 4; p[i] = OUTL[0]; p[i+1] = OUTL[1]; p[i+2] = OUTL[2]; p[i+3] = 235;
+    }
+    g.putImageData(d, 0, 0);
+  }
+
+  /* 草地雜訊的四種排列（x, y, 亮=1 暗=0） */
+  const GROUND_V = [
+    [[2,3,0],[9,1,1],[13,6,0],[5,9,1],[11,12,0],[3,14,1],[7,6,0],[15,10,1]],
+    [[6,2,1],[1,7,0],[12,4,1],[8,11,0],[14,13,1],[4,5,0],[10,9,1],[2,12,0]],
+    [[4,1,0],[11,3,1],[7,8,0],[1,11,1],[13,9,0],[9,14,1],[15,5,0],[5,6,1]],
+    [[8,4,1],[3,2,0],[14,8,1],[6,13,0],[10,6,1],[12,15,0],[1,5,1],[7,10,0]],
+  ];
   /* ---------- 地圖圖塊 16×16 ---------- */
   const THEMES = {
     school: { ground: '#98d470', ground2: '#78b454', path: '#e8dcb8', path2: '#cfc39c', pathStyle: 'tile',
@@ -139,37 +160,44 @@ const GFX = (() => {
   /* 城鎮主題（地圖改版草案）：以 school 為底，換掉地面、屋頂、樹木等顏色 */
   const TOWN_THEMES = {
     /* 晨讀村：晨光下的田埂與紅瓦矮房 */
-    t_dawn:   { ground: '#b6e08a', ground2: '#94c068', path: '#f4e6c0', path2: '#d8c8a0', roof: '#d86a50', roof2: '#a84636',
+    t_dawn:   { ground: '#b6e08a', ground2: '#94c068', path: '#f4e6c0', path2: '#d8c8a0', roof: '#c09a68', roof2: '#8e6c42',
                 leaf: '#5ab858', leaf2: '#96e078', leaf3: '#357a3a', trunk: '#8a5a2a', treeStyle: 'round',
                 flower: ['#f8b0c8', '#fff0a0', '#ffffff'], fence: '#e8dcc0', fence2: '#b8a888' },
     /* 注音坡：黃綠色坡地、橘黃校舍、石駁坎 */
-    t_slope:  { ground: '#c8dc72', ground2: '#a4bc54', path: '#f6dfa8', path2: '#d8bc80', roof: '#e8a030', roof2: '#b8762a',
+    t_slope:  { ground: '#c8dc72', ground2: '#a4bc54', path: '#f6dfa8', path2: '#d8bc80', roof: '#a98a56', roof2: '#7a5f36',
                 leaf: '#7ab848', leaf2: '#b0dc70', leaf3: '#4a8a34', trunk: '#9a6a34', treeStyle: 'round',
                 door: '#f8d860', win: '#d8f0ff', rock: '#cfc0a0', flower: ['#f86a8a', '#f8e040', '#8ad0f8'] },
     /* 抄書巷：泥土色窄巷、深紅磚、少綠意 */
     t_alley:  { ground: '#a89a72', ground2: '#8a7c58', path: '#c4a888', path2: '#9a8064', pathStyle: 'dirt',
-                roof: '#a8463c', roof2: '#742c26', leaf: '#6a8a4a', leaf2: '#96b070', leaf3: '#44602e', trunk: '#6a4a2a',
+                roof: '#8a6a4c', roof2: '#5c452c', leaf: '#6a8a4a', leaf2: '#96b070', leaf3: '#44602e', trunk: '#6a4a2a',
                 wall: '#ecdcc4', wall2: '#bca88c', lamp: '#f0c860' },
     /* 典籍港：藍灰石板與水岸 */
     t_port:   { ground: '#7ab89a', ground2: '#5a9878', path: '#c0c4cc', path2: '#98a2ac', pathStyle: 'slab',
-                roof: '#3a6a9a', roof2: '#24466e', water: '#2f8fd8', water2: '#bfe8ff',
+                roof: '#6e7686', roof2: '#464d5c', water: '#2f8fd8', water2: '#bfe8ff',
                 leaf: '#4a9a78', leaf2: '#7ec8a0', leaf3: '#2e6a52', trunk: '#5a4a3a', wall: '#eef0ea' },
     /* 聽雨亭：濃綠竹林、青瓦 */
     t_bamboo: { ground: '#6ec078', ground2: '#4e9c58', path: '#d4cca4', path2: '#aea278', roof: '#4a7a5a', roof2: '#2e5a3e',
                 leaf: '#3a9850', leaf2: '#78d078', leaf3: '#24683a', trunk: '#6a5a3a', treeStyle: 'bamboo',
                 water: '#5ac0e8', water2: '#d0f4ff' },
     /* 花南街：粉色街屋與滿街花 */
-    t_flower: { ground: '#a8e084', ground2: '#84c060', path: '#f6dcd8', path2: '#d4b4b0', roof: '#d8629a', roof2: '#9e3e70',
+    t_flower: { ground: '#a8e084', ground2: '#84c060', path: '#f6dcd8', path2: '#d4b4b0', roof: '#c07fa4', roof2: '#8e5878',
                 leaf: '#66c060', leaf2: '#a4e884', leaf3: '#3e8a44', trunk: '#8a5a4a',
                 flower: ['#f86ab0', '#ffe070', '#ffffff'], wall: '#fdf2e8' },
     /* 碑林關：乾黃土地、碑石、深褐瓦 */
     t_stele:  { ground: '#bcb476', ground2: '#9c9456', path: '#cfa970', path2: '#a88550', pathStyle: 'dirt',
-                roof: '#8a4a3a', roof2: '#5a2e24', leaf: '#8a9a58', leaf2: '#b4c078', leaf3: '#5a6a34', trunk: '#7a5a34',
+                roof: '#7d6a54', roof2: '#52432f', leaf: '#8a9a58', leaf2: '#b4c078', leaf3: '#5a6a34', trunk: '#7a5a34',
                 wall: '#e4d4ac', wall2: '#b4a47c', rock: '#a09a8c', lamp: '#e84838' },
     /* 墨泉鄉：青灰霧氣、墨藍屋瓦 */
     t_spring: { ground: '#7ea898', ground2: '#5e8878', path: '#aeb2b8', path2: '#868a90', pathStyle: 'slab',
                 roof: '#44445e', roof2: '#2a2a40', leaf: '#4a8a78', leaf2: '#7ab8a4', leaf3: '#2e5a4e', trunk: '#4a4a52',
                 water: '#5a7ab0', water2: '#cfe0f4', wall: '#e2e2e6', lamp: '#d8e8ff' },
+    /* 硯海墨池：墨色的水、青灰石岸 */
+    t_ink:    { ground: '#3e3a4c', ground2: '#2e2b3a', path: '#6e6a80', path2: '#4e4a60', pathStyle: 'slab',
+                water: '#2a2038', water2: '#6a58a0', roof: '#3a3450', roof2: '#241f34',
+                leaf: '#3a5a58', leaf2: '#5a8a82', leaf3: '#24403e', trunk: '#3a3444',
+                wall: '#5a5670', wall2: '#3a3650', iwall: '#4a4660', iwall2: '#2e2b3e',
+                floor: '#6e6a80', floor2: '#4e4a60', rock: '#7a7690', lamp: '#b8a8f0',
+                flower: ['#8a7ad0', '#d0c8f8', '#ffffff'], fence: '#6a6480', fence2: '#46425a' },
     /* 鐘塔台：冷灰石階與金旗 */
     t_tower:  { ground: '#8ab08a', ground2: '#6a8e6a', path: '#c8c2ba', path2: '#9a948c', pathStyle: 'slab',
                 roof: '#4e4e60', roof2: '#30304a', leaf: '#5a9a6a', leaf2: '#8ac490', leaf3: '#36663f', trunk: '#5a5a52',
@@ -179,16 +207,22 @@ const GFX = (() => {
   function hash(a, b) { let s = (a * 374761393 + b * 668265263) >>> 0; s = (s ^ (s >>> 13)) * 1274126177 >>> 0; return (s ^ (s >>> 16)) >>> 0; }
   function tile(theme, code, fr = 0) {
     const key = 't:' + theme + code + fr; if (cache.has(key)) return cache.get(key);
-    const T = THEMES[theme]; const cv = document.createElement('canvas'); cv.width = 16; cv.height = 16; const g = cv.getContext('2d');
+    const T = THEMES[theme] ? Object.assign({}, THEMES.school, THEMES[theme]) : THEMES.school;   // 城鎮主題缺的鍵沿用 school
+    const cv = document.createElement('canvas'); cv.width = 16; cv.height = 16; const g = cv.getContext('2d');
     const R = (x, y, w, hh, c) => { g.fillStyle = c; g.fillRect(x, y, w, hh); };
-    const ground = () => { R(0, 0, 16, 16, T.ground); [[3, 5], [11, 11], [12, 3], [5, 13]].forEach(([x, y]) => { R(x, y, 1, 1, T.ground2); R(x - 1, y - 1, 1, 1, T.ground2); R(x + 1, y - 1, 1, 1, T.ground2); }); };
+    /* 草地雜訊：四種變化，由地圖座標決定，避免整片重複同一個圖案 */
+    const ground = (v = 0) => {
+      R(0, 0, 16, 16, T.ground);
+      const lit = adj(T.ground, .13), drk = T.ground2;
+      for (const [x, y, k] of GROUND_V[v & 3]) R(x, y, 1, 1, k ? lit : drk);
+    };
     switch (code) {
-      case '.': ground(); break;
+      case '.': ground(fr); break;
       case ',':
         R(0, 0, 16, 16, T.path);
         if (T.pathStyle === 'tile') { R(0, 7, 16, 1, T.path2); R(7, 0, 1, 7, T.path2); R(15, 8, 1, 8, T.path2); }
         else if (T.pathStyle === 'slab') { R(0, 0, 16, 1, T.path2); R(0, 8, 16, 1, T.path2); R(5, 1, 1, 7, T.path2); R(12, 9, 1, 7, T.path2); }
-        else { for (let i = 0; i < 7; i++) { const v = hash(i, 7); R(v % 15, (v >> 4) % 15, 1 + (v >> 9) % 2, 1, T.path2); } }
+        else { for (let i = 0; i < 7; i++) { const v = hash(i + fr * 3, 7); R(v % 15, (v >> 4) % 15, 1 + (v >> 9) % 2, 1, T.path2); } }
         break;
       case 'g':
         if (theme === 'school') {   // 國中：散落的考卷堆
@@ -197,9 +231,21 @@ const GFX = (() => {
           R(3, 10, 2, 1, '#e04a4a'); R(11, 3, 1, 2, '#e04a4a'); R(4, 4, 1, 1, '#16120e'); R(12, 11, 2, 2, '#16120e');
           break;
         }
-        R(0, 0, 16, 16, T.tall);
-        for (const [bx, by] of [[0, 1], [8, 1], [4, 8], [12, 8]]) { R(bx + 1, by + 3, 1, 4, T.tall3); R(bx + 5, by + 3, 1, 4, T.tall3); R(bx + 2, by + 1, 1, 2, T.tall2); R(bx + 3, by, 1, 2, T.tall2); R(bx + 4, by + 1, 1, 2, T.tall2); R(bx + 2, by + 3, 3, 1, T.tall3); }
-        R(0, 15, 16, 1, T.tall3); break;
+        ground(fr);                                   // 底下先鋪一般草地，長草叢再長在上面
+        {
+          const dk = T.tall3 || '#276a2a', md = T.tall || '#3f9a3a', lt = T.tall2 || '#86d860';
+          const CLUMPS = [[[2, 13], [8, 15], [13, 12]], [[4, 15], [11, 14], [14, 10]],
+                          [[1, 12], [7, 14], [12, 15]], [[5, 12], [10, 15], [15, 13]]][fr & 3];
+          for (const [bx, by] of CLUMPS) {          // 一叢草＝五片高低不一的葉子
+            for (const [dx, h0, c] of [[-2, 4, dk], [-1, 6, md], [0, 8, lt], [1, 6, md], [2, 4, dk]]) {
+              const x = bx + dx; if (x < 0 || x > 15) continue;
+              R(x, by - h0, 1, h0, c);
+              if (h0 > 5) R(x + (dx < 0 ? -1 : 1), by - h0, 1, 1, c);   // 葉尖往外彎
+            }
+            R(bx - 2, by, 5, 1, dk);
+          }
+        }
+        break;
       case 'T':
         ground();
         if (T.treeStyle === 'bamboo') {
@@ -245,15 +291,30 @@ const GFX = (() => {
         else { R(4, 1, 8, 7, T.lamp); R(4, 1, 8, 1, '#40302a'); R(4, 7, 8, 1, '#40302a'); R(6, 3, 4, 3, '#f8d060'); }
         break;
       case '^': ground(); R(2, 5, 12, 10, T.rock); R(4, 3, 8, 3, T.rock); R(4, 4, 4, 2, adj(T.rock, .3)); R(2, 13, 12, 2, adj(T.rock, -.3)); break;
+      case 'q': ground(); R(1, 3, 14, 12, '#4a4658'); R(1, 3, 14, 2, '#6a6480');   // 巨硯
+        R(2, 5, 12, 9, '#332f42'); R(3, 6, 10, 7, '#1a1426');
+        R(4, 7, 8, 5, '#0e0a18'); R(5, 8, 3, 1, '#6a58a0'); R(9, 10, 2, 1, '#8a78c0');
+        R(1, 14, 14, 1, '#242030'); break;
       case 'X': R(0, 0, 16, 16, '#16120e'); break;
       /* ---- 城鎮地標 ---- */
       case 'J': R(0, 0, 16, 16, '#d8c470'); R(0, 0, 16, 2, '#a8945a');             // 梯田
         for (let y = 3; y < 16; y += 4) { R(0, y, 16, 2, '#c8b060'); R(1, y, 14, 1, '#e8d890'); }
         R(0, 14, 16, 2, '#8a7a4a'); break;
-      case 'U': R(0, 0, 16, 16, '#eedcb0'); R(0, 0, 16, 1, '#cfbc90');             // 沙坑
-        { const h1 = hash(0, 0); [[3, 4], [9, 6], [12, 11], [5, 12]].forEach(([x, y]) => R(x, y, 2, 1, '#dcc89a')); } break;
-      case 'K': R(0, 0, 16, 16, '#7ec060'); R(0, 0, 16, 16, 'rgba(255,255,255,.05)');// 球場草皮
-        R(0, 7, 16, 1, '#f0f0e8'); break;
+      case 'U': {                                   // 沙坑：細沙＋鞦韆架
+        R(0, 0, 16, 16, '#e7d3a4'); R(0, 0, 16, 2, '#cfb98a');
+        for (let i = 0; i < 6; i++) { const v = hash(i + fr * 4, 3); R(v % 15, (v >> 4) % 14 + 2, 2, 1, '#d8c294'); }
+        if (fr === 1) { R(2, 0, 2, 9, '#8a6a4a'); R(12, 0, 2, 9, '#8a6a4a'); R(1, 0, 14, 2, '#6a4f36');
+          R(5, 2, 1, 7, '#b8b0a0'); R(10, 2, 1, 7, '#b8b0a0'); R(4, 9, 3, 2, '#c8503a'); R(9, 9, 3, 2, '#3a6ac8'); }
+        break; }
+      case 'K': {                                   // 球場：草皮＋白線（用格子位置拼出整片球場）
+        R(0, 0, 16, 16, '#6fb356'); R(0, 0, 16, 16, 'rgba(255,255,255,.04)');
+        for (let y = 0; y < 16; y += 4) R(0, y, 16, 2, '#78bd5e');   // 割草條紋
+        const L2 = '#f2f4ea';
+        if (fr === 1) { R(0, 1, 16, 1, L2); }                        // 上邊線
+        else if (fr === 2) { R(0, 14, 16, 1, L2); }                  // 下邊線
+        else if (fr === 3) { g.strokeStyle = L2; g.lineWidth = 1; g.beginPath(); g.arc(16, 8, 5.5, 0, 7); g.stroke(); R(15, 0, 1, 16, L2); }
+        else { R(0, 0, 1, 16, L2); }                                 // 左邊線
+        break; }
       case 'i': R(0, 0, 16, 16, '#c8c2b8'); R(0, 0, 16, 3, '#e0dcd2');             // 石階
         R(0, 5, 16, 1, '#9a948c'); R(0, 10, 16, 1, '#9a948c'); R(0, 15, 16, 1, '#8a847c'); break;
       case 'P': R(0, 10, 16, 6, '#3a9ad8'); R(0, 10, 16, 1, '#bfe8ff');            // 碼頭小船
@@ -267,13 +328,39 @@ const GFX = (() => {
       case 'I': ground(); R(1, 2, 14, 3, '#a8463c'); R(0, 1, 16, 2, '#c85a4a');    // 牌坊／拱門
         R(2, 5, 3, 11, '#8a5a2a'); R(11, 5, 3, 11, '#8a5a2a');
         R(2, 8, 12, 1, '#a8463c'); break;
+      /* ---- 三大公共建築（每個城鎮都一樣）---- */
+      case 'h': R(0, 0, 16, 16, '#c42e2e'); R(0, 0, 16, 3, '#e85a52');                                // 紅瓦（補給站）
+        for (let x = 0; x < 16; x += 4) R(x, 4, 3, 9, '#d84040');
+        R(0, 13, 16, 3, '#8a1c1c'); break;
+      case 'H': R(0, 0, 16, 16, '#c42e2e'); R(0, 0, 16, 3, '#e85a52');                                // 紅瓦＋白十字招牌
+        for (let x = 0; x < 16; x += 4) R(x, 4, 3, 9, '#d84040');
+        R(0, 13, 16, 3, '#8a1c1c');
+        R(3, 3, 10, 9, '#f8f8f8'); R(3, 3, 10, 1, '#c8c8c8');
+        R(7, 5, 2, 5, '#d83a3a'); R(5, 6.5, 6, 2, '#d83a3a'); break;
+      case 'c': R(0, 0, 16, 16, '#3a68b8'); R(0, 0, 16, 3, '#5a88d8');                                // 藍瓦（商店）
+        for (let x = 0; x < 16; x += 4) R(x, 4, 3, 9, '#4a78c8');
+        R(0, 13, 16, 3, '#22406e'); break;
+      case 'C': R(0, 0, 16, 16, '#3a68b8'); R(0, 0, 16, 3, '#5a88d8');                                // 藍瓦＋商店招牌
+        for (let x = 0; x < 16; x += 4) R(x, 4, 3, 9, '#4a78c8');
+        R(0, 13, 16, 3, '#22406e');
+        R(2, 3, 12, 9, '#f4ecd8'); R(2, 3, 12, 1, '#c8bca4');
+        R(5, 6, 6, 5, '#e8a030'); R(5, 5, 6, 1, '#c07a20'); R(7, 4, 2, 2, '#c07a20'); break;
+      case 'G': R(0, 0, 16, 16, '#b8861a'); R(0, 0, 16, 3, '#f0c040');                                // 金瓦（道館）
+        for (let x = 0; x < 16; x += 3) R(x, 4, 2, 9, '#c8961e');
+        R(0, 13, 16, 3, '#6a4a12'); break;
+      case 'y': R(0, 0, 16, 16, '#b8861a'); R(0, 0, 16, 3, '#f0c040');                                // 金瓦＋匾額
+        for (let x = 0; x < 16; x += 3) R(x, 4, 2, 9, '#c8961e');
+        R(0, 13, 16, 3, '#6a4a12');
+        R(0, 4, 16, 8, '#8a2a22'); R(0, 5, 16, 6, '#f0c040');
+        R(2, 7, 3, 2, '#8a2a22'); R(7, 7, 3, 2, '#8a2a22'); R(12, 7, 3, 2, '#8a2a22'); break;
+      /* ---- 室內裝飾 ---- */
+      case 'x': R(0, 0, 16, 16, T.iwall || '#f4ecd8'); R(2, 0, 12, 15, '#e8dcc0');                   // 牆上掛軸
+        R(2, 0, 12, 2, '#8a5a32'); R(2, 13, 12, 2, '#8a5a32'); R(3, 3, 10, 9, '#f6f0e2');
+        R(5, 5, 6, 5, '#3a6a8a'); R(6, 6, 4, 3, '#6aa8c8'); R(4, 11, 3, 1, '#c83838'); break;
+      case 'e': g.drawImage(tile(theme, '_'), 0, 0); R(1, 4, 14, 8, '#8a5a32');                      // 講桌
+        R(1, 4, 14, 2, '#b07a44'); R(2, 12, 2, 4, '#6a4424'); R(12, 12, 2, 4, '#6a4424');
+        R(5, 2, 6, 2, '#f4ecd8'); break;
       /* ---- 特別建築的屋頂與門牌 ---- */
-      case 'h': R(0, 0, 16, 16, '#d83a3a'); R(0, 0, 16, 3, '#f05a52'); R(0, 13, 16, 3, '#a02424');   // 保健室（紅）
-        R(6, 5, 4, 6, '#ffffff'); R(4, 7, 8, 2, '#ffffff'); break;
-      case 'c': R(0, 0, 16, 16, '#3a68b8'); R(0, 0, 16, 3, '#5a88d8'); R(0, 13, 16, 3, '#28487e');   // 商店（藍）
-        for (let x = 0; x < 16; x += 4) R(x, 5, 2, 6, '#e8f0ff'); break;
-      case 'G': R(0, 0, 16, 16, '#c8961e'); R(0, 0, 16, 3, '#f0c040'); R(0, 13, 16, 3, '#8a641a');   // 道館（金）
-        R(3, 5, 10, 6, '#f8e8b0'); R(5, 7, 6, 2, '#8a641a'); R(7, 5, 2, 6, '#8a641a'); break;
       case 'N': ground(); R(7, 8, 2, 7, '#6a4a32');                                                   // 門牌
         R(2, 3, 12, 6, '#e8dcc0'); R(2, 3, 12, 1, '#b8a888'); R(2, 8, 12, 1, '#b8a888');
         R(4, 5, 8, 1, '#6a5a44'); R(4, 7, 5, 1, '#6a5a44'); break;
@@ -445,5 +532,166 @@ const GFX = (() => {
     const cv = toCanvas(16, 16, raster(16, 16, P, null)); cache.set(key, cv); return cv;
   }
 
-  return { person, tile, weapon, weaponMon, special, chest, draft, THEMES, adj, hue, star, pxEllipse, el, OUT };
+
+  /* ---------- 城鎮三大公共建築：整棟一張圖（3/4 斜視、跨多格） ---------- */
+  const BPAL = {
+    /* 配色貼近草圖：低彩度、暖木色、深色描邊 */
+    clinic: { a: '#c0503e', b: '#8e3226', c: '#d9776a', d: '#5d1f16',
+              wall: '#e8dcc0', wall2: '#c5b494', base: '#9a8a70', beam: '#6f4a2c',
+              door: '#8a5634', door2: '#54341e', win: '#c6dce4', win2: '#7a94a0',
+              sign: '#efe6d2', signEdge: '#a8987c', mark: '#b8382c', lamp: '#f0d8c8' },
+    store:  { a: '#3f6a94', b: '#27455f', c: '#6d97bd', d: '#182b3c',
+              wall: '#e8dcc0', wall2: '#c5b494', base: '#9a8a70', beam: '#6f4a2c',
+              door: '#8a5634', door2: '#54341e', win: '#c6dce4', win2: '#7a94a0',
+              sign: '#d8a63c', signEdge: '#8a6a24', mark: '#5a3e14', lamp: '#f2e0b8' },
+    gym:    { a: '#c09a44', b: '#8a6a24', c: '#dcbc70', d: '#5a4414',
+              wall: '#e4d8bc', wall2: '#c0b090', base: '#948468', beam: '#6a4424',
+              door: '#8e3226', door2: '#4e1a12', win: '#e0cc9a', win2: '#94764a',
+              sign: '#7a2a1e', signEdge: '#c8a040', mark: '#c8a040', lamp: '#f2ddb0' },
+  };
+
+  /* 一層屋頂：屋脊＋瓦面＋出簷瓦當 */
+  function roofTier(R, P, x0, y0, w, h, ridge) {
+    const eave = 3;                                   // 下緣往外出簷的像素
+    if (ridge) {
+      R(x0 + 5, y0, w - 10, 3, P.d);                  // 屋脊
+      R(x0 + 6, y0 + 1, w - 12, 1, P.c);
+      R(x0 + 2, y0 - 3, 4, 6, P.d); R(x0 + w - 6, y0 - 3, 4, 6, P.d);   // 兩端鴟吻
+      R(x0 + 2, y0 - 3, 4, 1, P.b); R(x0 + w - 6, y0 - 3, 4, 1, P.b);
+    }
+    const top = y0 + (ridge ? 3 : 0), body = h - (ridge ? 3 : 0);
+    for (let i = 0; i < body; i++) {
+      const t = i / body;
+      const out = Math.round(t * eave);
+      const col = t < .18 ? P.c : t < .62 ? P.a : t < .88 ? P.b : P.d;
+      R(x0 + 4 - out, top + i, w - 8 + out * 2, 1, col);
+    }
+    for (let x = x0 + 6; x < x0 + w - 6; x += 7) R(x, top, 1, body - 2, P.b);   // 瓦溝
+    const by = y0 + h - 3, bw = w - 8 + eave * 2, bx = x0 + 4 - eave;
+    R(bx - 1, by, bw + 2, 3, P.d);                    // 簷口
+    for (let x = bx + 1; x < bx + bw; x += 7) { R(x, by + 1, 3, 2, P.c); R(x + 1, by + 2, 1, 1, P.a); }  // 瓦當
+  }
+
+  /* 木格窗 */
+  function winPane(R, P, x, y, w, h) {
+    R(x - 1, y - 1, w + 2, h + 2, P.beam);
+    R(x, y, w, h, P.win);
+    R(x, y, w, Math.max(1, Math.round(h / 3)), adj(P.win, .25));
+    for (let i = x + 2; i < x + w; i += 3) R(i, y, 1, h, P.win2);
+    R(x, y + Math.round(h / 2), w, 1, P.win2);
+  }
+
+  function building(kind, theme = 'school') {
+    const key = 'bld:' + kind + (kind === 'house' ? ':' + theme : ''); if (cache.has(key)) return cache.get(key);
+    const gym = kind === 'gym', house = kind === 'house';
+    const T = THEMES[theme] || THEMES.school;
+    const P = house ? { a: T.roof, b: adj(T.roof, -.22), c: adj(T.roof, .28), d: adj(T.roof2, -.25),
+                        wall: T.wall || '#f4ecd4', wall2: T.wall2 || '#c8bc9c', base: adj(T.wall2 || '#c8bc9c', -.25),
+                        beam: T.trunk || '#8a5634', door: T.door || '#8a5a34', door2: adj(T.door || '#8a5a34', -.35),
+                        win: T.win || '#bfe4f6', win2: adj(T.win || '#bfe4f6', -.35), lamp: '#ffe2dc' } : BPAL[kind];
+    const shrine = kind === 'shrine', tower = kind === 'tower';
+    const W = gym || tower ? 96 : shrine ? 48 : 80, H = tower ? 112 : gym ? 80 : shrine ? 48 : 64;
+    const SH = 10;                                   // 底部多留一點畫布給落地陰影
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H + SH;
+    const g = cv.getContext('2d');
+    const R = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+    /* 先鋪落地陰影：往右下散開，讓房子「站」在地上而不是貼上去 */
+    for (const [dy, a0, inset] of [[2, .10, 2], [4, .13, 4], [6, .10, 8], [8, .06, 14]]) {
+      g.fillStyle = `rgba(28,24,40,${a0})`;
+      g.fillRect(inset + 2, H - 4 + dy, W - inset * 2 + 4, 2);
+    }
+    g.fillStyle = 'rgba(28,24,40,.16)'; g.fillRect(W - 3, 14, 6, H - 14);      // 右側牆面投影
+
+    if (tower) {
+      /* 鐘塔：石造塔身＋大時鐘＋紅毯拱門（鐘塔台道館） */
+      const K = { st: '#9aa0ac', st2: '#7b8290', st3: '#5e646f', dk: '#454a55',
+                  gold: '#e0b83c', gold2: '#a5821c', red: '#a8302a', red2: '#74201c' };
+      R(44, 0, 8, 10, K.gold2); R(45, 1, 6, 6, K.gold);                       // 旗桿與旗
+      R(52, 2, 12, 7, K.red); R(52, 2, 12, 1, K.red2);
+      R(34, 10, 28, 6, K.st3); R(36, 12, 24, 3, K.st2);                       // 塔尖底座
+      R(30, 16, 36, 30, K.st); R(30, 16, 36, 2, adj(K.st, .2));               // 鐘樓
+      for (const x of [33, 62]) R(x, 18, 2, 26, K.st2);
+      { g.fillStyle = '#f6efdb'; g.beginPath(); g.arc(48, 30, 11, 0, 7); g.fill();
+        g.fillStyle = K.dk; g.beginPath(); g.arc(48, 30, 11, 0, 7); g.lineWidth = 2; g.strokeStyle = K.gold2; g.stroke(); }
+      R(47, 22, 2, 9, K.dk); R(48, 29, 8, 2, K.dk); R(47, 29, 3, 3, K.gold2); // 指針
+      for (const [dx, dy] of [[0, -9], [9, 0], [0, 9], [-9, 0]]) R(48 + dx - 1, 30 + dy - 1, 2, 2, K.st3);
+      R(26, 46, 44, 6, K.st3); R(28, 48, 40, 2, K.st2);                       // 出簷
+      R(22, 52, 52, 60, K.st); R(22, 52, 52, 2, adj(K.st, .18));              // 塔身
+      for (const x of [25, 45, 68]) R(x, 54, 3, 58, K.st2);                   // 壁柱
+      for (const y of [58, 78]) for (const x of [31, 58]) {                   // 拱窗
+        R(x, y, 7, 12, K.dk); R(x + 1, y + 1, 5, 10, '#2c3550'); R(x + 1, y + 1, 5, 3, '#4a6a9a');
+      }
+      R(30, 60, 12, 9, K.red); R(31, 61, 10, 7, K.gold);                      // 兩面校徽旗
+      R(56, 60, 12, 9, K.red); R(57, 61, 10, 7, K.gold);
+      R(38, 84, 20, 28, K.dk); R(40, 86, 16, 26, '#241d2c');                  // 拱門
+      { g.fillStyle = K.dk; g.beginPath(); g.arc(48, 88, 10, Math.PI, 0); g.fill();
+        g.fillStyle = '#241d2c'; g.beginPath(); g.arc(48, 88, 8, Math.PI, 0); g.fill(); }
+      R(42, 92, 12, 20, K.red); R(43, 92, 10, 20, '#c04038');                 // 紅毯
+      R(34, 106, 28, 3, '#c6bfae'); R(30, 109, 36, 3, '#aca591');             // 台階
+    } else if (shrine) {
+      /* 泉眼小祠：青瓦小屋＋黑洞洞的入口＋兩盞石燈 */
+      const S = { a: '#5a6472', b: '#3a4250', c: '#8e98a6', d: '#242a36' };
+      roofTier(R, S, 4, 2, 40, 18, true);
+      R(8, 20, 32, 2, '#4a4038');
+      R(9, 22, 30, 22, '#b8b4a8'); R(9, 22, 30, 2, '#d2cec2');
+      for (const x of [9, 37]) R(x, 22, 2, 22, '#948f84');
+      R(9, 41, 30, 3, '#7c776c');
+      R(18, 26, 12, 18, '#171a22');                      // 門洞
+      R(18, 26, 12, 2, '#0d0f15'); R(19, 30, 10, 12, '#22182c');
+      R(22, 34, 4, 8, '#3a2050');                        // 裡面漾著墨光
+      R(15, 24, 18, 3, '#8a2a22'); R(16, 25, 16, 1, '#e0b040');   // 小匾
+      for (const x of [6, 39]) {                          // 石燈籠
+        R(x, 30, 4, 12, '#9a958a'); R(x - 1, 27, 6, 4, '#8a857a');
+        R(x, 28, 4, 2, '#f8e8a0'); R(x - 2, 25, 8, 2, '#7c776c');
+      }
+      for (const [x, y, w2] of [[13, 44, 22], [11, 46, 26]]) R(x, y, w2, 2, '#a09a8e');   // 台階
+    } else if (gym) {
+      /* 重簷歇山：上層小屋頂＋下層大屋頂 */
+      roofTier(R, P, 20, 2, 56, 20, true);
+      R(24, 22, 48, 4, P.wall2); R(24, 22, 48, 1, P.beam);       // 上下簷之間的短牆
+      roofTier(R, P, 0, 24, 96, 22, false);
+      R(2, 46, 92, 3, P.beam);                                   // 椽枋
+      R(3, 49, 90, 31, P.wall); R(3, 49, 90, 2, adj(P.wall, .2));
+      for (let x = 8; x < 90; x += 22) R(x, 49, 2, 31, P.wall2);  // 牆柱
+      R(3, 76, 90, 4, P.base);                                   // 牆基
+      /* 長匾額：紅底金框＋金字紋 */
+      R(16, 52, 64, 14, P.signEdge); R(18, 54, 60, 10, P.sign);
+      for (let i = 0; i < 4; i++) { const x = 24 + i * 14; R(x, 56, 7, 6, P.mark); R(x + 2, 58, 3, 2, P.sign); }
+      /* 雙開門＋門釘 */
+      R(32, 62, 32, 18, P.door2); R(34, 64, 13, 16, P.door); R(49, 64, 13, 16, P.door);
+      R(47, 62, 2, 18, P.door2);
+      for (let y = 67; y < 78; y += 4) for (const x of [38, 43, 53, 58]) R(x, y, 2, 2, P.mark);
+      R(28, 76, 40, 4, '#cfc3a2'); R(26, 79, 44, 1, '#a89878');   // 台階
+      /* 兩側燈籠 */
+      for (const x of [22, 70]) { R(x, 52, 1, 6, P.beam); R(x - 3, 58, 7, 9, '#c0302a'); R(x - 2, 60, 5, 5, P.lamp); R(x - 3, 67, 7, 2, P.signEdge); }
+    } else {
+      roofTier(R, P, 0, 4, 80, 26, true);
+      R(2, 30, 76, 3, P.beam);
+      R(3, 33, 74, 27, P.wall); R(3, 33, 74, 2, adj(P.wall, .2));
+      for (const x of [3, 38, 75]) R(x, 33, 2, 27, P.wall2);
+      R(3, 57, 74, 3, P.base);
+      winPane(R, P, 8, 38, 13, 11); winPane(R, P, 59, 38, 13, 11);
+      if (house) {
+        R(30, 34, 20, 3, P.beam);                                    // 門楣
+        R(12, 20, 6, 10, adj(P.b, -.15)); R(12, 19, 6, 2, P.d);       // 煙囪
+      } else if (kind === 'clinic') {
+        R(28, 34, 24, 16, P.signEdge); R(29, 35, 22, 14, P.sign);   // 白底招牌
+        R(38, 37, 4, 10, P.mark); R(35, 40, 10, 4, P.mark);          // 紅十字
+      } else {
+        R(26, 33, 28, 4, P.beam);                                    // 幌子橫桿
+        R(29, 36, 22, 13, P.signEdge); R(30, 37, 20, 11, P.sign);    // 黃色貨牌
+        R(34, 40, 12, 2, P.mark); R(34, 44, 8, 2, P.mark);
+        R(6, 52, 9, 8, '#a8733e'); R(6, 52, 9, 2, '#d8a45a');        // 門口貨箱
+        R(10, 54, 1, 6, '#7a4c22');
+      }
+      R(32, 46, 16, 18, P.door2); R(33, 47, 14, 17, P.door);
+      R(33, 47, 14, 3, adj(P.door, .25)); R(44, 54, 2, 3, '#f0d878');  // 門環
+      R(27, 60, 26, 3, '#cfc3a2'); R(25, 63, 30, 1, '#a89878');
+      if (!house) for (const x of [26, 52]) { R(x, 36, 1, 5, P.beam); R(x - 2, 41, 5, 7, '#c0302a'); R(x - 1, 43, 3, 3, P.lamp); }
+    }
+    outlineBuilding(g, cv, W, H + SH);
+    cache.set(key, cv); return cv;
+  }
+
+  return { person, tile, weapon, weaponMon, special, chest, draft, building, THEMES, adj, hue, star, pxEllipse, el, OUT };
 })();

@@ -109,7 +109,16 @@ function resize() {
 
 /* ---------- 迴圈 ---------- */
 let lastT = performance.now();
-function loop(now) { const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now; frame(dt); requestAnimationFrame(loop); }
+let frameErr = 0;
+function loop(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  /* 單一畫面出錯不該讓整個遊戲凍住：記錄後繼續跑 */
+  try { frame(dt); } catch (e) {
+    if (frameErr++ < 5) console.error('[frame]', e);
+    if (frameErr === 5) console.error('[frame] 之後的同類錯誤不再列出');
+  }
+  requestAnimationFrame(loop);
+}
 window.__run = async (n = 60) => { const ch = new MessageChannel(); const y = () => new Promise(r => { ch.port1.onmessage = () => r(); ch.port2.postMessage(0); }); for (let i = 0; i < n; i++) { frame(1 / 60); await y(); } };
 function frame(dt) {
   Input.tick();

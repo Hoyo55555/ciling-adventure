@@ -7,6 +7,7 @@ const OW = {
   L: null, id: null, npcs: [], foes: [], busy: false, bubble: null, bumpCd: 0, idleT: 0, hud: null, hudKey: '',
   p: { x: 0, y: 0, dir: 'down', moving: false, t: 0, tx: 0, ty: 0, dur: 0.22, step: 0, turnWait: 0, cont: false },
 
+  shake: 0, dark: 0, flash: 0, fx: [],
   load(id, x, y, dir) {
     if (!LAYOUTS[id]) { const H0 = (W && W.homeTown) || { map: 'chendu', x: 16, y: 11 }; id = H0.map; x = H0.x; y = H0.y; }   // 防呆：地圖不存在就回起點城鎮
     this.id = id; this.L = LAYOUTS[id];
@@ -16,6 +17,7 @@ const OW = {
       if (s.route && G.route !== s.route) return null;                 // 依劇情路線出現的 NPC
       if (s.role === 'rival' && G.flags.rivalGone) return null;        // 勁敵離開步道
       if (G.flags['gone:' + id + ':' + s.role]) return null;             // 劇情中離開的人物
+      if (s.after && !s.after.every(k => G.defeated[k])) return null;   // 條件未達成，尚未登場
       return { key: id + ':' + s.role, role, x: s.x, y: s.y, dir: s.dir, home: s.dir, sight: s.sight || 0, wander: s.wander, ox: 0, oy: 0, fr: 0, look: role.look };
     }).filter(Boolean);
     this.spawnFoes();
@@ -73,13 +75,9 @@ const OW = {
   /* 二週目：硯海龍君在墨池裡隨機現身 */
   spawnSpirit() {
     this.npcs = this.npcs.filter(n => n.key !== 'inkpool:stoneSpirit');
-    if (!G.ng || ownsArch('g_stone')) return;
-    const spots = [];
-    for (let y = 1; y < this.L.rows.length - 1; y++) for (let x = 1; x < this.L.rows[0].length - 1; x++)
-      if (!SOLID.has(this.tile(x, y)) && !this.chestAt(x, y) && Math.abs(x - this.p.x) + Math.abs(y - this.p.y) > 3) spots.push([x, y]);
-    if (!spots.length) return;
-    const [sx, sy] = pick(spots), role = W.roles.stoneSpirit;
-    this.npcs.push({ key: 'inkpool:stoneSpirit', role, x: sx, y: sy, dir: 'down', home: 'down', sight: 0, ox: 0, oy: 0, fr: 0, look: role.look });
+    if (!G.ng || ownsArch('g_stone') || !G.flags.shardsAll) return;
+    const R0 = W.roles.stoneSpirit; if (!R0) return;
+    this.npcs.push({ key: 'inkpool:stoneSpirit', role: R0, x: 8, y: 6, dir: 'down', home: 'down', sight: 0, ox: 0, oy: 0, fr: 0, look: R0.look });
   },
   tile(x, y) { const r = this.L.rows; if (y < 0 || y >= r.length || x < 0 || x >= r[0].length) return this.L.indoor ? 'X' : 'T'; const o = G && G.opened && G.opened[this.id + ':' + x + ',' + y]; return o || r[y][x]; },
   npcAt(x, y) { return this.npcs.find(n => n.x === x && n.y === y); },
@@ -184,12 +182,16 @@ const OW = {
     const px = (p.moving ? p.x + (p.tx - p.x) * k : p.x) * 16, py = (p.moving ? p.y + (p.ty - p.y) * k : p.y) * 16;
     let cx = px - 112, cy = py - 72;
     cx = Math.round(mw > 240 ? clamp(cx, 0, mw - 240) : (mw - 240) / 2); cy = Math.round(mh > 160 ? clamp(cy, 0, mh - 160) : (mh - 160) / 2);
+    if (this.shake > 0) { cx += Math.round((Math.random() - .5) * this.shake * 2); cy += Math.round((Math.random() - .5) * this.shake * 2); }
     const now = performance.now(), wf = Math.floor(now / 500) % 2;
     const x0 = Math.floor(cx / 16) - 1, y0 = Math.floor(cy / 16) - 1;
-    for (let ty = y0; ty < y0 + 12; ty++) for (let tx = x0; tx < x0 + 17; tx++) { const c = this.tile(tx, ty); g.drawImage(GFX.tile(theme, c, c === '~' ? wf : 0), tx * 16 - cx, ty * 16 - cy); }
+    if (L.art) ArtMap.draw(g, L.art, cx, cy);            // 美術地圖：直接畫草圖
+    else for (let ty = y0; ty < y0 + 12; ty++) for (let tx = x0; tx < x0 + 17; tx++) { const c = this.tile(tx, ty); g.drawImage(GFX.tile(theme, c, c === '~' ? wf : (tx * 5 + ty * 11) & 3), tx * 16 - cx, ty * 16 - cy); }
+    for (const [kind, bx, by] of L.props || []) g.drawImage(GFX.building(kind, theme), bx * 16 - cx, by * 16 - cy);   // 整棟建築跨多格
     for (const c of L.chests || []) g.drawImage(GFX.chest(!!G.chests[c.id]), c.x * 16 - cx, c.y * 16 - cy);
     const actors = this.npcs.map(n => ({ y: n.y * 16 + n.oy, draw: () => {
-      if (n.look.sprite) { const bob = Math.round(Math.sin(now / 300) * 1.5); const big = n.look.sprite === 'boss'; g.drawImage(GFX.special(n.look.sprite), n.x * 16 + n.ox - cx - (big ? 8 : 0), n.y * 16 + n.oy - cy - (big ? 16 : 3) + bob, big ? 32 : 16, big ? 32 : 16); }
+      if (n.look.sprite) { const sp = GFX.special(n.look.sprite), sz = sp.width; const bob = Math.round(Math.sin(now / 300) * 1.5);
+        g.drawImage(sp, n.x * 16 + n.ox - cx - (sz - 16) / 2, n.y * 16 + n.oy - cy - (sz - 16) - 3 + bob); }   // 依圖原尺寸畫，不拉伸
       else g.drawImage(GFX.person(n.look, n.dir, n.fr), n.x * 16 + n.ox - cx, n.y * 16 + n.oy - cy - 3); } }));
     for (const f of this.foes) actors.push({ y: f.y * 16 + f.oy, draw: () => {
       const bob = Math.round(Math.abs(Math.sin(now / 220 + f.hx)) * 2); const fx = f.x * 16 + f.ox - cx, fy = f.y * 16 + f.oy - cy;
@@ -212,6 +214,9 @@ const OW = {
       drawMark(g, tx * 16 - cx + 4, ty * 16 - cy - 10, 'way', now, dir);
     }
     for (const [k, d] of Object.entries(this.L.devices || {})) if (!G.flags[d.flag]) { const [dx2, dy2] = k.split(',').map(Number); drawMark(g, dx2 * 16 - cx + 4, Math.max(2, dy2 * 16 - cy - 9), 'side', now); }
+    for (const f of this.fx || []) f(g, cx, cy);
+    if (this.dark > 0) { g.fillStyle = `rgba(8,6,14,${this.dark})`; g.fillRect(0, 0, 240, 160); }
+    if (this.flash > 0) { g.fillStyle = `rgba(255,250,235,${this.flash})`; g.fillRect(0, 0, 240, 160); }
     if (this.bubble) { const n = this.bubble; const bx = n.x * 16 + n.ox - cx + 3, by = n.y * 16 + n.oy - cy - 16;
       g.fillStyle = '#2a2018'; g.fillRect(bx - 1, by - 1, 12, 13); g.fillStyle = '#fbf3dc'; g.fillRect(bx, by, 10, 11); g.fillStyle = '#b8322a'; g.fillRect(bx + 4, by + 2, 2, 5); g.fillRect(bx + 4, by + 8, 2, 2); }
   },
@@ -320,6 +325,47 @@ async function useDevice(d) {
   await say(d.ok);
   await afterDevice(d);
 }
+/* ============ 過場：三塊碎片湊齊，硯海龍君從墨池裡升起 ============ */
+async function spiritRise() {
+  const role = W.roles.stoneSpirit; if (!role) return;
+  Sound.play('boss');
+  await Anim.run(0.5, k => OW.dark = k * .55);
+  await say('（墨池的水一圈一圈往中央捲，露出池底的一方巨硯。）');
+
+  const tx = 8 * 16 + 8, ty = 6 * 16 + 8;
+  const from = [[2, 2], [15, 2], [2, 10]].map(([x, y]) => [x * 16 + 8, y * 16 + 8]);
+  let t = 0;
+  OW.fx.push((g, cx, cy) => {                                   // 三道碎片之光飛向島嶼
+    for (const [fx, fy] of from) {
+      const x = fx + (tx - fx) * t, y = fy + (ty - fy) * t - Math.sin(t * Math.PI) * 14;
+      g.fillStyle = `rgba(255,244,214,${1 - t * .25})`;
+      g.fillRect(Math.round(x - cx) - 1, Math.round(y - cy) - 1, 3, 3);
+    }
+  });
+  Sound.sfx('ball');
+  await Anim.run(0.9, k => { t = k; });
+  OW.fx.length = 0;
+  Sound.sfx('badge'); OW.flash = .8;
+  await Anim.run(0.45, k => OW.flash = .8 * (1 - k));
+  OW.flash = 0;
+
+  const n = { key: 'inkpool:stoneSpirit', role, x: 8, y: 6, dir: 'down', home: 'down',
+              sight: 0, ox: 0, oy: 26, fr: 0, look: role.look };
+  OW.npcs.push(n);
+  let ripple = 0;
+  OW.fx.push((g, cx, cy) => {                                   // 水面漣漪
+    if (ripple <= 0) return;
+    g.strokeStyle = `rgba(206,228,255,${Math.max(0, 1 - ripple / 44)})`; g.lineWidth = 1;
+    g.beginPath(); g.ellipse(tx - cx, ty + 9 - cy, ripple, ripple * .4, 0, 0, 7); g.stroke();
+  });
+  await Anim.run(1.1, k => { n.oy = Math.round(26 * (1 - k)); ripple = k * 46; OW.shake = k < .8 ? 1.2 : 0; });
+  n.oy = 0; OW.shake = 0; OW.fx.length = 0;
+  await Anim.run(0.5, k => OW.dark = .55 * (1 - k));
+  OW.dark = 0;
+  for (const t2 of (role.riseLines || [])) await say(t2, t2.startsWith('（') ? undefined : role.name);
+  autosave();
+}
+
 async function afterDevice(d) {
   const all = Object.values(OW.L.devices).filter(x => x.group === d.group);
   if (!all.every(x => G.flags[x.flag])) return;
@@ -328,6 +374,7 @@ async function afterDevice(d) {
   const open = last.open || d.open;
   if (open) { for (const [x, y] of open) G.opened[OW.id + ':' + x + ',' + y] = '_'; Sound.sfx('badge'); }
   if (last.onAll) { G.flags[last.onAll] = true; autosave(); }
+  if (last.onAll === 'shardsAll' && OW.id === 'inkpool') await spiritRise();   // 硯海龍君現身
 }
 async function talkTo(n) {
   const R = n.role; n.dir = OPP[OW.p.dir];
@@ -349,6 +396,32 @@ async function talkTo(n) {
       Sound.sfx('heal'); await say('（氣血全滿了！）'); autosave(); n.dir = n.home; return; }
     case 'shop': await say(R.text); await Shop.open((G.ret && LAYOUTS[G.ret.map].shop) || ['heal', 'hint']); n.dir = n.home; return;
     case 'smith': await say(R.lines.join('\n\n'), R.name); await Forge.open(); n.dir = n.home; return;
+    case 'gift': {                                   // 送禮物（只送一次）
+      const key = 'gift:' + n.key;
+      if (G.flags[key]) { await say(R.after || '（東西收好了嗎？）', R.name); n.dir = n.home; return; }
+      for (const t of R.lines) await say(t, R.name);
+      const got = [];
+      for (const [id, num] of Object.entries(R.items || {})) { G.bag[id] += num; got.push(`「${itemName(id)}」×${num}`); }
+      if (R.money) { G.money += R.money; got.push(`${R.money} 文`); }
+      G.flags[key] = true; Sound.sfx('badge'); autosave();
+      await say(`${G.player.name} 收到了 ${got.join('、')}！`);
+      n.dir = n.home; return; }
+    case 'quiz': {                                   // 答對送道具（每個 NPC 只送一次，但可以重答）
+      const key = 'quiz:' + n.key;
+      if (G.flags[key]) { await say(R.after || '（謝謝你陪我聊天。）', R.name); n.dir = n.home; return; }
+      for (const t of R.lines) await say(t, R.name);
+      if (!(await UI.yesno(R.ask || '要回答看看嗎？'))) { await say(R.no || '（隨時歡迎回來。）', R.name); n.dir = n.home; return; }
+      const q = QB.draw([R.cat], clamp((OW.L.qlv || 1) + (G.ng || 0), 1, 3), 1);
+      if (!q) { await say('（題庫裡還沒有這類題目。）'); n.dir = n.home; return; }
+      const r = await UI.question(q, { move: R.name, mode: 'device', hint: true });
+      if (!r.correct) { await say(R.wrong || '……再想想看。這題收進錯題本了，想通再回來。', R.name); n.dir = n.home; return; }
+      const got = [];
+      for (const [id, num] of Object.entries(R.items || {})) { G.bag[id] += num; got.push(`「${itemName(id)}」×${num}`); }
+      if (R.money) { G.money += R.money; got.push(`${R.money} 文`); }
+      G.flags[key] = true; Sound.sfx('badge'); autosave();
+      await say(R.win || '答對了！', R.name);
+      await say(`${G.player.name} 收到了 ${got.join('、')}！`);
+      n.dir = n.home; return; }
     default: await say(R.lines.join('\n\n'), R.name); n.dir = n.home;
   }
 }
@@ -511,6 +584,52 @@ async function spotted(n) {
   }
   p.dir = OPP[n.dir]; await trainerTalk(n);
 }
+/* ============ 過場：三位菁英倒下後，總複習大魔王從天而降 ============ */
+async function bossEntrance() {
+  const L = OW.L; if (!L || !L.npcs) return;
+  const spec = L.npcs.find(s => s.cut === 'bossDrop' && s.after && s.after.every(k => G.defeated[k]));
+  if (!spec) return;
+  const flag = 'cut:' + OW.id + ':' + spec.role;
+  if (G.flags[flag]) return;
+  const role = W.roles[spec.role]; if (!role) return;
+  G.flags[flag] = true;
+
+  await say('（三位菁英倒下了。禮堂忽然安靜下來。）');
+  await Anim.run(0.6, k => OW.dark = k * 0.72);                     // 燈光全滅
+  Sound.play('boss');
+  await say('（講台正上方的天花板……裂開了一道縫。）');
+
+  const tx = spec.x * 16 + 8, ty = spec.y * 16 + 14;
+  let sr = 0, ring = -1;
+  OW.fx.push((g, cx, cy) => {                                        // 地面陰影逐漸放大
+    if (sr <= 0) return;
+    g.fillStyle = 'rgba(0,0,0,.5)';
+    g.beginPath(); g.ellipse(tx - cx, ty - cy, sr, sr * .4, 0, 0, 7); g.fill();
+  });
+  OW.fx.push((g, cx, cy) => {                                        // 落地衝擊波
+    if (ring < 0) return;
+    g.strokeStyle = `rgba(255,238,196,${Math.max(0, 1 - ring / 64)})`; g.lineWidth = 2;
+    g.beginPath(); g.ellipse(tx - cx, ty - cy, ring, ring * .38, 0, 0, 7); g.stroke();
+  });
+  await Anim.run(0.8, k => { sr = 2 + k * 15; OW.shake = k * 1.5; });
+
+  const n = { key: OW.id + ':' + spec.role, role, x: spec.x, y: spec.y, dir: spec.dir || 'down',
+              home: spec.dir, sight: 0, ox: 0, oy: -190, fr: 0, look: role.look };
+  OW.npcs.push(n);
+  Sound.sfx('encounter');
+  await Anim.run(0.4, k => { n.oy = Math.round(-190 * (1 - k * k)); });   // 加速墜落
+  n.oy = 0;
+
+  Sound.sfx('hit'); OW.flash = .9; OW.shake = 8;
+  await Anim.run(0.6, k => { OW.shake = 8 * (1 - k); OW.flash = .9 * (1 - k); ring = k * 66; });
+  OW.shake = 0; OW.flash = 0; ring = -1;
+  await Anim.run(0.5, k => { OW.dark = .72 * (1 - k); sr = 15 * (1 - k); });
+  OW.dark = 0; OW.fx.length = 0;
+
+  for (const t of (role.entryLines || [])) await say(t, t.startsWith('（') ? undefined : role.name);
+  autosave();
+}
+
 async function trainerTalk(n) {
   const R = n.role;
   if (G.defeated[n.key]) { await say(G.route && R.afterA ? (G.route === 'a' ? R.afterA : R.afterB) : R.after, R.name); return; }
@@ -530,6 +649,7 @@ async function trainerTalk(n) {
   }
   if (R.afterWin && R.afterWin.length) for (const t of R.afterWin) await say(t, t.startsWith('（') ? undefined : R.name);
   if (((R.kind === 'rival' && !R.choice) || R.leaves) && W.story) { G.flags['gone:' + n.key] = true; await Anim.run(0.4, k2 => n.oy = -8 * k2); OW.npcs = OW.npcs.filter(x => x !== n); }
+  if (R.kind === 'trainer') await bossEntrance();      // 菁英全滅 → 大魔王登場
   if (R.kind === 'gym') {
     G.badges.push(R.badge); Sound.play('victory'); Sound.sfx('badge');
     if (G.ng > 0 && W.ngLines && W.ngLines[G.badges.length]) for (const t of W.ngLines[G.badges.length]) await say(t);
