@@ -46,6 +46,7 @@ const OW = {
   },
   spawnFoes() {
     this.foes = []; const F = this.L.foes; if (!F) return;
+    if (G && G.teacher) return;                    // 教師測試版：不生成野生妖怪
     const on = F.on || 'g';
     const spots = []; this.L.rows.forEach((r, y) => [...r].forEach((c, x) => { if (c === on) spots.push([x, y]); }));
     const used = new Set();

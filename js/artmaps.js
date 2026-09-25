@@ -7,40 +7,116 @@ const ArtMap = (() => {
   const ready = {};                   // id -> true
   let inited = false;
 
+  const scene = {};                   // id -> 已經縮好、也蓋掉草圖人物的離屏畫布
+
   /* 草圖載入（背景載，載好前先用純色底） */
   function preload() {
     if (typeof GYM_GRID !== 'undefined') {           // 道館室內全部共用同一張草圖
       const gi = new Image();
-      gi.onload = () => { for (const id of Object.keys(GYM_GRID)) ready[id] = true; };
+      gi.onload = () => { for (const id of Object.keys(GYM_GRID)) { ready[id] = true; bake(id); } };
       gi.src = 'assets/concept/gyms.jpg';
       for (const id of Object.keys(GYM_GRID)) imgs[id] = gi;
     }
     for (const id of Object.keys(TOWN_GRID)) {
       const im = new Image();
-      im.onload = () => { ready[id] = true; };
+      im.onload = () => { ready[id] = true; bake(id); };
       im.src = 'assets/concept/towns/' + id + '.jpg';
       imgs[id] = im;
     }
   }
 
-  /* 把草圖畫到畫布上（依 ART_RECT 裁切、依 ART_SCALE 縮放） */
-  function draw(g, id, cx, cy) {
-    const im = imgs[id];
+  function mapSize(id) {
     const gy = (typeof GYM_ART !== 'undefined') && GYM_ART[id];
     const [sx, sy, sw, sh] = gy ? gy.rect : ART_RECT[id];
     const sc = gy ? gy.scale : ART_SCALE;
-    const MW = Math.round(sw * sc), MH = Math.round(sh * sc);
-    g.fillStyle = '#12100e'; g.fillRect(0, 0, 240, 160);        // 地圖比畫面小時的黑邊
-    if (!im || !ready[id]) return;
+    return { sx, sy, sw, sh, MW: Math.round(sw * sc), MH: Math.round(sh * sc) };
+  }
+
+  /* 一次縮好整張地圖存起來：每格畫面就不用再縮一次大圖，也順便把草圖上的
+     路人與雜物蓋掉（TOWN_HIDE）。蓋的方式是取附近三塊乾淨地面的「中位數」，
+     單一塊被複製過來會造成的重複物件（水池、燈柱）會被中位數洗掉。 */
+  function bake(id) {
+    const im = imgs[id]; if (!im || !im.naturalWidth) return;
+    const { sx, sy, sw, sh, MW, MH } = mapSize(id);
+    const cv = document.createElement('canvas'); cv.width = MW; cv.height = MH;
+    const g = cv.getContext('2d', { willReadFrequently: true });
     g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
-    g.drawImage(im, sx, sy, sw, sh, -cx, -cy, MW, MH);
-    g.imageSmoothingEnabled = false;
+    g.drawImage(im, sx, sy, sw, sh, 0, 0, MW, MH);
+    scene[id] = cv;
+    const hide = (typeof TOWN_HIDE !== 'undefined' && TOWN_HIDE[id]) || [];
+    if (hide.length) coverAll(g, MW, MH, hide);
+  }
+
+  /* 把 hide 清單上的格子用附近地面蓋掉 */
+  function coverAll(g, MW, MH, hide) {
+    const full = g.getImageData(0, 0, MW, MH), src = full.data;
+    /* 一塊一塊蓋、蓋完立刻寫回 src，後面的路人才取得到已經清乾淨的地面
+       （路人擠在一起時，直接從旁邊取樣會把隔壁的人一起複製過來） */
+    const taken = (x, y) => hide.some(([c, r, w, h]) =>
+      x >= c * 16 - 6 && x < (c + w) * 16 + 6 && y >= r * 16 - 6 && y < (r + h) * 16 + 6);
+    for (const [c, r, w, h] of hide) {
+      const x0 = c * 16, y0 = r * 16, ww = w * 16, hh = h * 16;
+      /* 候選取樣位移：上下左右各三段距離，另外加上斜角 */
+      const cand = [];
+      for (const d of [1, 2, 3]) cand.push([0, (hh + 6) * d], [0, -(hh + 6) * d], [(ww + 6) * d, 0], [-(ww + 6) * d, 0]);
+      for (const sx2 of [-1, 1]) for (const sy2 of [-1, 1]) cand.push([(ww + 6) * sx2, (hh + 6) * sy2]);
+      /* 用「外框一圈」的顏色差挑最像周圍的三塊，才不會把屋頂蓋到路上 */
+      const ring = (ox, oy) => { const a = [];
+        for (let x = 0; x < ww; x += 2) { a.push(((y0 + oy - 1) * MW + x0 + ox + x) * 4); a.push(((y0 + oy + hh) * MW + x0 + ox + x) * 4); }
+        for (let y = 0; y < hh; y += 2) { a.push(((y0 + oy + y) * MW + x0 + ox - 1) * 4); a.push(((y0 + oy + y) * MW + x0 + ox + ww) * 4); }
+        return a; };
+      const base = ring(0, 0);
+      const pick = skipTaken => {
+        const a = [];
+        for (const [dx, dy] of cand) {
+          if (x0 + dx - 1 < 0 || y0 + dy - 1 < 0 || x0 + dx + ww + 1 > MW || y0 + dy + hh + 1 > MH) continue;
+          if (skipTaken && taken(x0 + dx + (ww >> 1), y0 + dy + (hh >> 1))) continue;
+          const r2 = ring(dx, dy); let d2 = 0;
+          for (let i = 0; i < base.length; i++)
+            for (let k = 0; k < 3; k++) d2 += Math.abs(src[base[i] + k] - src[r2[i] + k]);
+          a.push({ dx, dy, d: d2 / base.length });
+        }
+        a.sort((p2, q2) => p2.d - q2.d);
+        return a;
+      };
+      /* 路人擠在一起時，附近每一塊都被標記了，這時只好連標記過的也拿來取樣 */
+      let scored = pick(true);
+      if (!scored.length) scored = pick(false);
+      const offs = scored.slice(0, 3).map(o => [o.dx, o.dy]);
+      if (!offs.length) continue;
+      const buf = new Uint8ClampedArray(ww * hh * 3);
+      const fx = 5;                                  // 邊緣羽化寬度
+      for (let y = 0; y < hh; y++) for (let x = 0; x < ww; x++) {
+        const di = ((y0 + y) * MW + (x0 + x)) * 4;
+        const px = [];
+        for (const [dx, dy] of offs) { const si = ((y0 + y + dy) * MW + (x0 + x + dx)) * 4; px.push(si); }
+        const med = k => { const v = px.map(i => src[i + k]).sort((a, b) => a - b); return v[v.length >> 1]; };
+        const edge = Math.min(x, y, ww - 1 - x, hh - 1 - y);
+        const a = Math.min(1, (edge + 1) / fx);      // 中間完全蓋掉、邊緣漸層
+        for (let k = 0; k < 3; k++) buf[(y * ww + x) * 3 + k] = src[di + k] * (1 - a) + med(k) * a;
+      }
+      /* 整塊算完才寫回去，免得一邊算一邊被自己蓋過的像素影響 */
+      for (let y = 0; y < hh; y++) for (let x = 0; x < ww; x++) {
+        const di = ((y0 + y) * MW + (x0 + x)) * 4;
+        for (let k = 0; k < 3; k++) src[di + k] = buf[(y * ww + x) * 3 + k];
+      }
+    }
+    g.putImageData(full, 0, 0);
+  }
+
+  /* 把草圖畫到畫布上 */
+  function draw(g, id, cx, cy) {
+    const { MW, MH } = mapSize(id);
+    g.fillStyle = '#12100e'; g.fillRect(0, 0, 240, 160);        // 地圖比畫面小時的黑邊
+    const cv = scene[id]; if (!cv || !ready[id]) return;
+    g.drawImage(cv, -cx, -cy);
   }
 
   /* 依門口感應區產生 doorWarps／warps，並套用到 LAYOUTS */
   function install() {
     if (inited) return; inited = true;
     preload();
+    if (typeof LAYOUTS === 'undefined') return;      // 測試頁只用得到 bake／draw
     if (typeof GYM_GRID !== 'undefined') for (const [id, grid] of Object.entries(GYM_GRID)) installGym(id, grid);
     for (const [id, grid] of Object.entries(TOWN_GRID)) {
       const L = LAYOUTS[id]; if (!L) continue;
@@ -49,26 +125,42 @@ const ArtMap = (() => {
       for (const v of Object.values(old)) (byTarget[v.to] = byTarget[v.to] || []).push(v);
       for (const w of oldW) (byTarget[w.to] = byTarget[w.to] || []).push(w);
 
-      L.rows = grid.slice();
+      L.rows = grid.slice();          // 複本，下面會把門格改成牆
       L.art = id;                                  // 標記這是美術地圖
       L.indoor = 0;
       const dw = {}, warps = [];
+      const R = L.rows, RH = R.length, RW = R[0].length;
+      const walkable = (x, y) => y >= 0 && y < RH && x >= 0 && x < RW && R[y][x] === '_';
+      const setWall = (x, y) => { if (y < 0 || y >= RH || x < 0 || x >= RW) return;
+        R[y] = R[y].slice(0, x) + 'w' + R[y].slice(x + 1); };
       for (const gate of (TOWN_GATE[id] || [])) {
         const [c, r, w, h] = gate.r;
         const src = (byTarget[gate.to] || [])[0] || { to: gate.to, tx: 4, ty: 5, dir: 'up' };
-        for (let y = r; y < r + h; y++) for (let x = c; x < c + w; x++) {
-          if (gate.exit) warps.push({ x, y, to: gate.to, tx: src.tx, ty: src.ty, dir: src.dir || 'down' });
-          else {
-            const e = { to: gate.to, tx: src.tx, ty: src.ty, dir: src.dir || 'up', ret: { x: c, y: r + h } };
-            if (gate.need != null) { e.need = gate.need; e.gate = typeof gate.need === 'number' ? 'need' + gate.need : gate.need; }
-            dw[x + ',' + y] = e;
-          }
+        if (gate.exit) {
+          /* 出城口走 warps，踩上去才觸發，所以只留可走的格 */
+          for (let y = r; y < r + h; y++) for (let x = c; x < c + w; x++)
+            if (walkable(x, y)) warps.push({ x, y, to: gate.to, tx: src.tx, ty: src.ty, dir: src.dir || 'down' });
+          continue;
         }
+        /* 房門：找一格「門前站位」當作回來時的落點，優先正下方 */
+        let ret = null;
+        for (const [ox, oy] of [[0, h], [w - 1, h], [-1, h - 1], [w, h - 1], [0, -1]]) {
+          if (walkable(c + ox, r + oy)) { ret = { x: c + ox, y: r + oy }; break; }
+        }
+        if (!ret) ret = { x: c, y: r + h };
+        for (let y = r; y < r + h; y++) for (let x = c; x < c + w; x++) {
+          const e = { to: gate.to, tx: src.tx, ty: src.ty, dir: src.dir || 'up', ret: { x: ret.x, y: ret.y } };
+          if (gate.need != null) { e.need = gate.need; e.gate = typeof gate.need === 'number' ? 'need' + gate.need : gate.need; }
+          dw[x + ',' + y] = e;
+        }
+        /* 門格一律設成不可走：只有「撞上去」才會進門，走過路邊不會被吸進去 */
+        for (let y = r; y < r + h; y++) for (let x = c; x < c + w; x++) setWall(x, y);
       }
       L.doorWarps = dw; L.warps = warps;
-      snapEntities(L, grid);
-      fixReturns(id, grid, TOWN_GATE[id] || []);
-      addTownNpcs(id, L, grid);
+      /* 以下一律用 L.rows（門格已改成牆），免得有人被放在門上 */
+      snapEntities(L, L.rows);
+      fixReturns(id, L.rows, TOWN_GATE[id] || []);
+      addTownNpcs(id, L, L.rows);
     }
   }
 
@@ -198,7 +290,7 @@ const ArtMap = (() => {
       d2[put || (x + ',' + y)] = v; } L.devices = d2; }
   }
 
-  return { install, draw, imgs, ready };
+  return { install, draw, bake, imgs, ready, scene };
 })();
 
 /* LAYOUTS 已經由 data_game.js + data_maps2.js 建好，這裡直接套用 */

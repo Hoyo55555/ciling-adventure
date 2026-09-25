@@ -107,6 +107,18 @@ function resize() {
   document.documentElement.style.setProperty('--w', w + 'px'); document.documentElement.style.setProperty('--u', (w / 240) + 'px');
 }
 
+/* ---------- 教師測試版：網址加上 ?teacher=1 就會略過所有戰鬥 ---------- */
+const TEACHER = /[?&]teacher=1/.test(location.search);
+if (TEACHER) addEventListener('DOMContentLoaded', () => {
+  const b = document.createElement('div');
+  b.textContent = '教師測試版：略過所有戰鬥';
+  b.style.cssText = 'position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:99;' +
+    'background:#7a2a1e;color:#f0e0c0;font:600 12px system-ui,"Noto Sans TC",sans-serif;' +
+    'padding:3px 12px;border-radius:10px;border:1px solid #c8a040;pointer-events:none;opacity:.92';
+  document.body.appendChild(b);
+});
+function markTeacher() { if (G && TEACHER) G.teacher = true; }
+
 /* ---------- 迴圈 ---------- */
 let lastT = performance.now();
 let frameErr = 0;
@@ -187,7 +199,7 @@ function freshState(world, player, slot) {
 }
 const Flow = {
   async load(n) {
-    G = Slots.read(n); if (!G) return titleScreen(); G.slot = n; W = WORLDS[G.world]; setWorldClass(G.world);
+    G = Slots.read(n); if (!G) return titleScreen(); G.slot = n; markTeacher(); W = WORLDS[G.world]; setWorldClass(G.world);
     const base = freshState(G.world, G.player, n); for (const k in base) if (G[k] == null) G[k] = base[k];
     if (!Array.isArray(G.weapons)) {   // 舊版存檔：武器由「每種一件」轉換為武器實體
       const old = G.weapons, map = {}; G.weapons = [];
@@ -258,7 +270,7 @@ const Flow = {
       const wid = await WorldPick.open({ title: '要轉生到哪一個世界？', exclude: old.world }); if (!wid) return false;
       W = WORLDS[wid]; setWorldClass(wid); Game.scene = 'title';
       const pl = await CharCreate.open(wid, old.player); if (!pl) continue;
-      G = freshState(wid, pl, slot);
+      G = freshState(wid, pl, slot); markTeacher();
       Object.assign(G, { lv: old.lv, exp: old.exp, weapons: JSON.parse(JSON.stringify(old.weapons)), equip: old.equip.slice(), frags: old.frags || {}, stats: old.stats, wrong: old.wrong,
         bestStreak: old.bestStreak, answered: old.answered, weakKnown: old.weakKnown, bag: old.bag, money: Math.floor(old.money / 2), ng: (old.ng || 0) + 1,
         history: (old.history || []).concat([{ world: old.world, time: old.time, at: Date.now() }]) });

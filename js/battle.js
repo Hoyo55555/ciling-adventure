@@ -4,6 +4,13 @@ const Battle = {
   s: null,
   async start(cfg) {
     if (this.s) return 'busy';   // 防止重複開戰
+    /* 教師測試模式：略過所有戰鬥，直接判定勝利，方便快速跑完劇情 */
+    if (G && G.teacher) {
+      const nm = (cfg.role && cfg.role.name) || (cfg.foe && cfg.foe.name) || '對手';
+      Sound.sfx('ok');
+      await say(`（教師測試版：自動戰勝「${nm}」）`);
+      return 'win';
+    }
     Input.eat();
     const foe = cfg.foe;
     const s = this.s = { cfg, foe, kind: cfg.kind, first: true,
