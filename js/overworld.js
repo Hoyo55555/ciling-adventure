@@ -277,6 +277,11 @@ function gateOpen(gate) {
 
 /* ---------- 腳本 ---------- */
 async function warpTo(map, x, y, dir) {
+  if (!LAYOUTS[map]) {                       // 地圖重建期間：還沒做到的地方先擋住
+    Sound.sfx('bump');
+    await say(`（「${(W.mapNames && W.mapNames[map]) || map}」還在重新設計中，暫時走不過去。）`);
+    return;
+  }
   Sound.sfx('door'); await fade(1, 0.22); OW.load(map, x, y, dir); autosave(); await sleep(60); await fade(0, 0.22);
   if (map === 'route1' && G.flags.tut === 'pending') {   // 教學戰在步道入口進行（城鎮裡不戰鬥）
     G.flags.tut = 'done'; const M = W.roles.mentor.name;

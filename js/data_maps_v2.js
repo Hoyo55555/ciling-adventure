@@ -26,28 +26,45 @@
    4. 每張地圖做完都要跑連通測試：出入口之間一定走得通。
    ============================================================ */
 
-/* 磚塊表：key = 字元，walk = 走不走得過去 */
+/* 磚塊表：key = 字元，walk = 走不走得過去。
+   這些字元 gfx.js 都已經畫得出來，不用另外做美術。 */
 const TILES = {
+  /* ---- 走得過去 ---- */
   '.': { walk: 1, name: '草地' },
-  ',': { walk: 1, name: '泥土路' },
+  ',': { walk: 1, name: '路' },
+  'g': { walk: 1, name: '草叢（會遇敵）' },
   '_': { walk: 1, name: '室內地板' },
-  'g': { walk: 1, name: '草叢', encounter: 1 },
-  's': { walk: 1, name: '沙地' },
-  'b': { walk: 1, name: '橋' },
-  'd': { walk: 1, name: '門口踏墊', door: 1 },
-  'T': { walk: 0, name: '樹（上）' },
-  't': { walk: 0, name: '樹（下）' },
+  'i': { walk: 1, name: '石階' },
+  /* ---- 走不過去 ---- */
+  'T': { walk: 0, name: '樹' },
   '#': { walk: 0, name: '牆' },
   'W': { walk: 0, name: '窗' },
+  'D': { walk: 0, name: '門（撞上去會進去）' },
   'R': { walk: 0, name: '屋頂' },
-  'r': { walk: 0, name: '屋簷' },
+  'h': { walk: 0, name: '紅瓦（補給站）' },
+  'H': { walk: 0, name: '紅瓦＋十字招牌' },
+  'c': { walk: 0, name: '藍瓦（商店）' },
+  'C': { walk: 0, name: '藍瓦＋商店招牌' },
+  'G': { walk: 0, name: '金瓦（道館）' },
+  'y': { walk: 0, name: '金瓦＋匾額' },
   '~': { walk: 0, name: '水' },
   '=': { walk: 0, name: '柵欄' },
   '^': { walk: 0, name: '岩石' },
   'F': { walk: 0, name: '花圃' },
-  'S': { walk: 0, name: '告示牌' },
+  'S': { walk: 0, name: '告示牌（可讀）' },
   'L': { walk: 0, name: '路燈' },
+  'J': { walk: 0, name: '稻田' },
+  'N': { walk: 0, name: '門牌' },
+  'O': { walk: 0, name: '石碑' },
+  'Q': { walk: 0, name: '木箱堆' },
   'B': { walk: 0, name: '黑板' },
+  'w': { walk: 0, name: '室內牆' },
+  'k': { walk: 0, name: '書架' },
+  'b': { walk: 0, name: '床' },
+  't': { walk: 0, name: '櫃檯' },
+  'p': { walk: 0, name: '盆栽' },
+  'e': { walk: 0, name: '講桌' },
+  'x': { walk: 0, name: '掛軸' },
 };
 for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
 
@@ -60,8 +77,60 @@ for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
        exits:  [ { x: 16, y: 21, to: 'r1', tx: 11, ty: 15, dir: 'up' } ],
        npcs: [], chests: [], signs: {},
      };
-   目前：還沒有任何地圖（全部重新設計中）
+   已完成：chendu（晨讀村）
    ------------------------------------------------------------ */
 const MAPS = {};
+
+/* ============================================================
+   ① 晨讀村 chendu　25×20　晨光田園（暖黃＋嫩綠）
+   ------------------------------------------------------------
+        0    5    0    5    0
+   0  TTTTTTTTTTT,,TTTTTTTTTTTT  ← 北出口：樹牆唯一的缺口，路直接接出去
+   5  TT.#WDW#...,,.#WWDWW#..TT     我家(5,5)　晨讀教室(17,5)
+   6  TT.,,,,,,,,,,,,,,,,,,..TT     橫向大街：一條路串起所有門口
+  13  TT.#WDW#...,,..=======.TT     保健室(5,13)
+   ============================================================ */
+MAPS.chendu = {
+  music: 'town', qlv: 1, chapter: 1, theme: 't_dawn',
+  rows: [
+    'TTTTTTTTTTT,,TTTTTTTTTTTT',
+    'TT.........,,..........TT',
+    'TT......S..,,.RRRRRRR..TT',
+    'TT.RRRRR...,,.RRRRRRR..TT',
+    'TT.RRRRR...,,.RRRRRRR..TT',
+    'TT.#WDW#...,,.#WWDWW#..TT',
+    'TT.,,,,,,,,,,,,,,,,,,..TT',
+    'TT.........,,..........TT',
+    'TT....F....,,..........TT',
+    'TT.........,,..=======.TT',
+    'TT.........,,..=JJJJJ=.TT',
+    'TT.hhHhh...,,..=JJJJJ=.TT',
+    'TT.hhhhh...,,..=JJJJJ=.TT',
+    'TT.#WDW#...,,..=======.TT',
+    'TT.,,,,,,,,,,..........TT',
+    'TT.........,,..........TT',
+    'TT....F....,,....~~~~~.TT',
+    'TT.........,,....~~~~~.TT',
+    'TTTTTTTTTTTTTTTTTTTTTTTTT',
+    'TTTTTTTTTTTTTTTTTTTTTTTTT',
+  ],
+  /* 門：站在門前撞上去才會進去（門那一格本身走不過去） */
+  doorWarps: {
+    '5,5':  { to: 'home',     tx: 5, ty: 5, dir: 'up', ret: { x: 5, y: 6 } },
+    '17,5': { to: 'c8',       tx: 6, ty: 7, dir: 'up', ret: { x: 17, y: 6 } },
+    '5,13': { to: 'clinic_h', tx: 5, ty: 5, dir: 'up', ret: { x: 5, y: 14 } },
+  },
+  /* 出城：踩上去就走（一定在樹牆的缺口上） */
+  warps: [
+    { x: 11, y: 0, to: 'r1', tx: 11, ty: 15, dir: 'up' },
+    { x: 12, y: 0, to: 'r1', tx: 12, ty: 15, dir: 'up' },
+  ],
+  signs: { '8,2': 'sign_chendu' },
+  npcs: [
+    { role: 't_cd_a', x: 9,  y: 7, dir: 'down' },
+    { role: 't_cd_b', x: 15, y: 7, dir: 'down' },
+  ],
+  chests: [{ x: 21, y: 1, id: 'chendu1', items: { potion: 2 } }],
+};
 
 Object.assign(LAYOUTS, MAPS);
