@@ -37,6 +37,7 @@ const TILES = {
   'i': { walk: 1, name: '石階' },
   'U': { walk: 1, name: '沙坑' },
   'K': { walk: 1, name: '球場' },
+  'r': { walk: 1, name: '地毯' },
   /* ---- 走不過去 ---- */
   'T': { walk: 0, name: '樹' },
   '#': { walk: 0, name: '牆' },
@@ -79,7 +80,7 @@ for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
        exits:  [ { x: 16, y: 21, to: 'r1', tx: 11, ty: 15, dir: 'up' } ],
        npcs: [], chests: [], signs: {},
      };
-   已完成：chendu（晨讀村）、r1（晨讀田埂道）、zhuyin（注音坡）
+   已完成：chendu、r1、zhuyin（室外）／ home、c8、clinic_h、store_h（室內）
    ------------------------------------------------------------ */
 const MAPS = {};
 
@@ -227,6 +228,7 @@ MAPS.zhuyin = {
     { x: 11, y: 0,  to: 'r2', tx: 11, ty: 1, dir: 'up' },
     { x: 12, y: 0,  to: 'r2', tx: 12, ty: 1, dir: 'up' },
   ],
+  shop: ['heal', 'hint'],                       // 商店賣什麼（Shop 讀的是進來時所在的城鎮）
   signs: { '10,1': 'sign_zhuyin', '10,5': 'sg29' },
   npcs: [
     { role: 'gymTip1', x: 10, y: 6,  dir: 'up' },
@@ -234,6 +236,79 @@ MAPS.zhuyin = {
     { role: 't_zy_b',  x: 15, y: 7,  dir: 'down', wander: 1 },
   ],
   chests: [{ x: 21, y: 15, id: 'zy1', items: { heal: 2 } }],
+};
+
+/* ============================================================
+   室內：出口一律在最下面那一排牆的缺口，踩上去就出去（to: '@ret'）
+   ------------------------------------------------------------
+   _ 地板　w 牆　b 床　t 桌／櫃檯　k 書架／貨架　p 盆栽　r 地毯
+   B 黑板　e 講桌
+   ============================================================ */
+
+/* ④ 我的家 home　10×7 */
+MAPS.home = {
+  music: 'town', qlv: 1, chapter: 1, indoor: 1, theme: 't_dawn',
+  rows: [
+    'wwwwwwwwww',
+    'wkk____pbw',
+    'w_______bw',
+    'w__tt____w',
+    'w__tt__r_w',
+    'wp_______w',
+    'wwww__wwww',
+  ],
+  warps: [{ x: 4, y: 6, to: '@ret' }, { x: 5, y: 6, to: '@ret' }],
+  npcs: [{ role: 'homeNpc', x: 6, y: 3, dir: 'down' }],
+};
+
+/* ⑤ 晨讀教室 c8　12×9　（序幕從這裡開始） */
+MAPS.c8 = {
+  music: 'town', qlv: 1, chapter: 1, indoor: 1, theme: 't_dawn',
+  rows: [
+    'wwwwBBBBwwww',
+    'w____e_____w',
+    'w_tt____tt_w',
+    'w__________w',
+    'w_tt____tt_w',
+    'w__________w',
+    'w_tt____tt_w',
+    'wp________pw',
+    'wwwww__wwwww',
+  ],
+  warps: [{ x: 5, y: 8, to: '@ret' }, { x: 6, y: 8, to: '@ret' }],
+  npcs: [{ role: 'mentor', x: 5, y: 2, dir: 'down' }],
+};
+
+/* ⑥ 保健室（田園）clinic_h　10×7 */
+MAPS.clinic_h = {
+  music: 'town', qlv: 1, chapter: 1, indoor: 1, theme: 't_dawn',
+  rows: [
+    'wwwwwwwwww',
+    'wb_kkk__bw',
+    'w________w',
+    'wtttt____w',
+    'w_p____p_w',
+    'w________w',
+    'wwww__wwww',
+  ],
+  warps: [{ x: 4, y: 6, to: '@ret' }, { x: 5, y: 6, to: '@ret' }],
+  npcs: [{ role: 'healer', x: 2, y: 2, dir: 'down' }],
+};
+
+/* ⑦ 商店（田園）store_h　10×7 */
+MAPS.store_h = {
+  music: 'town', qlv: 1, chapter: 1, indoor: 1, theme: 't_dawn',
+  rows: [
+    'wwwwwwwwww',
+    'wkkkk_kkkw',
+    'w________w',
+    'w__ttt___w',
+    'w________w',
+    'wp__rr__pw',
+    'wwww__wwww',
+  ],
+  warps: [{ x: 4, y: 6, to: '@ret' }, { x: 5, y: 6, to: '@ret' }],
+  npcs: [{ role: 'clerk', x: 4, y: 2, dir: 'down' }],
 };
 
 /* 全部地圖一次掛進引擎（新地圖請加在這一行之前） */
