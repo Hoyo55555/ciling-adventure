@@ -37,7 +37,7 @@ const TILES = {
   '.': { walk: 1, name: '草地' },
   ',': { walk: 1, name: '路' },
   'g': { walk: 1, name: '草叢（會遇敵）' },
-  'i': { walk: 1, name: '石階（只拿來當山道的路本身，不要單獨放在平地上）' },
+  'i': { walk: 1, name: '石板路／棧道（山道的階梯、過河的橋都先用它；美術階段再拆成兩種）' },
   '_': { walk: 1, name: '室內地板' },
   'U': { walk: 0, name: '鞦韆架（遊具）' },
   'K': { walk: 1, name: '球場（要用柵欄圍起來才看得出是場地）' },
@@ -86,7 +86,7 @@ for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
        exits:  [ { x: 16, y: 21, to: 'r1', tx: 11, ty: 15, dir: 'up' } ],
        npcs: [], chests: [], signs: {},
      };
-   已完成：chendu、r1、zhuyin、r2、chaoshu（室外）／
+   已完成：chendu、r1、zhuyin、r2、chaoshu、r3（室外）／
            home、c8、clinic_h、store_h、c1a、forge（室內）
    ------------------------------------------------------------ */
 const MAPS = {};
@@ -462,8 +462,8 @@ MAPS.chaoshu = {
   warps: [
     { x: 11, y: 19, to: 'r2', tx: 8, ty: 1,  dir: 'down' },
     { x: 12, y: 19, to: 'r2', tx: 9, ty: 1,  dir: 'down' },
-    { x: 11, y: 0,  to: 'r3', tx: 11, ty: 1, dir: 'up' },
-    { x: 12, y: 0,  to: 'r3', tx: 12, ty: 1, dir: 'up' },
+    { x: 11, y: 0,  to: 'r3', tx: 9,  ty: 23, dir: 'up' },
+    { x: 12, y: 0,  to: 'r3', tx: 10, ty: 23, dir: 'up' },
   ],
   shop: ['heal', 'heal2', 'cure', 'ward', 'atkup', 'defup', 'hint'],
   signs: { '10,1': 'sign_chaoshu', '9,4': 'sg7', '9,11': 'sg9' },
@@ -492,6 +492,58 @@ MAPS.forge = {
   ],
   warps: [{ x: 5, y: 6, to: '@ret' }, { x: 6, y: 6, to: '@ret' }],
   npcs: [{ role: 'smith', x: 5, y: 2, dir: 'down' }],
+};
+
+/* ============================================================
+   ⑫ 運書河道 r3　20×25　河道（t_port 藍灰）
+   ------------------------------------------------------------
+   兩條橫向河道把路切成三段，主路上各架一座橋跨過去。
+   橋目前先用石板棧道的磚塊，美術階段再換成木板橋（見 美術待辦.md）。
+   草叢 48 格；兩位視線型對手守在路邊。
+   南接抄書巷、北接典籍港。
+   ============================================================ */
+MAPS.r3 = {
+  music: 'route', qlv: 2, chapter: 2, theme: 't_port',
+  rows: [
+    'TTTTTTTTT,,TTTTTTTTT',
+    'TT.......,,.......TT',
+    'TT.gggg..,,..QQ...TT',
+    'TT.gggg..,,..QQ...TT',
+    'TT.gggg..,,.......TT',
+    'TT.......,,.......TT',
+    'TT.......,,.......TT',
+    'TT~~~~~~~ii~~~~~~~TT',
+    'TT.......,,.......TT',
+    'TT.......,,.......TT',
+    'TT....^^.,,..gggg.TT',
+    'TT....^^.,,..gggg.TT',
+    'TT.......,,..gggg.TT',
+    'TT.gggg..,,.......TT',
+    'TT.gggg..,,.......TT',
+    'TT.gggg..,,.......TT',
+    'TT.......,,.......TT',
+    'TT~~~~~~~ii~~~~~~~TT',
+    'TT.......,,.......TT',
+    'TT.......,,.......TT',
+    'TT..QQ...,,..gggg.TT',
+    'TT..QQ...,,..gggg.TT',
+    'TT.......,,..gggg.TT',
+    'TT.......,,.......TT',
+    'TTTTTTTTT,,TTTTTTTTT',
+  ],
+  warps: [
+    { x: 9,  y: 24, to: 'chaoshu', tx: 11, ty: 1, dir: 'down' },
+    { x: 10, y: 24, to: 'chaoshu', tx: 12, ty: 1, dir: 'down' },
+    { x: 9,  y: 0,  to: 'dianji',  tx: 9,  ty: 1, dir: 'up' },
+    { x: 10, y: 0,  to: 'dianji',  tx: 10, ty: 1, dir: 'up' },
+  ],
+  foes: { n: 7, lv: [6, 9], scale: 1, auto: 1 },
+  npcs: [
+    { role: 't_r3a',     x: 8,  y: 8,  dir: 'right', sight: 3 },
+    { role: 't_r3b',     x: 11, y: 12, dir: 'left',  sight: 3 },
+    { role: 'roamHint2', x: 4,  y: 9,  dir: 'down' },
+  ],
+  chests: [{ x: 3, y: 19, id: 'r3a', items: { atkup: 1, heal: 2 } }],
 };
 
 /* 全部地圖一次掛進引擎（新地圖請加在這一行之前） */
