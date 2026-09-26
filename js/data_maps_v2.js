@@ -298,7 +298,10 @@ MAPS.c8 = {
     { x: 5, y: 8, to: 'chendu', tx: 17, ty: 6, dir: 'down' },
     { x: 6, y: 8, to: 'chendu', tx: 17, ty: 6, dir: 'down' },
   ],
-  npcs: [{ role: 'mentor', x: 5, y: 2, dir: 'down' }],
+  npcs: [
+    { role: 'mentor', x: 5, y: 2, dir: 'down' },
+    { role: 'gd_pen', x: 6, y: 5, dir: 'down', gq: 'g_pen' },   // 守護神器任務指到這裡才出現
+  ],
 };
 
 /* ⑥ 保健室（田園）clinic_h　10×7 */
@@ -788,6 +791,7 @@ MAPS.tingyu = {
     { role: 'sparring2', x: 16, y: 10, dir: 'left' },
     { role: 'roamHint',  x: 3,  y: 11, dir: 'down' },
     { role: 't_ty_a',    x: 14, y: 12, dir: 'down' },
+    { role: 'gd_paper',  x: 13, y: 12, dir: 'down', gq: 'g_paper' },
   ],
   chests: [{ x: 17, y: 12, id: 'ty1', items: { heal2: 2, wenqi: 1 } }],
 };
@@ -1170,6 +1174,7 @@ MAPS.moquan = {
     { role: 'roamHint',  x: 6,  y: 14, dir: 'down' },
     { role: 'tipInk',    x: 12, y: 13, dir: 'left' },
     { role: 't_mq_a',    x: 8,  y: 15, dir: 'down' },
+    { role: 'gd_ink',    x: 11, y: 11, dir: 'down', gq: 'g_ink' },
   ],
   chests: [{ x: 19, y: 15, id: 'mq1', items: { heal2: 2, ward: 1 } }],
 };
@@ -1230,7 +1235,9 @@ MAPS.zhongta = {
     'TTTTTTTTTTTTT,,TTTTTTTTTTTTT',
   ],
   doorWarps: {
-    '14,5': { to: 'aud',      tx: 7, ty: 11, dir: 'up', ret: { x: 14, y: 6 }, need: 4, gate: 'need4' },
+    '14,5': { to: 'aud', tx: 7, ty: 12, dir: 'up', ret: { x: 14, y: 6 },
+              need: 4, gate: 'need4',
+              needFlag: 'guardianDone', flagText: '（小墨擋在台階前：「先照我說的去一趟，回來我就讓開。」）' },
     '5,5':  { to: 'clinic_c', tx: 5, ty: 5,  dir: 'up', ret: { x: 5,  y: 6 } },
     '21,12':{ to: 'store_c',  tx: 5, ty: 5,  dir: 'up', ret: { x: 21, y: 13 } },
   },
@@ -1238,11 +1245,14 @@ MAPS.zhongta = {
     { x: 13, y: 19, to: 'r6', tx: 10, ty: 1, dir: 'down' },
     { x: 14, y: 19, to: 'r6', tx: 11, ty: 1, dir: 'down' },
   ],
+  /* 第一次走到道館門口，小墨會衝出來講守護神器的事 */
+  cuts: { '14,6': 'moIntro', '13,6': 'moIntro' },
   shop: ['heal', 'heal2', 'cure', 'ward', 'atkup', 'defup', 'dodgeup', 'wenqi', 'hint'],
   signs: { '12,8': 'sign_zhongta', '16,8': 'sign_zhongta2', '12,14': 'sg25' },
   npcs: [
     { role: 'busStop',  x: 9,  y: 9,  dir: 'down' },
     { role: 'gymTip5',  x: 17, y: 6,  dir: 'left' },   // 不能站 (15,6)：那是道館門 (15,5) 唯一的門前站位
+    { role: 'moGuard',  x: 12, y: 6,  dir: 'right', needFlag: 'guardianQuest' },   // 交代完之後守在台階旁
     { role: 'roamHint', x: 20, y: 8,  dir: 'down' },
     { role: 't_zt_a',   x: 6,  y: 14, dir: 'down' },
     { role: 't_zt_b',   x: 20, y: 16, dir: 'down', wander: 1 },
@@ -1258,7 +1268,9 @@ MAPS.zhongta = {
    ============================================================ */
 MAPS.aud = {
   music: 'hall', qlv: 3, chapter: 5, indoor: 1, theme: 't_tower',
+  /* 最上面多留一排牆：大魔王的立繪有 32px 高，站在第 1 列會被畫面上緣切掉 */
   rows: [
+    'wwwwwwwwwwwwwwww',
     'wwwwwBBBBBBwwwww',
     'w______________w',
     'wtttttt__ttttttw',
@@ -1274,29 +1286,29 @@ MAPS.aud = {
     'wwwwwww__wwwwwww',
   ],
   warps: [
-    { x: 7, y: 12, to: 'zhongta', tx: 14, ty: 6, dir: 'down' },
-    { x: 8, y: 12, to: 'zhongta', tx: 14, ty: 6, dir: 'down' },
+    { x: 7, y: 13, to: 'zhongta', tx: 14, ty: 6, dir: 'down' },
+    { x: 8, y: 13, to: 'zhongta', tx: 14, ty: 6, dir: 'down' },
   ],
   npcs: [
-    { role: 'e1',      x: 1,  y: 9,  dir: 'right', sight: 14 },
-    { role: 'e2',      x: 14, y: 7,  dir: 'left',  sight: 14 },
-    { role: 'e3',      x: 1,  y: 5,  dir: 'right', sight: 14 },
-    { role: 'moGuard', x: 4,  y: 11, dir: 'right' },
+    { role: 'e1',      x: 1,  y: 10, dir: 'right', sight: 14 },
+    { role: 'e2',      x: 14, y: 8,  dir: 'left',  sight: 14 },
+    { role: 'e3',      x: 1,  y: 6,  dir: 'right', sight: 14 },
+    { role: 'moGuard', x: 4,  y: 12, dir: 'right' },
     /* 三位天王都倒下之後，大魔王才登場（bossEntrance 會播從天而降的動畫） */
-    { role: 'boss5',   x: 7,  y: 1,  dir: 'down', cut: 'bossDrop',
+    { role: 'boss5',   x: 7,  y: 2,  dir: 'down', cut: 'bossDrop',
       after: ['aud:e1', 'aud:e2', 'aud:e3'] },
   ],
   chests: [
-    { x: 1,  y: 1, id: 'aud1', items: { heal2: 2, cure: 2, dodgeup: 1 } },
-    { x: 14, y: 1, id: 'aud2', items: { atkup: 2, defup: 2 } },
+    { x: 1,  y: 2, id: 'aud1', items: { heal2: 2, cure: 2, dodgeup: 1 } },
+    { x: 14, y: 2, id: 'aud2', items: { atkup: 2, defup: 2 } },
   ],
   devices: {
-    '5,4':  { group: 'ad', flag: 'ad1', cat: '閱讀', label: '准考證感應台',
+    '5,5':  { group: 'ad', flag: 'ad1', cat: '閱讀', label: '准考證感應台',
       text: '講台前的感應台亮著微光，上面寫著：「答對即可凝聚文氣。」',
       ok: '感應台亮起，一股文氣湧入你的身體！（下場戰鬥文氣 +1）' },
-    '10,8': { group: 'ad', flag: 'ad2', cat: '成語', label: '准考證感應台',
+    '10,9': { group: 'ad', flag: 'ad2', cat: '成語', label: '准考證感應台',
       text: '第二座感應台等著你。', ok: '文氣再度凝聚！（下場戰鬥文氣 +1）' },
-    '1,10': { group: 'ad', flag: 'ad3', cat: '文言', label: '准考證感應台',
+    '1,11': { group: 'ad', flag: 'ad3', cat: '文言', label: '准考證感應台',
       text: '最後一座感應台散發著沉穩的光。', ok: '文氣滿溢！（下場戰鬥文氣 +1）',
       allText: '三座感應台全部亮起，整座禮堂被文氣照亮了！' },
   },

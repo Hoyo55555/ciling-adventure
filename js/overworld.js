@@ -18,6 +18,12 @@ const OW = {
       if (s.role === 'rival' && G.flags.rivalGone) return null;        // 勁敵離開步道
       if (G.flags['gone:' + id + ':' + s.role]) return null;             // 劇情中離開的人物
       if (s.after && !s.after.every(k => G.defeated[k])) return null;   // 條件未達成，尚未登場
+      /* 器靈：被指引到這裡、而且還沒做出決定時才出現。
+         用「有沒有做決定」而不是「有沒有擁有」——教師測試版一開局就有全部武器，
+         用擁有判斷的話老師永遠看不到這段。 */
+      if (s.gq && (G.flags.guardianQuest !== s.gq || G.flags.guardianDone)) return null;
+      if (s.needFlag && !G.flags[s.needFlag]) return null;
+      if (s.hideFlag && G.flags[s.hideFlag]) return null;
       return { key: id + ':' + s.role, role, x: s.x, y: s.y, dir: s.dir, home: s.dir, sight: s.sight || 0, wander: s.wander, ox: 0, oy: 0, fr: 0, look: role.look };
     }).filter(Boolean);
     this.spawnFoes();
@@ -122,6 +128,12 @@ const OW = {
   },
   onStep() {
     const p = this.p;
+    /* 過場觸發格：踩上去播一次就不再播 */
+    const cutName = this.L.cuts && this.L.cuts[p.x + ',' + p.y];
+    if (cutName && !G.flags['cut:' + this.id + ':' + cutName] && CUTS[cutName]) {
+      G.flags['cut:' + this.id + ':' + cutName] = true;
+      this.run(() => CUTS[cutName]()); return true;
+    }
     const w = (this.L.warps || []).find(w => w.x === p.x && w.y === p.y);
     if (w) { this.run(() => w.to === '@ret' ? warpTo(G.ret.map, G.ret.x, G.ret.y, 'down') : warpTo(w.to, w.tx, w.ty, w.dir)); return true; }
     for (const n of this.npcs) if (n.sight && !G.defeated[n.key] && this.sees(n)) { p.cont = false; this.run(() => spotted(n)); return true; }
@@ -289,6 +301,7 @@ async function enterDoor(dw) {
       await say('（牆角的墨漬裂開了一條路。）');
     }
     if (!G.flags.inkpoolFound) { G.flags.inkpoolFound = true; await say('（泉眼下的墨漬漾開，露出一條通往地下的路——這裡就是傳說中的「硯海墨池」！）'); } }
+  else if (dw.needFlag && !G.flags[dw.needFlag]) { Sound.sfx('bump'); await say(dw.flagText || '（現在還不能進去。）'); return; }
   else if (dw.need && G.badges.length < dw.need) {
     Sound.sfx('bump');
     /* 沒寫 gate 就從 need 推出來（need: 2 → 'need2'），再沒有就用通用句，
@@ -377,6 +390,7 @@ async function talkTo(n) {
   const R = n.role; n.dir = OPP[OW.p.dir];
   switch (R.kind) {
     case 'mentor': return mentorTalk(n);
+    case 'guardian': return guardianSpirit(n);
     case 'trainer': case 'rival': case 'gym': return trainerTalk(n);
     case 'quest': return questTalk(n);
     case 'rematch': return rematchTalk(n);
@@ -519,21 +533,82 @@ async function respawnSpirit(n) {
   await sleep(300); OW.spawnSpirit(); Sound.sfx('alert');
   autosave();
 }
+/* ============================================================
+   守護神器任務
+   ------------------------------------------------------------
+   走到鐘塔台道館門口 → 小墨衝出來擋下你，講守護神器的故事，
+   問你一個問題；答案決定要去哪裡找哪一隻器靈。
+   到那裡打贏牠之後，可以決定要不要請牠並肩作戰。
+   決定完（收服或婉拒）才進得了道館。
+   ============================================================ */
+const GQ_CLUE = {
+  g_pen:   { where: 'c8',     place: '晨讀教室',
+    clue: '「去你第一次把心裡的話寫下來的地方——那間早自習的教室。」' },
+  g_paper: { where: 'tingyu', place: '聽雨亭',
+    clue: '「去那個雨一直下、可以把心事攤開來晾乾的地方——聽雨亭。」' },
+  g_ink:   { where: 'moquan', place: '墨泉鄉',
+    clue: '「去那個把墨磨了幾百年的地方——墨泉鄉的泉眼旁邊。」' },
+};
+const CUTS = {
+  /* 鐘塔台道館門口：小墨衝出來 */
+  async moIntro() {
+    const M = '小墨';
+    Sound.sfx('alert');
+    await Anim.run(0.35, k => OW.dark = k * 0.45);
+    await say('（你正要走上禮堂的台階——）');
+    await say('（一團黑影從紅毯上彈起來，擋在你面前。）');
+    await Anim.run(0.35, k => OW.dark = 0.45 * (1 - k)); OW.dark = 0;
+    for (const t of (W.moIntro || [])) await say(t, M);
+    const k = await UI.ask(
+      '小墨：「那我問你——把心裡的話留下來，最要緊的是哪一件事？」',
+      ['動筆的勇氣', '攤開來面對', '沉住氣慢慢磨'],
+      { name: M, cancel: false });
+    const arch = ['g_pen', 'g_paper', 'g_ink'][k] || 'g_pen';
+    G.flags.guardianQuest = arch;
+    const C = GQ_CLUE[arch];
+    await say((W.moPick && W.moPick[k]) || '小墨：「……我就知道你會這樣說。」', M);
+    await say(`小墨：「那牠會在那裡等你。」\n${C.clue}`, M);
+    await say(`（目標：到「${C.place}」找「${weaponName(arch)}」。）\n（決定好之後再回來挑戰道館。）`);
+    autosave();
+  },
+};
+/* 器靈本體：打贏之後由玩家決定要不要請牠同行 */
+async function guardianSpirit(n) {
+  const arch = n.role.gq, nm = weaponName(arch);
+  await say(`（空氣一沉——「${nm}」從光裡凝出形體。）`);
+  await say(ARCH[arch].gdesc || GUARDIANS[arch].desc || '');
+  await say('（牠沒有要直接跟你走的意思——牠在等你證明自己。）');
+  const role = { kind: 'gym', name: nm, look: { sprite: arch }, reward: 800,
+    win: `（${nm}收起光芒，靜靜地停在你面前。）`,
+    foe: { lv: clamp(G.lv, 16, 30), hpMul: 1.5, el: 'none', race: ARCH[arch].race, cats: ALL_CATS,
+      moves: [['器靈之威', ALL_CATS, 54], ['文心一擊', ALL_CATS, 58]] }, potions: 1 };
+  const res = await Battle.start({ kind: 'gym', foe: makePersonFoe(role), role, cats: ALL_CATS });
+  if (res !== 'win') { await say(`（${nm}的光暗了下來……牠還會在這裡等你。）`); autosave(); return; }
+  /* 打贏了，但要不要並肩作戰是玩家決定 */
+  await say(`（${nm}沒有離開。牠停在半空中，像在等你開口。）`);
+  const yes = await UI.yesno(`要請「${nm}」與你並肩作戰嗎？`);
+  if (!yes) {
+    await say(`（你搖搖頭。${nm}輕輕點了一下，退回光裡。）`);
+    await say('（牠會留在這裡。想通了再回來找牠。）');
+    G.flags.guardianDone = true; autosave(); return;      // 婉拒也算做完決定
+  }
+  const w = await Guardian.give(arch);
+  if (!w) await say(`（${nm}化成一道光，落回你身上——牠本來就認得你。）`);
+  G.flags.guardianDone = true;
+  OW.npcs = OW.npcs.filter(x => x !== n);
+  await say('（可以回鐘塔台了。小墨在那裡等你。）');
+  autosave();
+}
 /* 決戰前：對話選擇後，文房四寶中的一隻現身 */
 async function guardianTalk(n) {
-  const R = n.role;
-  if (G.defeated[n.key]) { await say(R.after, R.name); return; }
-  if (!G.flags.guardianAsked) {
-    for (const t of R.lines) await say(fmt(t), R.name);
-    const k = await UI.ask(R.choice.q, R.choice.opts, { name: R.name, cancel: false });
-    await say(R.choice.replies[k], R.name);
-    G.guardianAnswer = k; G.flags.guardianAsked = true;
-  } else await say('（器靈還在等你。）', R.name);
-  const r = await Guardian.firstMeet();          // 打贏才能收服，輸了可以再挑戰
-  if (r === 'lose') { autosave(); return; }
-  G.defeated[n.key] = true;
-  await say(R.afterGive, R.name);
-  autosave();
+  const R = n.role, M = R.name;
+  const arch = G.flags.guardianQuest;
+  if (!arch) { await say('小墨：「先到門口看看吧，我有話要跟你說。」', M); return; }
+  const C = GQ_CLUE[arch];
+  if (ownsArch(arch)) { await say(`小墨：「${weaponName(arch)}願意跟你走了啊……那就沒問題了。」`, M); await say(R.afterGive || '小墨：「上去吧，我在這裡等你。」', M); return; }
+  if (G.flags.guardianDone) { await say('小墨：「你自己決定的，我不多說。」', M); await say('小墨：「上去吧——記得，答不出來的時候就深呼吸。」', M); return; }
+  await say(`小墨：「還沒去嗎？${C.clue}」`, M);
+  await say(`（目標：到「${C.place}」找「${weaponName(arch)}」。）`, undefined);
 }
 /* 通關後的再戰：等級會跟著玩家成長 */
 async function rematchTalk(n) {

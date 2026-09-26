@@ -301,6 +301,28 @@ const WORLD_ORDER = ['school', 'literati', 'wuxia'];
     { name: '終章．堂堂正正走進考場', text: '准考證已經拼回來了！（可以繼續探索、收集武器，或回到主畫面。）', roles: [], tiles: [] },
   ];
   Object.defineProperty(S, 'chapterName', { get() { return !G || !G.flags.prologue ? '序幕．空白的早自習' : S.stages[Math.min(G.badges.length, 5)].name; }, configurable: true });
+  /* 守護神器任務：小墨在鐘塔台道館門口的開場白 */
+  S.moIntro = [
+    '等一下！再上去就是最後一場了。',
+    '那裡面有三個很強的學長姐，後面還有……墨塵最濃的那一個。',
+    '你現在這樣上去，我怕你撐不住。',
+    '……我跟你說一件事。文房四寶裡，有三隻器靈還醒著。',
+    '筆、紙、墨。牠們不是道具，是願意陪人把話寫完的那種東西。',
+    '牠們不會自己跑出來。要你先想清楚，才找得到。',
+  ];
+  S.moPick = [
+    '小墨：「動筆啊……那你要找的是筆靈。牠最怕的就是有人一直不敢下筆。」',
+    '小墨：「攤開來……嗯，那是紙靈。牠說過，藏著的心事最重。」',
+    '小墨：「慢慢磨……那是墨靈。牠等一個沉得住氣的人很久了。」',
+  ];
+  S.roles = S.roles || {};
+  Object.assign(S.roles, {
+    gd_pen:   { kind: 'guardian', gq: 'g_pen',   name: '文心筆靈', look: { sprite: 'g_pen' } },
+    gd_paper: { kind: 'guardian', gq: 'g_paper', name: '素心紙靈', look: { sprite: 'g_paper' } },
+    gd_ink:   { kind: 'guardian', gq: 'g_ink',   name: '凝香墨靈', look: { sprite: 'g_ink' } },
+  });
+  Object.assign(S.gates, {
+    moGuard: '（小墨擋在台階前：「先照我說的去一趟，回來我就讓開。」）' });
   Object.assign(S.mapNames, {
     c8: '晨讀教室', c1a: '注音坡道館', lib: '典籍港道館', yard: '花南街道館', hist: '碑林關道館', aud: '鐘塔台道館', inkpool: '硯海墨池',
     chendu: '晨讀村', r1: '晨讀田埂道', zhuyin: '注音坡', r2: '抄書石階', chaoshu: '抄書巷', r3: '運書河道',
