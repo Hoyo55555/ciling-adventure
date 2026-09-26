@@ -289,7 +289,14 @@ async function enterDoor(dw) {
       await say('（牆角的墨漬裂開了一條路。）');
     }
     if (!G.flags.inkpoolFound) { G.flags.inkpoolFound = true; await say('（泉眼下的墨漬漾開，露出一條通往地下的路——這裡就是傳說中的「硯海墨池」！）'); } }
-  else if (dw.need && G.badges.length < dw.need) { Sound.sfx('bump'); await say(W.gates[dw.gate]); return; }
+  else if (dw.need && G.badges.length < dw.need) {
+    Sound.sfx('bump');
+    /* 沒寫 gate 就從 need 推出來（need: 2 → 'need2'），再沒有就用通用句，
+       免得 say(undefined) 在畫面上印出「undefined」 */
+    const key = dw.gate || (typeof dw.need === 'number' ? 'need' + dw.need : dw.need);
+    await say((W.gates && W.gates[key]) || `（這裡需要 ${dw.need} 片碎片才進得去。）`);
+    return;
+  }
   if (dw.ret) G.ret = { map: OW.id, x: dw.ret.x, y: dw.ret.y };
   await warpTo(dw.to, dw.tx, dw.ty, dw.dir);
 }

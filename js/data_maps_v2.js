@@ -582,7 +582,7 @@ MAPS.dianji = {
     'TTTTTTTTTTTTT,,TTTTTTTTTTTTT',
   ],
   doorWarps: {
-    '19,4':  { to: 'lib',      tx: 7, ty: 10, dir: 'up', ret: { x: 19, y: 5 }, need: 1 },
+    '19,4':  { to: 'lib',      tx: 7, ty: 10, dir: 'up', ret: { x: 19, y: 5 }, need: 1, gate: 'need1' },
     '5,4':   { to: 'clinic_c', tx: 5, ty: 5,  dir: 'up', ret: { x: 5,  y: 5 } },
     '20,11': { to: 'store_c',  tx: 5, ty: 5,  dir: 'up', ret: { x: 20, y: 12 } },
   },
@@ -601,7 +601,7 @@ MAPS.dianji = {
     { role: 'rival1',   x: 19, y: 7,  dir: 'up', sight: 2 },
     { role: 'gymTip2',  x: 21, y: 6,  dir: 'down' },   // 不能站在 (19,5)：那是道館門唯一的門前站位
     { role: 't_dj_a',   x: 7,  y: 12, dir: 'down' },
-    { role: 't_dj_b',   x: 22, y: 9,  dir: 'down', wander: 1 },
+    { role: 't_dj_b',   x: 22, y: 12, dir: 'down', wander: 1 },   // 不能放 (22,9)：那是商店的屋頂
   ],
   chests: [{ x: 23, y: 18, id: 'dj1', items: { heal2: 2, hint: 1 } }],
 };
