@@ -37,6 +37,7 @@ const TILES = {
   '.': { walk: 1, name: '草地' },
   ',': { walk: 1, name: '路' },
   'g': { walk: 1, name: '草叢（會遇敵）' },
+  'i': { walk: 1, name: '石階（只拿來當山道的路本身，不要單獨放在平地上）' },
   '_': { walk: 1, name: '室內地板' },
   'U': { walk: 0, name: '鞦韆架（遊具）' },
   'K': { walk: 1, name: '球場（要用柵欄圍起來才看得出是場地）' },
@@ -83,7 +84,7 @@ for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
        exits:  [ { x: 16, y: 21, to: 'r1', tx: 11, ty: 15, dir: 'up' } ],
        npcs: [], chests: [], signs: {},
      };
-   已完成：chendu、r1、zhuyin（室外）／ home、c8、clinic_h、store_h、c1a（室內）
+   已完成：chendu、r1、zhuyin、r2（室外）／ home、c8、clinic_h、store_h、c1a（室內）
    ------------------------------------------------------------ */
 const MAPS = {};
 
@@ -228,8 +229,8 @@ MAPS.zhuyin = {
   warps: [
     { x: 11, y: 17, to: 'r1', tx: 9,  ty: 1, dir: 'down' },
     { x: 12, y: 17, to: 'r1', tx: 10, ty: 1, dir: 'down' },
-    { x: 11, y: 0,  to: 'r2', tx: 11, ty: 1, dir: 'up' },
-    { x: 12, y: 0,  to: 'r2', tx: 12, ty: 1, dir: 'up' },
+    { x: 11, y: 0,  to: 'r2', tx: 8, ty: 23, dir: 'up' },
+    { x: 12, y: 0,  to: 'r2', tx: 9, ty: 23, dir: 'up' },
   ],
   shop: ['heal', 'hint'],                       // 商店賣什麼（Shop 讀的是進來時所在的城鎮）
   signs: { '10,1': 'sign_zhuyin', '10,5': 'sg29' },
@@ -364,6 +365,58 @@ MAPS.c1a = {
       allText: '三塊黑板都被淨化了！小老師身上的錯字怨念淡了許多。',
       onAll: 'bbAll' },
   },
+};
+
+/* ============================================================
+   ⑨ 抄書石階 r2　18×25　石階山道（灰石＋紅燈籠，t_alley）
+   ------------------------------------------------------------
+   一整條石階從南爬到北，兩側掛紅燈籠。
+   中段往西有一條岔路，盡頭用岩石框出一個小角落放寶箱。
+   草叢 46 格；兩位視線型對手守在階梯邊。
+   南接注音坡、北接抄書巷。
+   ============================================================ */
+MAPS.r2 = {
+  music: 'route', qlv: 2, chapter: 2, theme: 't_alley',
+  rows: [
+    'TTTTTTTTiiTTTTTTTT',
+    'TT......ii......TT',
+    'TT......ii..QQ..TT',
+    'TT..ggggii..QQ..TT',
+    'TT..gggLiiL.....TT',
+    'TT..ggggii......TT',
+    'TT......ii.gggg.TT',
+    'TT......ii.gggg.TT',
+    'TT......ii.gggg.TT',
+    'TT.....LiiL.....TT',
+    'TT......ii......TT',
+    'TT......ii......TT',
+    'TT.iiiiiii......TT',
+    'TT.^.^..ii......TT',
+    'TT......ii......TT',
+    'TT...^^.ii......TT',
+    'TT...^^LiiLgggg.TT',
+    'TT......ii.gggg.TT',
+    'TT......ii.gggg.TT',
+    'TT..ggggii......TT',
+    'TT..ggggii......TT',
+    'TT..gggLiiL.QQ..TT',
+    'TT......ii..QQ..TT',
+    'TT......ii......TT',
+    'TTTTTTTTiiTTTTTTTT',
+  ],
+  warps: [
+    { x: 8, y: 24, to: 'zhuyin',  tx: 11, ty: 1,  dir: 'down' },
+    { x: 9, y: 24, to: 'zhuyin',  tx: 12, ty: 1,  dir: 'down' },
+    { x: 8, y: 0,  to: 'chaoshu', tx: 8,  ty: 1,  dir: 'up' },
+    { x: 9, y: 0,  to: 'chaoshu', tx: 9,  ty: 1,  dir: 'up' },
+  ],
+  foes: { n: 7, lv: [4, 7], scale: 1, auto: 1 },
+  npcs: [
+    { role: 't_r2a',     x: 7,  y: 7,  dir: 'right', sight: 3 },
+    { role: 't_r2b',     x: 10, y: 17, dir: 'left',  sight: 3 },
+    { role: 'roamHint2', x: 11, y: 12, dir: 'down' },
+  ],
+  chests: [{ x: 4, y: 13, id: 'r2a', frags: { tome: 2 }, items: { heal: 1 } }],
 };
 
 /* 全部地圖一次掛進引擎（新地圖請加在這一行之前） */
