@@ -70,6 +70,8 @@ const TILES = {
   'M': { walk: 0, name: '感應台／石碑牆（機關做在上面）' },
   'Y': { walk: 0, name: '竹叢' },
   'A': { walk: 0, name: '涼亭' },
+  'Z': { walk: 0, name: '湯池／溫泉' },
+  'E': { walk: 0, name: '鐘塔' },
   'V': { walk: 0, name: '螢幕／儀器' },
   'w': { walk: 0, name: '室內牆' },
   'k': { walk: 0, name: '書架' },
@@ -91,8 +93,10 @@ for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
        npcs: [], chests: [], signs: {},
      };
    已完成（第一～三章）：
-     室外 chendu r1 zhuyin r2 chaoshu r3 dianji r4 tingyu huanan r5 beilin
-     室內 home c8 clinic_h store_h clinic_c store_c clinic_o store_o forge c1a lib yard hist
+     全部 30 張都完成了：
+     室外 chendu r1 zhuyin r2 chaoshu r3 dianji r4 tingyu huanan r5 beilin r6 moquan zhongta
+     室內 home c8 clinic_h store_h clinic_c store_c clinic_o store_o forge
+          c1a lib yard hist aud inkpool
    ------------------------------------------------------------ */
 const MAPS = {};
 
@@ -984,8 +988,8 @@ MAPS.beilin = {
   warps: [
     { x: 11, y: 19, to: 'r5', tx: 8, ty: 1, dir: 'down' },
     { x: 12, y: 19, to: 'r5', tx: 9, ty: 1, dir: 'down' },
-    { x: 11, y: 0,  to: 'r6', tx: 11, ty: 1, dir: 'up' },
-    { x: 12, y: 0,  to: 'r6', tx: 12, ty: 1, dir: 'up' },
+    { x: 11, y: 0,  to: 'r6', tx: 10, ty: 26, dir: 'up' },
+    { x: 12, y: 0,  to: 'r6', tx: 11, ty: 26, dir: 'up' },
   ],
   shop: ['heal', 'heal2', 'cure', 'ward', 'atkup', 'defup', 'dodgeup', 'wenqi', 'hint'],
   signs: { '10,1': 'sign_beilin', '9,4': 'sg32', '9,11': 'sg21' },
@@ -1057,6 +1061,245 @@ MAPS.store_o = {
   ],
   warps: [{ x: 4, y: 6, to: '@ret' }, { x: 5, y: 6, to: '@ret' }],
   npcs: [{ role: 'clerk', x: 4, y: 2, dir: 'down' }],
+};
+
+/* ============================================================
+   ㉒ 考鐘坡 r6　22×28　上坡（t_spring）
+   南接碑林關、北接鐘塔台，中段往西一條岔路通到墨泉鄉。
+   往北被風擋住（gates: sideB）：要先把三張准考證碎紙找齊
+   （三個機關做在石碑上，答對才抽得出來）。
+   ============================================================ */
+MAPS.r6 = {
+  music: 'route', qlv: 3, chapter: 5, theme: 't_spring',
+  rows: [
+    'TTTTTTTTTT,,TTTTTTTTTT',
+    'TT........ii........TT',
+    'TT........ii........TT',
+    'TT..gggg..ii........TT',
+    'TT..gggg..ii........TT',
+    'TT..gggg..ii........TT',
+    'TT........ii........TT',
+    'TT.....O..ii.O......TT',
+    'TT........ii.ggggg..TT',
+    'TT........ii.ggggg..TT',
+    'TT........ii.ggggg..TT',
+    'TT........ii........TT',
+    'TT....O...ii........TT',
+    'TT........ii........TT',
+    'TT..gggg..ii........TT',
+    'TT..gggg..ii........TT',
+    'TT..gggg..ii........TT',
+    'TT........ii..^^^...TT',
+    'TT........ii..^^^...TT',
+    'TT........ii........TT',
+    ',,,,,,,,,,,i........TT',
+    'TT........ii........TT',
+    'TT........ii.ggggg..TT',
+    'TT........ii.ggggg..TT',
+    'TT...YY...ii.ggggg..TT',
+    'TT...YY...ii........TT',
+    'TT........ii........TT',
+    'TTTTTTTTTT,,TTTTTTTTTT',
+  ],
+  gates: { '10,5': 'sideB', '11,5': 'sideB' },
+  warps: [
+    { x: 10, y: 27, to: 'beilin',  tx: 11, ty: 1,  dir: 'down' },
+    { x: 11, y: 27, to: 'beilin',  tx: 12, ty: 1,  dir: 'down' },
+    { x: 10, y: 0,  to: 'zhongta', tx: 13, ty: 18, dir: 'up' },
+    { x: 11, y: 0,  to: 'zhongta', tx: 14, ty: 18, dir: 'up' },
+    { x: 0,  y: 20, to: 'moquan',  tx: 20, ty: 9,  dir: 'left' },
+  ],
+  foes: { n: 9, lv: [14, 18], scale: 1, auto: 1 },
+  npcs: [
+    { role: 'sideBGiver', x: 12, y: 6,  dir: 'down' },
+    { role: 'roamHint2',  x: 5,  y: 19, dir: 'down' },
+  ],
+  chests: [{ x: 18, y: 2, id: 'r6a', items: { ward: 2, heal2: 2 } }],
+  devices: {
+    '13,7': { group: 'paper', flag: 'pa1', cat: '文言', label: '准考證碎紙',
+      text: '一張被風吹住的碎紙卡在石碑縫裡。\n（讀懂上面的字，才能把它抽出來。）',
+      ok: '碎紙拿到了！', allText: '三張碎紙都找齊了！可以還給學弟妹了。' },
+    '7,7':  { group: 'paper', flag: 'pa2', cat: '常識', label: '准考證碎紙',
+      text: '第二張碎紙泡在泉水邊。', ok: '碎紙拿到了！', allText: '三張碎紙都找齊了！' },
+    '6,12': { group: 'paper', flag: 'pa3', cat: '成語', label: '准考證碎紙',
+      text: '最後一張碎紙黏在草叢裡。', ok: '碎紙拿到了！',
+      allText: '三張碎紙都找齊了！', onAll: 'sideB' },
+  },
+};
+
+/* ============================================================
+   ㉓ 墨泉鄉 moquan　22×18　溫泉聚落（t_spring）
+   只有東邊一個出入口的死路支線：補給站、商店，
+   以及硯海墨池的入口（要集齊三件守護神器、二週目才開）。
+   ============================================================ */
+MAPS.moquan = {
+  music: 'town', qlv: 3, chapter: 5, theme: 't_spring',
+  rows: [
+    'TTTTTTTTTTTTTTTTTTTTTT',
+    'TT...................T',
+    'TT........S..........T',
+    'TT.......ZZZZ........T',
+    'TT.hhHhh.ZZZZ..ccCcc.T',
+    'TT.hhhhh.ZZZZ..ccccc.T',
+    'TT.#WDW#.......#WDW#.T',
+    'TT...................T',
+    'TT......S............T',
+    'TT.,,,,,,,,,,,,,,,,,,,',
+    'TT...................T',
+    'TT...................T',
+    'TT.ZZZ...RRR....ZZZ..T',
+    'TT.ZZZ...#D#....ZZZ..T',
+    'TT...................T',
+    'TT...................T',
+    'TT...................T',
+    'TTTTTTTTTTTTTTTTTTTTTT',
+  ],
+  doorWarps: {
+    '5,6':   { to: 'clinic_o', tx: 4, ty: 5,  dir: 'up', ret: { x: 5,  y: 7 } },
+    '17,6':  { to: 'store_o',  tx: 4, ty: 5,  dir: 'up', ret: { x: 17, y: 7 } },
+    '10,13': { to: 'inkpool',  tx: 7, ty: 10, dir: 'up', ret: { x: 10, y: 14 }, need: 'stone' },
+  },
+  warps: [{ x: 21, y: 9, to: 'r6', tx: 1, ty: 20, dir: 'right' }],
+  shop: ['heal', 'heal2', 'cure', 'ward', 'atkup', 'defup', 'dodgeup', 'wenqi', 'hint'],
+  signs: { '10,2': 'sign_moquan', '8,8': 'sg23' },
+  npcs: [
+    { role: 'busStop',   x: 7,  y: 10, dir: 'down' },
+    { role: 'springTip', x: 14, y: 11, dir: 'left' },
+    { role: 'ngHint',    x: 12, y: 8,  dir: 'down' },
+    { role: 'roamHint',  x: 6,  y: 14, dir: 'down' },
+    { role: 'tipInk',    x: 12, y: 13, dir: 'left' },
+    { role: 't_mq_a',    x: 8,  y: 15, dir: 'down' },
+  ],
+  chests: [{ x: 19, y: 15, id: 'mq1', items: { heal2: 2, ward: 1 } }],
+};
+
+/* ㉔ 硯海墨池 inkpool　16×12　地底墨池（隱藏關）
+   二週目集齊三件守護神器後，硯海龍君會從池底升起（spiritRise）。 */
+MAPS.inkpool = {
+  music: 'boss', qlv: 3, chapter: 5, indoor: 1, theme: 't_spring',
+  rows: [
+    'wwwwwwwwwwwwwwww',
+    'w______________w',
+    'w__~~~____~~~__w',
+    'w__~~~____~~~__w',
+    'w______________w',
+    'w____~~~~~~____w',
+    'w____~~~~~~____w',
+    'w______________w',
+    'w__~~~____~~~__w',
+    'w__~~~____~~~__w',
+    'w______________w',
+    'wwwwwww__wwwwwww',
+  ],
+  warps: [
+    { x: 7, y: 11, to: 'moquan', tx: 10, ty: 14, dir: 'down' },
+    { x: 8, y: 11, to: 'moquan', tx: 10, ty: 14, dir: 'down' },
+  ],
+  npcs: [],
+  chests: [{ x: 1, y: 1, id: 'ink1', items: { heal2: 3, ward: 2, cure: 2 } }],
+};
+
+/* ============================================================
+   ㉕ 鐘塔台 zhongta　28×20　會考會場（t_tower）
+   正中央是大鐘塔，塔下就是道館⑤（要四片碎片）。
+   兩側紅毯廣場、補給站與商店。南接考鐘坡。
+   ============================================================ */
+MAPS.zhongta = {
+  music: 'town', qlv: 3, chapter: 5, theme: 't_tower',
+  rows: [
+    'TTTTTTTTTTTTTTTTTTTTTTTTTTTT',
+    'TT........EEEEEEEE........TT',
+    'TT........EEEEEEEE........TT',
+    'TT.hhHhh..EEEEEEEE........TT',
+    'TT.hhhhh..GGGyyGGG........TT',
+    'TT.#WDW#....#WDDW#........TT',
+    'TT...........,,...........TT',
+    'TT.,,,,,,,,,,,,,,,,,,,,,..TT',
+    'TT..........S,,.S.........TT',
+    'TT...........,,...........TT',
+    'TT...........,,....ccCcc..TT',
+    'TT...........,,....ccccc..TT',
+    'TT...........,,....#WDW#..TT',
+    'TT.,,,,,,,,,,,,,,,,,,,,,..TT',
+    'TT..........S,,...........TT',
+    'TT..rrrrr....,,...rrrrr...TT',
+    'TT..rrrrr....,,...rrrrr...TT',
+    'TT..rrrrr....,,...rrrrr...TT',
+    'TT...........,,...........TT',
+    'TTTTTTTTTTTTT,,TTTTTTTTTTTTT',
+  ],
+  doorWarps: {
+    '14,5': { to: 'aud',      tx: 7, ty: 11, dir: 'up', ret: { x: 14, y: 6 }, need: 4, gate: 'need4' },
+    '15,5': { to: 'aud',      tx: 7, ty: 11, dir: 'up', ret: { x: 14, y: 6 }, need: 4, gate: 'need4' },
+    '5,5':  { to: 'clinic_c', tx: 5, ty: 5,  dir: 'up', ret: { x: 5,  y: 6 } },
+    '21,12':{ to: 'store_c',  tx: 5, ty: 5,  dir: 'up', ret: { x: 21, y: 13 } },
+  },
+  warps: [
+    { x: 13, y: 19, to: 'r6', tx: 10, ty: 1, dir: 'down' },
+    { x: 14, y: 19, to: 'r6', tx: 11, ty: 1, dir: 'down' },
+  ],
+  shop: ['heal', 'heal2', 'cure', 'ward', 'atkup', 'defup', 'dodgeup', 'wenqi', 'hint'],
+  signs: { '12,8': 'sign_zhongta', '16,8': 'sign_zhongta2', '12,14': 'sg25' },
+  npcs: [
+    { role: 'busStop',  x: 9,  y: 9,  dir: 'down' },
+    { role: 'gymTip5',  x: 17, y: 6,  dir: 'left' },   // 不能站 (15,6)：那是道館門 (15,5) 唯一的門前站位
+    { role: 'roamHint', x: 20, y: 8,  dir: 'down' },
+    { role: 't_zt_a',   x: 6,  y: 14, dir: 'down' },
+    { role: 't_zt_b',   x: 20, y: 16, dir: 'down', wander: 1 },
+  ],
+  chests: [{ x: 23, y: 17, id: 'zt1', items: { heal2: 3, cure: 2 } }],
+};
+
+/* ============================================================
+   ㉖ 鐘塔台道館 aud　16×13　大禮堂（最終戰）
+   中央一條紅毯直通講台，三位天王視線很長（14 格）會主動攔人；
+   三位都打倒之後，大魔王才會從天而降（cut: 'bossDrop'）。
+   三座准考證感應台答對可讓下場戰鬥文氣 +1。
+   ============================================================ */
+MAPS.aud = {
+  music: 'hall', qlv: 3, chapter: 5, indoor: 1, theme: 't_tower',
+  rows: [
+    'wwwwwBBBBBBwwwww',
+    'w______________w',
+    'wtttttt__ttttttw',
+    'w______rr______w',
+    'w_tt_V_rr_t_tt_w',
+    'w______rr______w',
+    'w_tt_t_rr_t_tt_w',
+    'w______rr______w',
+    'w_tt_t_rr_V_tt_w',
+    'w______rr______w',
+    'wV_t_t_rr_t_tt_w',
+    'w______rr______w',
+    'wwwwwww__wwwwwww',
+  ],
+  warps: [
+    { x: 7, y: 12, to: 'zhongta', tx: 14, ty: 6, dir: 'down' },
+    { x: 8, y: 12, to: 'zhongta', tx: 14, ty: 6, dir: 'down' },
+  ],
+  npcs: [
+    { role: 'e1',      x: 1,  y: 9,  dir: 'right', sight: 14 },
+    { role: 'e2',      x: 14, y: 7,  dir: 'left',  sight: 14 },
+    { role: 'e3',      x: 1,  y: 5,  dir: 'right', sight: 14 },
+    { role: 'moGuard', x: 4,  y: 11, dir: 'right' },
+    /* 三位天王都倒下之後，大魔王才登場（bossEntrance 會播從天而降的動畫） */
+    { role: 'boss5',   x: 7,  y: 1,  dir: 'down', cut: 'bossDrop',
+      after: ['aud:e1', 'aud:e2', 'aud:e3'] },
+  ],
+  chests: [
+    { x: 1,  y: 1, id: 'aud1', items: { heal2: 2, cure: 2, dodgeup: 1 } },
+    { x: 14, y: 1, id: 'aud2', items: { atkup: 2, defup: 2 } },
+  ],
+  devices: {
+    '5,4':  { group: 'ad', flag: 'ad1', cat: '閱讀', label: '准考證感應台',
+      text: '講台前的感應台亮著微光，上面寫著：「答對即可凝聚文氣。」',
+      ok: '感應台亮起，一股文氣湧入你的身體！（下場戰鬥文氣 +1）' },
+    '10,8': { group: 'ad', flag: 'ad2', cat: '成語', label: '准考證感應台',
+      text: '第二座感應台等著你。', ok: '文氣再度凝聚！（下場戰鬥文氣 +1）' },
+    '1,10': { group: 'ad', flag: 'ad3', cat: '文言', label: '准考證感應台',
+      text: '最後一座感應台散發著沉穩的光。', ok: '文氣滿溢！（下場戰鬥文氣 +1）',
+      allText: '三座感應台全部亮起，整座禮堂被文氣照亮了！' },
+  },
 };
 
 /* 全部地圖一次掛進引擎（新地圖請加在這一行之前） */
