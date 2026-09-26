@@ -86,8 +86,8 @@ for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
        exits:  [ { x: 16, y: 21, to: 'r1', tx: 11, ty: 15, dir: 'up' } ],
        npcs: [], chests: [], signs: {},
      };
-   已完成：chendu、r1、zhuyin、r2、chaoshu、r3（室外）／
-           home、c8、clinic_h、store_h、c1a、forge（室內）
+   已完成：chendu、r1、zhuyin、r2、chaoshu、r3、dianji（室外）／
+           home、c8、clinic_h、store_h、clinic_c、store_c、c1a、forge、lib（室內）
    ------------------------------------------------------------ */
 const MAPS = {};
 
@@ -534,8 +534,8 @@ MAPS.r3 = {
   warps: [
     { x: 9,  y: 24, to: 'chaoshu', tx: 11, ty: 1, dir: 'down' },
     { x: 10, y: 24, to: 'chaoshu', tx: 12, ty: 1, dir: 'down' },
-    { x: 9,  y: 0,  to: 'dianji',  tx: 9,  ty: 1, dir: 'up' },
-    { x: 10, y: 0,  to: 'dianji',  tx: 10, ty: 1, dir: 'up' },
+    { x: 9,  y: 0,  to: 'dianji',  tx: 13, ty: 18, dir: 'up' },
+    { x: 10, y: 0,  to: 'dianji',  tx: 14, ty: 18, dir: 'up' },
   ],
   foes: { n: 7, lv: [6, 9], scale: 1, auto: 1 },
   npcs: [
@@ -544,6 +544,137 @@ MAPS.r3 = {
     { role: 'roamHint2', x: 4,  y: 9,  dir: 'down' },
   ],
   chests: [{ x: 3, y: 19, id: 'r3a', items: { atkup: 1, heal: 2 } }],
+};
+
+/* ============================================================
+   ⑬ 典籍港 dianji　28×20　碼頭（藍灰＋木箱，t_port）
+   ------------------------------------------------------------
+   主路南北直通，兩條橫街分別接到道館②(19,4)、補給站(5,4)、商店(20,11)。
+   左下是港灣水面與成堆的書箱。南接運書河道、北接聲音鐘步道。
+   ============================================================ */
+MAPS.dianji = {
+  music: 'town', qlv: 2, chapter: 2, theme: 't_port',
+  rows: [
+    'TTTTTTTTTTTTT,,TTTTTTTTTTTTT',
+    'TT..........S,,...........TT',
+    'TT.hhHhh.....,,.GGyyyGG...TT',
+    'TT.hhhhh.....,,.GGGGGGG...TT',
+    'TT.#WDW#.....,,.#WWDWW#.S.TT',
+    'TT...........,,...........TT',
+    'TT.,,,,,,,,,,,,,,,,,,,,,..TT',
+    'TT........L..,,.......L...TT',
+    'TT...........,,...........TT',
+    'TT...........,,...ccCcc...TT',
+    'TT...........,,...ccccc...TT',
+    'TT...........,,..S#WDW#...TT',
+    'TT...........,,...........TT',
+    'TT.,,,,,,,,,,,,,,,,,,,,,..TT',
+    'TT.QQ..QQ....,,...........TT',
+    'TT~~~~~~~....,,.....QQQQ..TT',
+    'TT~~~~~~~....,,.....QQQQ..TT',
+    'TT~~~~~~~....,,...........TT',
+    'TT~~~~~~~....,,...........TT',
+    'TTTTTTTTTTTTT,,TTTTTTTTTTTTT',
+  ],
+  doorWarps: {
+    '19,4':  { to: 'lib',      tx: 7, ty: 10, dir: 'up', ret: { x: 19, y: 5 }, need: 1 },
+    '5,4':   { to: 'clinic_c', tx: 5, ty: 5,  dir: 'up', ret: { x: 5,  y: 5 } },
+    '20,11': { to: 'store_c',  tx: 5, ty: 5,  dir: 'up', ret: { x: 20, y: 12 } },
+  },
+  warps: [
+    { x: 13, y: 19, to: 'r3', tx: 9,  ty: 1,  dir: 'down' },
+    { x: 14, y: 19, to: 'r3', tx: 10, ty: 1,  dir: 'down' },
+    { x: 13, y: 0,  to: 'r4', tx: 13, ty: 1,  dir: 'up' },
+    { x: 14, y: 0,  to: 'r4', tx: 14, ty: 1,  dir: 'up' },
+  ],
+  shop: ['heal', 'heal2', 'cure', 'ward', 'atkup', 'defup', 'hint'],
+  signs: { '12,1': 'sign_dianji', '24,4': 'sg30', '17,11': 'sg10' },
+  npcs: [
+    { role: 'townTip3', x: 10, y: 8,  dir: 'down' },
+    { role: 'gymTip2',  x: 19, y: 5,  dir: 'up' },
+    { role: 't_dj_a',   x: 7,  y: 12, dir: 'down' },
+    { role: 't_dj_b',   x: 21, y: 7,  dir: 'down', wander: 1 },
+  ],
+  chests: [{ x: 23, y: 18, id: 'dj1', items: { heal2: 2, hint: 1 } }],
+};
+
+/* ============================================================
+   ⑭ 典籍港道館 lib　16×12　倉庫改的圖書館（書架迷宮）
+   ------------------------------------------------------------
+   這一座是「解開才通得過」型：中央那道書架牆把館主關在後面，
+   三本飛舞的成語辭典全部歸位後，(7,2)(8,2) 兩格才會讓開。
+   ============================================================ */
+MAPS.lib = {
+  music: 'hall', qlv: 2, chapter: 2, indoor: 1, theme: 't_port',
+  rows: [
+    'wwwwwwwwwwwwwwww',
+    'wkk__________kkw',
+    'wkkkkkkkkkkkkkkw',
+    'w_QQ__k__kk_QQ_w',
+    'w____k______k__w',
+    'wQQ__k_kkkk_k_Qw',
+    'w____k____k____w',
+    'w_kkkk_kk_kkkk_w',
+    'w__QQ______QQ__w',
+    'wp____kkkk____pw',
+    'w______________w',
+    'wwwwwww__wwwwwww',
+  ],
+  warps: [
+    { x: 7, y: 11, to: 'dianji', tx: 19, ty: 5, dir: 'down' },
+    { x: 8, y: 11, to: 'dianji', tx: 19, ty: 5, dir: 'down' },
+  ],
+  npcs: [{ role: 'boss2', x: 8, y: 1, dir: 'down' }],
+  chests: [{ x: 1, y: 10, id: 'lib1', items: { hint: 2, dodgeup: 1 }, frags: { tome: 2 } }],
+  devices: {
+    '2,3': { group: 'bk', flag: 'bk1', cat: '成語', label: '飛舞的成語辭典',
+      text: '一本成語辭典在書箱上飛來飛去，書頁上缺了一個字……',
+      ok: '辭典安靜地飛回了書架！',
+      allText: '三本辭典都歸位了——中央的書架緩緩讓開，露出通往股長的路！',
+      open: [[7, 2], [8, 2]] },
+    '10,3': { group: 'bk', flag: 'bk2', cat: '成語', label: '飛舞的成語辭典',
+      text: '第二本辭典在你頭上盤旋。',
+      ok: '辭典飛回了書架！',
+      allText: '三本辭典都歸位了！',
+      open: [[7, 2], [8, 2]] },
+    '7,7': { group: 'bk', flag: 'bk3', cat: '成語', label: '飛舞的成語辭典',
+      text: '最後一本辭典夾在書箱縫隙中。',
+      ok: '辭典回到了原位！',
+      allText: '三本辭典都歸位了——中央的書架緩緩讓開！',
+      open: [[7, 2], [8, 2]], onAll: 'bkAll' },
+  },
+};
+
+/* ⑮ 保健室（城市）clinic_c　12×7 */
+MAPS.clinic_c = {
+  music: 'town', qlv: 2, chapter: 2, indoor: 1, theme: 't_city',
+  rows: [
+    'wwwwwwwwwwww',
+    'wbb_kkkk__bw',
+    'w__________w',
+    'wtttt___tttw',
+    'w_p______p_w',
+    'w__________w',
+    'wwwww__wwwww',
+  ],
+  warps: [{ x: 5, y: 6, to: '@ret' }, { x: 6, y: 6, to: '@ret' }],
+  npcs: [{ role: 'healer', x: 3, y: 2, dir: 'down' }],
+};
+
+/* ⑯ 商店（城市）store_c　12×7 */
+MAPS.store_c = {
+  music: 'town', qlv: 2, chapter: 2, indoor: 1, theme: 't_port',
+  rows: [
+    'wwwwwwwwwwww',
+    'wkkkkk_kkkkw',
+    'w__________w',
+    'w__tttt____w',
+    'w____rr____w',
+    'wp________pw',
+    'wwwww__wwwww',
+  ],
+  warps: [{ x: 5, y: 6, to: '@ret' }, { x: 6, y: 6, to: '@ret' }],
+  npcs: [{ role: 'clerk', x: 4, y: 2, dir: 'down' }],
 };
 
 /* 全部地圖一次掛進引擎（新地圖請加在這一行之前） */
