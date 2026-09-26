@@ -9,7 +9,7 @@ const OW = {
 
   shake: 0, dark: 0, flash: 0, fx: [],
   load(id, x, y, dir) {
-    if (!LAYOUTS[id]) { const H0 = (W && W.homeTown) || { map: 'chendu', x: 16, y: 11 }; id = H0.map; x = H0.x; y = H0.y; }   // 防呆：地圖不存在就回起點城鎮
+    if (!LAYOUTS[id]) { const H0 = (W && W.homeTown) || { map: 'chendu', x: 11, y: 7 }; id = H0.map; x = H0.x; y = H0.y; }   // 防呆：地圖不存在就回起點城鎮
     this.id = id; this.L = LAYOUTS[id];
     Object.assign(this.p, { x, y, dir: dir || this.p.dir, moving: false, t: 0 });
     this.npcs = (this.L.npcs || []).concat((G.flags.cleared && W.postNpcs && W.postNpcs[id]) || []).map(s => {

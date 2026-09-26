@@ -193,9 +193,9 @@ async function titleScreen() {
 
 /* ---------- 存檔資料 ---------- */
 function freshState(world, player, slot) {
-  return { v: 3, slot, world, player, map: 'chendu', x: 16, y: 11, lv: 3, exp: 0, hp: null, weapons: [], equip: [], cur: 0, wenqi: 0,
+  return { v: 3, slot, world, player, map: 'chendu', x: 11, y: 7, lv: 3, exp: 0, hp: null, weapons: [], equip: [], cur: 0, wenqi: 0,
     bag: { heal: 0, heal2: 0, wenqi: 0, hint: 0, atkup: 0, defup: 0, dodgeup: 0, cure: 0 }, frags: {}, money: 300, chapter: 1, badges: [], flags: {}, defeated: {}, chests: {}, quests: {}, opened: {}, titles: [], storage: [], visited: {},
-    stats: {}, chStats: {}, wrong: [], seen: {}, weakKnown: {}, lastHeal: { map: 'chendu', x: 16, y: 11 }, ret: { map: 'chendu', x: 16, y: 11 }, time: 0, streak: 0, bestStreak: 0, answered: 0, ng: 0 };
+    stats: {}, chStats: {}, wrong: [], seen: {}, weakKnown: {}, lastHeal: { map: 'chendu', x: 11, y: 7 }, ret: { map: 'chendu', x: 11, y: 7 }, time: 0, streak: 0, bestStreak: 0, answered: 0, ng: 0 };
 }
 const Flow = {
   async load(n) {
@@ -215,9 +215,9 @@ const Flow = {
     if (!G.equip.length && G.weapons.length) G.equip.push(G.weapons[0].id);
     G.cur = Math.max(0, Math.min(G.cur, G.equip.length - 1));
     if (!G.visited) G.visited = {};
-    if (!LAYOUTS[G.map]) { const H0 = W.homeTown || { map: 'chendu', x: 16, y: 11 }; G.map = H0.map; G.x = H0.x; G.y = H0.y; }   // 舊存檔的地圖已移除
-    if (!LAYOUTS[G.lastHeal && G.lastHeal.map]) G.lastHeal = { map: 'chendu', x: 16, y: 11 };
-    if (!LAYOUTS[G.ret && G.ret.map]) G.ret = { map: 'chendu', x: 16, y: 11 };
+    if (!LAYOUTS[G.map]) { const H0 = W.homeTown || { map: 'chendu', x: 11, y: 7 }; G.map = H0.map; G.x = H0.x; G.y = H0.y; }   // 舊存檔的地圖已移除
+    if (!LAYOUTS[G.lastHeal && G.lastHeal.map]) G.lastHeal = { map: 'chendu', x: 11, y: 7 };
+    if (!LAYOUTS[G.ret && G.ret.map]) G.ret = { map: 'chendu', x: 11, y: 7 };
     for (const k of Object.keys(G.defeated || {})) if (/^(hallway|campus|town1|route1|town2|gym1):/.test(k)) delete G.defeated[k];
     for (const id of ITEM_ORDER) if (G.bag[id] == null) G.bag[id] = 0;        // 舊存檔補上新道具欄位
     if (!Array.isArray(G.titles)) G.titles = [];
@@ -254,7 +254,7 @@ const Flow = {
     const keep = { prologue: true, tut: 'skip', cleared: true };
     G.flags = keep;
     G.hp = G.maxhp; G.wenqi = 0;
-    const S0 = { map: 'chendu', x: 16, y: 11 };
+    const S0 = { map: 'chendu', x: 11, y: 7 };
     G.lastHeal = { map: S0.map, x: S0.x, y: S0.y }; G.ret = Object.assign({}, S0);
     autosave();
     await fade(1, 0.4); UI.clear(); Game.scene = 'overworld'; OW.load(S0.map, S0.x, S0.y, 'down'); await fade(0, 0.4);
@@ -282,8 +282,9 @@ const Flow = {
     }
   },
   async start() {
-    const S0 = W.story ? W.start : { map: 'chendu', x: 16, y: 11, dir: 'down' };
-    G.map = S0.map; G.lastHeal = W.story ? { map: 'chendu', x: 16, y: 11 } : G.lastHeal;
+    const S0 = W.story ? W.start : { map: 'chendu', x: 11, y: 7, dir: 'down' };
+    G.map = S0.map; G.lastHeal = W.story ? Object.assign({}, W.homeTown) : G.lastHeal;
+    G.ret = G.ret || Object.assign({}, W.homeTown || { map: 'chendu', x: 11, y: 7 });   // 防呆：室內用 '@ret' 出來時要有落點
     await fade(1, 0.4); UI.clear(); Game.scene = 'overworld'; OW.load(S0.map, S0.x, S0.y, S0.dir); autosave(); await fade(0, 0.4);
     await sleep(200); showBanner(W.chapterName);
     if (W.story) { if (!G.flags.prologue) OW.run(() => storyPrologue()); }

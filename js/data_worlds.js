@@ -289,7 +289,7 @@ const WORLD_ORDER = ['school', 'literati', 'wuxia'];
   const stu = (hair, c2, extra) => Object.assign({ hair, cloth: '#f8f8f8', cloth2: c2, style: 'school' }, extra || {});
   S.story = true;
   S.start = { map: 'c8', x: 3, y: 3, dir: 'up' };
-  S.homeTown = { map: 'chendu', x: 16, y: 11 };
+  S.homeTown = { map: 'chendu', x: 11, y: 7 };     // 一定要是走得過去的格子（舊的 16,11 是稻田）
   S.tagline = '找回被墨塵奪走的五片准考證碎片，堂堂正正走進考場！';
   S.fragName = '准考證碎片';
   S.stages = [

@@ -282,7 +282,12 @@ MAPS.c8 = {
     'wp________pw',
     'wwwww__wwwww',
   ],
-  warps: [{ x: 5, y: 8, to: '@ret' }, { x: 6, y: 8, to: '@ret' }],
+  /* 這裡是新遊戲的起點：玩家不是從門進來的，所以 G.ret 還不存在，
+     出口不能用 '@ret'（會卡在教室裡出不去），要明確寫回晨讀村的教室門口。 */
+  warps: [
+    { x: 5, y: 8, to: 'chendu', tx: 17, ty: 6, dir: 'down' },
+    { x: 6, y: 8, to: 'chendu', tx: 17, ty: 6, dir: 'down' },
+  ],
   npcs: [{ role: 'mentor', x: 5, y: 2, dir: 'down' }],
 };
 
