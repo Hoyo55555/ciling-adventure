@@ -4,11 +4,12 @@ const Battle = {
   s: null,
   async start(cfg) {
     if (this.s) return 'busy';   // 防止重複開戰
-    /* 教師測試模式：略過所有戰鬥，直接判定勝利，方便快速跑完劇情 */
-    if (G && G.teacher) {
+    /* 教師測試版：路上的對手一律不用打，直接判勝；
+       但「道館館主」要真的打一場，老師才測得到道館的完整流程。 */
+    if (G && G.teacher && !(cfg.role && cfg.role.kind === 'gym')) {
       const nm = (cfg.role && cfg.role.name) || (cfg.foe && cfg.foe.name) || '對手';
       Sound.sfx('ok');
-      await say(`（教師測試版：自動戰勝「${nm}」）`);
+      await say(`（教師測試版：略過與「${nm}」的對戰）`);
       return 'win';
     }
     Input.eat();

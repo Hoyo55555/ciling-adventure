@@ -107,7 +107,6 @@ function resize() {
   document.documentElement.style.setProperty('--w', w + 'px'); document.documentElement.style.setProperty('--u', (w / 240) + 'px');
 }
 
-/* ---------- 教師測試版：網址加上 ?teacher=1 就會略過所有戰鬥 ---------- */
 /* 教師測試版：網址加 ?teacher=1，或用教師帳號登入（班級 T、座號 0）都算 */
 const TEACHER_URL = /[?&]teacher=1/.test(location.search);
 const isTeacher = () => TEACHER_URL || (typeof TeacherAuth !== 'undefined' && TeacherAuth.on);
@@ -115,42 +114,41 @@ function showTeacherBadge() {
   if (document.querySelector('.teacherbadge')) return;
   const b = document.createElement('div');
   b.className = 'teacherbadge';
-  b.textContent = '教師測試版：略過所有戰鬥・滿裝備';
+  b.textContent = '教師測試版：滿裝備・只打道館館主';
   b.style.cssText = 'position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:99;' +
     'background:#7a2a1e;color:#f0e0c0;font:600 12px system-ui,"Noto Sans TC",sans-serif;' +
     'padding:3px 12px;border-radius:10px;border:1px solid #c8a040;pointer-events:none;opacity:.92';
   document.body.appendChild(b);
 }
 if (TEACHER_URL) addEventListener('DOMContentLoaded', showTeacherBadge);
-function markTeacher() {
-  if (!G || !isTeacher()) return;
-  G.teacher = true;
-  if (G.flags.teacherKit) return;          // 一個存檔只發一次
-  G.flags.teacherKit = 1;
-  teacherKit();
-}
-/* 教師測試版的配備：六把最高階武器（涵蓋全部題型）＋滿背包道具。
-   沒有武器的話引擎會擋住所有戰鬥（「……你手上沒有武器？」），
-   老師就什麼都測不了。 */
+function markTeacher() { if (G && isTeacher()) G.teacher = true; }
+
+/* ============ 教師測試版 ============
+   老師要的是「劇情跑完之後」的狀態：電腦裡有全部武器與全部圖鑑，
+   路上的 NPC 不會跟你打，但道館館主還是要真的打一場。 */
 function teacherKit() {
-  const TOP = RARITY.length - 2;                       // 神品（彩色的守護神器另外給）
-  const KIT = [
-    ['brush',  '字形・字音'],
-    ['tome',   '成語・詞義'],
-    ['scroll', '文言・詩詞'],
-    ['fan',    '修辭'],
-    ['seal',   '常識・閱讀'],
-    ['legend', '全題型'],
-  ];
-  for (const [arch] of KIT) { const w = giveWeapon(arch, TOP); w.mastery = 99; w.bond = 99; }
-  /* 三件守護神器放進「電腦」，需要時再換上（硯海墨池要用） */
-  if (typeof GUARDIAN_FIRST !== 'undefined') for (const k of GUARDIAN_FIRST) {
-    const g = newWeapon(k, RARITY.length - 1); g.mastery = 99; g.bond = 99;
-    G.storage.push(g); if (typeof Meta !== 'undefined') Meta.seeWeapon(G.world, k, RARITY.length - 1);
-  }
+  if (!G || !isTeacher() || G.flags.teacherKit) return;
+  G.flags.teacherKit = 1;
+  const TOP = RARITY.length - 2;                 // 神品
+  const GUARD = RARITY.length - 1;               // 守護神器（彩色）
+  const archs = Object.keys(ARCH);
+  const isGuard = a => typeof GUARDIANS !== 'undefined' && !!GUARDIANS[a];
+  /* 圖鑑全開 */
+  for (const a of archs) for (let r = 0; r <= (isGuard(a) ? GUARD : TOP); r++) Meta.seeWeapon(G.world, a, r);
+  /* 全部武器都做一把出來：背包放六把常用的，其餘全進電腦 */
+  const FIRST = ['brush', 'tome', 'scroll', 'fan', 'seal', 'legend'].filter(a => archs.includes(a));
+  const rest = archs.filter(a => !FIRST.includes(a));
+  G.weapons = []; G.equip = []; G.storage = [];
+  const mk = a => { const w = newWeapon(a, isGuard(a) ? GUARD : TOP); w.mastery = 99; w.bond = 99; return w; };
+  for (const a of FIRST) { const w = mk(a); G.weapons.push(w); if (G.equip.length < 3) G.equip.push(w.id); }
+  for (const a of rest) G.storage.push(mk(a));
+  /* 劇情視為跑完、五片碎片全給（不然後面的道館進不去），但館主沒有被打倒過 */
+  /* 只把序幕標成跑完；不設 cleared——那會換成通關後的 NPC 配置，
+     老師看到的就不是學生會看到的世界了。 */
+  Object.assign(G.flags, { prologue: true, tut: 'skip' });
+  G.badges = ['准考證碎片（一）', '准考證碎片（二）', '准考證碎片（三）', '准考證碎片（四）', '准考證碎片（五）'];
   for (const k of Object.keys(G.bag)) G.bag[k] = 20;
-  G.money = 99999;
-  G.flags.tut = 'skip';                                // 不用再跑一次選武器的教學
+  G.money = 99999; G.lv = Math.max(G.lv, 30);
   playerStats(); G.hp = G.maxhp;
   showTeacherBadge();
 }
@@ -266,6 +264,7 @@ const Flow = {
     if (G.flags.guardianGot) G.flags.guardianGot = fixArch(G.flags.guardianGot);
     G.titles = (G.titles || []).filter(id => ALL_TITLES().some(t => t.id === id));
     playerStats();
+    teacherKit();
     if (W.story && !G.flags.prologue) { const S0 = W.start; G.map = S0.map; G.x = S0.x; G.y = S0.y; G.weapons = []; G.equip = []; }
     await fade(1, 0.3); UI.clear(); Game.scene = 'overworld'; OW.load(G.map, G.x, G.y, 'down'); await fade(0, 0.3);
     if (W.story && !G.flags.prologue) OW.run(() => storyPrologue());
@@ -318,7 +317,9 @@ const Flow = {
     }
   },
   async start() {
-    const S0 = W.story ? W.start : { map: 'chendu', x: 11, y: 7, dir: 'down' };
+    teacherKit();                                   // 教師版：直接給滿，並跳過序幕
+    const S0 = W.story ? (G.flags.prologue ? Object.assign({ dir: 'down' }, W.homeTown) : W.start)
+                       : { map: 'chendu', x: 11, y: 7, dir: 'down' };
     G.map = S0.map; G.lastHeal = W.story ? Object.assign({}, W.homeTown) : G.lastHeal;
     G.ret = G.ret || Object.assign({}, W.homeTown || { map: 'chendu', x: 11, y: 7 });   // 防呆：室內用 '@ret' 出來時要有落點
     await fade(1, 0.4); UI.clear(); Game.scene = 'overworld'; OW.load(S0.map, S0.x, S0.y, S0.dir); autosave(); await fade(0, 0.4);
