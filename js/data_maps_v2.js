@@ -67,6 +67,10 @@ const TILES = {
   'm': { walk: 0, name: '市集攤位' },
   'n': { walk: 0, name: '布招／旗幟' },
   'B': { walk: 0, name: '黑板' },
+  'M': { walk: 0, name: '感應台／石碑牆（機關做在上面）' },
+  'Y': { walk: 0, name: '竹叢' },
+  'A': { walk: 0, name: '涼亭' },
+  'V': { walk: 0, name: '螢幕／儀器' },
   'w': { walk: 0, name: '室內牆' },
   'k': { walk: 0, name: '書架' },
   'b': { walk: 0, name: '床' },
@@ -87,8 +91,8 @@ for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
        npcs: [], chests: [], signs: {},
      };
    已完成（第一～三章）：
-     室外 chendu r1 zhuyin r2 chaoshu r3 dianji r4 tingyu huanan
-     室內 home c8 clinic_h store_h clinic_c store_c clinic_o forge c1a lib yard
+     室外 chendu r1 zhuyin r2 chaoshu r3 dianji r4 tingyu huanan r5 beilin
+     室內 home c8 clinic_h store_h clinic_c store_c clinic_o store_o forge c1a lib yard hist
    ------------------------------------------------------------ */
 const MAPS = {};
 
@@ -822,8 +826,8 @@ MAPS.huanan = {
   warps: [
     { x: 11, y: 19, to: 'r4', tx: 9,  ty: 1, dir: 'down' },
     { x: 12, y: 19, to: 'r4', tx: 10, ty: 1, dir: 'down' },
-    { x: 11, y: 0,  to: 'r5', tx: 11, ty: 1, dir: 'up' },
-    { x: 12, y: 0,  to: 'r5', tx: 12, ty: 1, dir: 'up' },
+    { x: 11, y: 0,  to: 'r5', tx: 8, ty: 23, dir: 'up' },
+    { x: 12, y: 0,  to: 'r5', tx: 9, ty: 23, dir: 'up' },
   ],
   shop: ['heal', 'heal2', 'cure', 'ward', 'atkup', 'defup', 'dodgeup', 'wenqi', 'hint'],
   signs: { '10,1': 'sign_huanan', '9,4': 'sg31', '9,11': 'sg17' },
@@ -893,6 +897,166 @@ MAPS.clinic_o = {
   ],
   warps: [{ x: 4, y: 6, to: '@ret' }, { x: 5, y: 6, to: '@ret' }],
   npcs: [{ role: 'healer', x: 2, y: 2, dir: 'down' }],
+};
+
+/* ============================================================
+   ⑱ 古碑小徑 r5　18×25　碑石小徑（t_stele）
+   南接花南街、北接碑林關。勁敵②守在半路（boss4 的前置）。
+   ============================================================ */
+MAPS.r5 = {
+  music: 'route', qlv: 3, chapter: 4, theme: 't_stele',
+  rows: [
+    'TTTTTTTT,,TTTTTTTT',
+    'TT......,,......TT',
+    'TT......,,..O...TT',
+    'TT.gggg.,,......TT',
+    'TT.gggg.,,..O.O.TT',
+    'TT.gggg.,,......TT',
+    'TT......,,......TT',
+    'TT..O.O.,,......TT',
+    'TT......,,.gggg.TT',
+    'TT......,,.gggg.TT',
+    'TT......,,.gggg.TT',
+    'TT......,,......TT',
+    'TT..O.O.,,..^^..TT',
+    'TT......,,..^^..TT',
+    'TT......,,......TT',
+    'TT.gggg.,,..O.O.TT',
+    'TT.gggg.,,......TT',
+    'TT.gggg.,,......TT',
+    'TT......,,......TT',
+    'TT......,,.gggg.TT',
+    'TT......,,.gggg.TT',
+    'TT...O..,,.gggg.TT',
+    'TT......,,......TT',
+    'TT......,,......TT',
+    'TTTTTTTT,,TTTTTTTT',
+  ],
+  warps: [
+    { x: 8, y: 24, to: 'huanan', tx: 11, ty: 1, dir: 'down' },
+    { x: 9, y: 24, to: 'huanan', tx: 12, ty: 1, dir: 'down' },
+    { x: 8, y: 0,  to: 'beilin', tx: 11, ty: 18, dir: 'up' },
+    { x: 9, y: 0,  to: 'beilin', tx: 12, ty: 18, dir: 'up' },
+  ],
+  foes: { n: 8, lv: [11, 14], scale: 1, auto: 1 },
+  npcs: [
+    { role: 'rival2',    x: 7,  y: 9,  dir: 'right', sight: 3 },
+    { role: 't_r5a',     x: 10, y: 17, dir: 'left',  sight: 3 },
+    { role: 'roamHint2', x: 4,  y: 20, dir: 'down' },
+  ],
+  chests: [{ x: 14, y: 2, id: 'r5a', frags: { classic: 2 }, items: { heal2: 1 } }],
+};
+
+/* ============================================================
+   ⑲ 碑林關 beilin　25×20　關口書院（t_stele）
+   兩條橫街接到道館④(17,4)、補給站(5,4)、商店(5,11)；右邊是碑林。
+   道館④要三片碎片。南接古碑小徑、北接考鐘坡。
+   ============================================================ */
+MAPS.beilin = {
+  music: 'town', qlv: 3, chapter: 4, theme: 't_stele',
+  rows: [
+    'TTTTTTTTTTT,,TTTTTTTTTTTT',
+    'TT........S,,..........TT',
+    'TT.hhHhh...,,.GGyyyGG..TT',
+    'TT.hhhhh...,,.GGGGGGG..TT',
+    'TT.#WDW#.S.,,.#WWDWW#..TT',
+    'TT.........,,..........TT',
+    'TT.,,,,,,,,,,,,,,,,,,..TT',
+    'TT.........,,..........TT',
+    'TT.........,,..O.O.O...TT',
+    'TT.ccCcc...,,..........TT',
+    'TT.ccccc...,,..O.O.O...TT',
+    'TT.#WDW#.S.,,..........TT',
+    'TT.........,,..........TT',
+    'TT.,,,,,,,,,,,,,,,,,,..TT',
+    'TT.........,,..........TT',
+    'TT....O.O..,,..........TT',
+    'TT.........,,..O.O.O...TT',
+    'TT....O.O..,,..........TT',
+    'TT.........,,..........TT',
+    'TTTTTTTTTTT,,TTTTTTTTTTTT',
+  ],
+  doorWarps: {
+    '17,4': { to: 'hist',     tx: 6, ty: 10, dir: 'up', ret: { x: 17, y: 5 }, need: 3, gate: 'need3' },
+    '5,4':  { to: 'clinic_o', tx: 4, ty: 5,  dir: 'up', ret: { x: 5,  y: 5 } },
+    '5,11': { to: 'store_o',  tx: 4, ty: 5,  dir: 'up', ret: { x: 5,  y: 12 } },
+  },
+  warps: [
+    { x: 11, y: 19, to: 'r5', tx: 8, ty: 1, dir: 'down' },
+    { x: 12, y: 19, to: 'r5', tx: 9, ty: 1, dir: 'down' },
+    { x: 11, y: 0,  to: 'r6', tx: 11, ty: 1, dir: 'up' },
+    { x: 12, y: 0,  to: 'r6', tx: 12, ty: 1, dir: 'up' },
+  ],
+  shop: ['heal', 'heal2', 'cure', 'ward', 'atkup', 'defup', 'dodgeup', 'wenqi', 'hint'],
+  signs: { '10,1': 'sign_beilin', '9,4': 'sg32', '9,11': 'sg21' },
+  npcs: [
+    { role: 'busStop',  x: 8,  y: 7,  dir: 'down' },
+    { role: 'gymTip4',  x: 17, y: 7,  dir: 'up' },
+    { role: 'townTip6', x: 21, y: 5,  dir: 'left', wander: 1 },
+    { role: 'roamHint', x: 21, y: 12, dir: 'down' },
+    { role: 't_bl_a',   x: 6,  y: 12, dir: 'down' },
+    { role: 't_bl_b',   x: 16, y: 14, dir: 'down' },
+  ],
+  chests: [{ x: 21, y: 17, id: 'bl1', items: { heal2: 2, cure: 2 } }],
+};
+
+/* ============================================================
+   ⑳ 碑林關道館 hist　14×12　書院碑林（解開才通得過型）
+   下半是碑林，中間一道石碑牆把館主關在上半的檔案室裡；
+   三座古文石碑全部亮起後 (5,6)～(8,6) 沉入地面才通得過。
+   ============================================================ */
+MAPS.hist = {
+  music: 'hall', qlv: 3, chapter: 4, indoor: 1, theme: 't_stele',
+  rows: [
+    'wwwwwwwwwwwwww',
+    'wkk___t____kkw',
+    'w____________w',
+    'wkkk_kkkk_kkkw',
+    'w____________w',
+    'w_p________p_w',
+    'wwwwwMMMMwwwww',
+    'w____________w',
+    'wk__OO__OO__kw',
+    'w____________w',
+    'w____________w',
+    'wwwwww__wwwwww',
+  ],
+  warps: [
+    { x: 6, y: 11, to: 'beilin', tx: 17, ty: 5, dir: 'down' },
+    { x: 7, y: 11, to: 'beilin', tx: 17, ty: 5, dir: 'down' },
+  ],
+  npcs: [{ role: 'boss4', x: 7, y: 1, dir: 'down' }],
+  chests: [{ x: 1, y: 10, id: 'hist1', items: { heal2: 2, atkup: 1 }, frags: { classic: 2 } }],
+  devices: {
+    '5,6': { group: 'st', flag: 'st1', cat: '文言', label: '古文石碑',
+      text: '石碑上刻著一段古文，字跡被墨塵遮住了一半……\n（讀懂它，石碑就會亮起。）',
+      ok: '石碑亮起了柔和的光！',
+      allText: '三座石碑同時亮起，擋路的石碑緩緩沉入地面，通往檔案室的路開了！',
+      open: [[5, 6], [6, 6], [7, 6], [8, 6]] },
+    '6,6': { group: 'st', flag: 'st2', cat: '文言', label: '古文石碑',
+      text: '第二座石碑記載著校史與古語。', ok: '石碑亮起來了！',
+      allText: '三座石碑同時亮起，路開了！', open: [[5, 6], [6, 6], [7, 6], [8, 6]] },
+    '7,6': { group: 'st', flag: 'st3', cat: '常識', label: '古文石碑',
+      text: '最後一座石碑上是一段國學常識。', ok: '石碑亮起來了！',
+      allText: '三座石碑同時亮起，路開了！',
+      open: [[5, 6], [6, 6], [7, 6], [8, 6]], onAll: 'stAll' },
+  },
+};
+
+/* ㉑ 商店（古風）store_o　10×7 */
+MAPS.store_o = {
+  music: 'town', qlv: 3, chapter: 4, indoor: 1, theme: 't_stele',
+  rows: [
+    'wwwwwwwwww',
+    'wkk_kk_kkw',
+    'w________w',
+    'w__ttt___w',
+    'w________w',
+    'wp__rr__pw',
+    'wwww__wwww',
+  ],
+  warps: [{ x: 4, y: 6, to: '@ret' }, { x: 5, y: 6, to: '@ret' }],
+  npcs: [{ role: 'clerk', x: 4, y: 2, dir: 'down' }],
 };
 
 /* 全部地圖一次掛進引擎（新地圖請加在這一行之前） */
