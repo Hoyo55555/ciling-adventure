@@ -160,11 +160,11 @@ const GFX = (() => {
   /* 城鎮主題（地圖改版草案）：以 school 為底，換掉地面、屋頂、樹木等顏色 */
   const TOWN_THEMES = {
     /* 晨讀村：晨光下的田埂與紅瓦矮房 */
-    t_dawn:   { ground: '#b6e08a', ground2: '#94c068', path: '#f4e6c0', path2: '#d8c8a0', roof: '#c09a68', roof2: '#8e6c42',
+    t_dawn:   { ground: '#b6e08a', ground2: '#94c068', path: '#e8d4a4', path2: '#c8b083', pathStyle: 'dirt', roof: '#c09a68', roof2: '#8e6c42',
                 leaf: '#5ab858', leaf2: '#96e078', leaf3: '#357a3a', trunk: '#8a5a2a', treeStyle: 'round',
                 flower: ['#f8b0c8', '#fff0a0', '#ffffff'], fence: '#e8dcc0', fence2: '#b8a888' },
     /* 注音坡：黃綠色坡地、橘黃校舍、石駁坎 */
-    t_slope:  { ground: '#c8dc72', ground2: '#a4bc54', path: '#f6dfa8', path2: '#d8bc80', roof: '#a98a56', roof2: '#7a5f36',
+    t_slope:  { ground: '#c8dc72', ground2: '#a4bc54', path: '#eed7a0', path2: '#cbb27a', pathStyle: 'dirt', roof: '#a98a56', roof2: '#7a5f36',
                 leaf: '#7ab848', leaf2: '#b0dc70', leaf3: '#4a8a34', trunk: '#9a6a34', treeStyle: 'round',
                 door: '#f8d860', win: '#d8f0ff', rock: '#cfc0a0', flower: ['#f86a8a', '#f8e040', '#8ad0f8'] },
     /* 抄書巷：泥土色窄巷、深紅磚、少綠意 */
@@ -205,6 +205,19 @@ const GFX = (() => {
   };
   for (const [k, v] of Object.entries(TOWN_THEMES)) THEMES[k] = Object.assign({}, THEMES.school, v);
   function hash(a, b) { let s = (a * 374761393 + b * 668265263) >>> 0; s = (s ^ (s >>> 13)) * 1274126177 >>> 0; return (s ^ (s >>> 16)) >>> 0; }
+  /* 一片瓦屋頂：上緣受光、下緣深色屋簷，瓦列交錯排，整棟疊起來才有立體感 */
+  function roofTile(R, T, fr = 0) {
+    const a = T.roof, hi = adj(a, .16), lo = T.roof2, dk = adj(T.roof2, -.30);
+    R(0, 0, 16, 16, a);
+    for (let y = 0; y < 16; y += 4) {
+      R(0, y, 16, 1, hi);                       // 每一列瓦的受光邊
+      R(0, y + 3, 16, 1, lo);                   // 瓦溝
+      const off = ((y / 4) & 1) ? 0 : 4;        // 上下列錯開，像真的瓦
+      for (let x = off; x < 16; x += 8) R(x, y + 1, 1, 2, lo);
+    }
+    R(0, 15, 16, 1, dk);                        // 屋簷最下緣壓深
+  }
+
   function tile(theme, code, fr = 0) {
     const key = 't:' + theme + code + fr; if (cache.has(key)) return cache.get(key);
     const T = THEMES[theme] ? Object.assign({}, THEMES.school, THEMES[theme]) : THEMES.school;   // 城鎮主題缺的鍵沿用 school
@@ -213,17 +226,36 @@ const GFX = (() => {
     /* 草地雜訊：四種變化，由地圖座標決定，避免整片重複同一個圖案 */
     const ground = (v = 0) => {
       R(0, 0, 16, 16, T.ground);
-      const lit = adj(T.ground, .13), drk = T.ground2;
+      const lit = adj(T.ground, .10), drk = T.ground2, drk2 = adj(T.ground2, -.10);
+      /* 先鋪一層大面積的深淺塊，再點上細雜訊，遠看才有層次 */
+      const PATCH = [[[0, 0, 7, 5], [9, 6, 7, 6]], [[8, 1, 8, 6], [1, 9, 6, 5]],
+                     [[3, 2, 6, 6], [10, 10, 5, 5]], [[0, 7, 5, 7], [7, 0, 8, 4]]][v & 3];
+      for (const [x, y, w2, h2] of PATCH) R(x, y, w2, h2, adj(T.ground, -.045));
       for (const [x, y, k] of GROUND_V[v & 3]) R(x, y, 1, 1, k ? lit : drk);
+      /* 幾撮短草：兩像素高，方向交錯 */
+      const TUFT = [[[2, 11], [12, 4]], [[6, 3], [13, 12]], [[4, 13], [9, 7]], [[11, 2], [3, 8]]][v & 3];
+      for (const [x, y] of TUFT) { R(x, y, 1, 2, drk2); R(x + 1, y + 1, 1, 1, drk2); R(x - 1, y + 1, 1, 1, drk); }
     };
     switch (code) {
       case '.': ground(fr); break;
-      case ',':
+      case ',': {
         R(0, 0, 16, 16, T.path);
-        if (T.pathStyle === 'tile') { R(0, 7, 16, 1, T.path2); R(7, 0, 1, 7, T.path2); R(15, 8, 1, 8, T.path2); }
-        else if (T.pathStyle === 'slab') { R(0, 0, 16, 1, T.path2); R(0, 8, 16, 1, T.path2); R(5, 1, 1, 7, T.path2); R(12, 9, 1, 7, T.path2); }
-        else { for (let i = 0; i < 7; i++) { const v = hash(i + fr * 3, 7); R(v % 15, (v >> 4) % 15, 1 + (v >> 9) % 2, 1, T.path2); } }
+        const hi = adj(T.path, .07), lo = T.path2;
+        if (T.pathStyle === 'tile') {                                  // 方磚
+          R(0, 7, 16, 1, lo); R(7, 0, 1, 7, lo); R(15, 8, 1, 8, lo);
+          R(0, 8, 16, 1, hi); R(8, 0, 1, 7, hi);
+        } else if (T.pathStyle === 'slab') {                           // 石板
+          R(0, 0, 16, 1, lo); R(0, 8, 16, 1, lo); R(5, 1, 1, 7, lo); R(12, 9, 1, 7, lo);
+          R(0, 1, 16, 1, hi); R(0, 9, 16, 1, hi);
+          for (const [x, y] of [[2, 3], [9, 4], [7, 12], [14, 11]]) R(x, y, 2, 1, adj(T.path, -.04));
+        } else {                                                        // 泥土路：細碎石＋輪痕
+          for (let i = 0; i < 9; i++) { const v = hash(i + fr * 3, 7);
+            R(v % 15, (v >> 4) % 15, 1 + (v >> 9) % 2, 1, lo); }
+          R(0, 5, 16, 1, adj(T.path, -.05)); R(0, 11, 16, 1, adj(T.path, -.05));
+          for (const [x, y] of [[3, 2], [11, 8], [6, 13]]) R(x, y, 2, 1, hi);
+        }
         break;
+      }
       case 'g':
         if (theme === 'school') {   // 國中：散落的考卷堆
           R(0, 0, 16, 16, T.floor);
@@ -253,13 +285,17 @@ const GFX = (() => {
           for (const [x, o] of [[1, 0], [6, 5], [11, 2]]) { R(x, 0, 3, 16, '#8ab858'); R(x, 0, 1, 16, '#b8dc80'); R(x + 2, 0, 1, 16, '#5a8a38'); R(x, (4 + o) % 16, 3, 1, '#3e6a2a'); R(x, (11 + o) % 16, 3, 1, '#3e6a2a'); }
           for (const [x, y] of [[4, 3], [9, 9], [13, 6], [0, 12]]) { R(x, y, 3, 1, '#4e8a34'); R(x + 1, y - 1, 2, 1, '#4e8a34'); R(x + 2, y + 1, 1, 1, '#4e8a34'); }
         } else {
-          R(6, 11, 4, 5, T.trunk); R(6, 11, 1, 5, adj(T.trunk, .2));
-          const rows = [[4, 8], [2, 12], [1, 14], [1, 14], [1, 14], [1, 14], [1, 14], [2, 12], [2, 12], [4, 8], [5, 6]];
-          rows.forEach(([x, w], y) => R(x, y + 1, w, 1, T.leaf));
-          R(3, 3, 4, 2, T.leaf2); R(4, 2, 2, 1, T.leaf2); R(9, 5, 3, 2, T.leaf2);
-          R(2, 8, 12, 1, T.leaf3); R(3, 9, 10, 1, T.leaf3); R(5, 11, 6, 1, T.leaf3);
-          if (T.treeStyle === 'willow') { for (const x of [2, 5, 10, 13]) R(x, 9, 1, 5, T.leaf3); }
-          R(0, 0, 1, 1, T.leaf3);
+          /* 樹冠畫滿整格、左右不留縫，整排排起來就是一片密實的樹牆 */
+          R(0, 0, 16, 13, T.leaf);
+          R(0, 0, 16, 2, T.leaf3);                                   // 上緣壓深，做出前後層次
+          R(0, 11, 16, 2, T.leaf3);                                  // 下緣陰影
+          for (const [x, y, w2, h2] of [[1, 2, 5, 4], [9, 3, 5, 3], [4, 7, 6, 3], [11, 8, 4, 3]])
+            R(x, y, w2, h2, T.leaf2);                                // 受光的葉團
+          for (const [x, y] of [[3, 5], [8, 2], [13, 6], [6, 10], [12, 4], [2, 9]])
+            R(x, y, 2, 2, T.leaf3);                                  // 暗處的空隙
+          R(6, 13, 4, 3, T.trunk); R(6, 13, 1, 3, adj(T.trunk, .2)); // 樹幹只露一小截
+          R(5, 15, 6, 1, adj(T.trunk, -.35));
+          if (T.treeStyle === 'willow') for (const x of [2, 5, 10, 13]) R(x, 10, 1, 4, T.leaf3);
         }
         break;
       case '~': R(0, 0, 16, 16, T.water); { const o = fr * 4; R((2 + o) % 16, 4, 5, 1, T.water2); R((9 + o) % 16, 10, 5, 1, T.water2); R((13 + o) % 16, 1, 3, 1, T.water2); } break;
@@ -279,10 +315,7 @@ const GFX = (() => {
         else if (theme === 'literati') { R(7, 3, 2, 13, adj(T.door, -.3)); R(5, 9, 1, 1, T.door2); R(10, 9, 1, 1, T.door2); }
         else { R(3, 3, 10, 6, '#c84838'); R(3, 8, 10, 1, '#8a2a20'); }
         break;
-      case 'R': R(0, 0, 16, 16, T.roof);
-        if (theme === 'school') { for (const y of [3, 7, 11, 15]) R(0, y, 16, 1, T.roof2); for (let y = 0; y < 16; y += 4) R((y / 4 % 2) * 4 + 2, y, 1, 3, T.roof2); }
-        else { for (const x of [1, 5, 9, 13]) { R(x, 0, 2, 16, T.roof2); R(x + 2, 0, 1, 16, adj(T.roof, .15)); } R(0, 15, 16, 1, adj(T.roof2, -.3)); }
-        break;
+      case 'R': roofTile(R, T, fr); break;
       case '=': ground(); R(0, 5, 16, 2, T.fence); R(0, 10, 16, 2, T.fence); R(1, 3, 3, 11, T.fence); R(12, 3, 3, 11, T.fence); R(1, 13, 3, 1, T.fence2); R(12, 13, 3, 1, T.fence2); R(0, 7, 16, 1, T.fence2); R(0, 12, 16, 1, T.fence2); break;
       case 'S': ground(); R(7, 9, 2, 6, '#7a5230'); R(2, 2, 12, 8, '#7a5230'); R(3, 3, 10, 6, '#c89858'); R(4, 5, 8, 1, '#7a5230'); R(4, 7, 6, 1, '#7a5230'); break;
       case 'F': ground(); { const cs = T.flower; [[4, 4, 0], [11, 6, 1], [6, 11, 2], [12, 12, 0]].forEach(([x, y, i]) => { R(x - 1, y, 3, 1, cs[i]); R(x, y - 1, 1, 3, cs[i]); R(x, y, 1, 1, '#f8c830'); R(x, y + 2, 1, 2, '#3a8a3a'); }); } break;
@@ -295,6 +328,17 @@ const GFX = (() => {
         R(2, 5, 12, 9, '#332f42'); R(3, 6, 10, 7, '#1a1426');
         R(4, 7, 8, 5, '#0e0a18'); R(5, 8, 3, 1, '#6a58a0'); R(9, 10, 2, 1, '#8a78c0');
         R(1, 14, 14, 1, '#242030'); break;
+      case '+': {                                   // 木板橋：橫向木板＋兩側欄杆
+        R(0, 0, 16, 16, T.water); { const o = fr * 4; R((3 + o) % 16, 13, 4, 1, T.water2); }
+        const w1 = '#a87a48', w2 = '#7e5730', w3 = '#c89a62', rail = '#6a4526';
+        R(0, 2, 16, 12, w1);
+        for (let y = 2; y < 14; y += 3) { R(0, y, 16, 1, w3); R(0, y + 2, 16, 1, w2); }
+        for (const x of [3, 11]) R(x, 2, 1, 12, w2);              // 木板接縫
+        R(0, 0, 16, 2, rail); R(0, 1, 16, 1, adj(rail, .25));      // 上欄杆
+        R(0, 14, 16, 2, rail); R(0, 14, 16, 1, adj(rail, .25));    // 下欄杆
+        for (const x of [1, 7, 13]) { R(x, 0, 2, 3, rail); R(x, 13, 2, 3, rail); }   // 欄杆柱
+        break;
+      }
       case 'X': R(0, 0, 16, 16, '#16120e'); break;
       /* ---- 城鎮地標 ---- */
       case 'J': R(0, 0, 16, 16, '#d8c470'); R(0, 0, 16, 2, '#a8945a');             // 梯田
@@ -329,7 +373,7 @@ const GFX = (() => {
         R(2, 5, 3, 11, '#8a5a2a'); R(11, 5, 3, 11, '#8a5a2a');
         R(2, 8, 12, 1, '#a8463c'); break;
       /* ---- 三大公共建築（每個城鎮都一樣）---- */
-      case 'h': R(0, 0, 16, 16, '#c42e2e'); R(0, 0, 16, 3, '#e85a52');                                // 紅瓦（補給站）
+      case 'h': roofTile(R, { roof: '#c42e2e', roof2: adj('#c42e2e', -.28) }, fr);                                // 紅瓦（補給站）
         for (let x = 0; x < 16; x += 4) R(x, 4, 3, 9, '#d84040');
         R(0, 13, 16, 3, '#8a1c1c'); break;
       case 'H': R(0, 0, 16, 16, '#c42e2e'); R(0, 0, 16, 3, '#e85a52');                                // 紅瓦＋白十字招牌
@@ -337,7 +381,7 @@ const GFX = (() => {
         R(0, 13, 16, 3, '#8a1c1c');
         R(3, 3, 10, 9, '#f8f8f8'); R(3, 3, 10, 1, '#c8c8c8');
         R(7, 5, 2, 5, '#d83a3a'); R(5, 6.5, 6, 2, '#d83a3a'); break;
-      case 'c': R(0, 0, 16, 16, '#3a68b8'); R(0, 0, 16, 3, '#5a88d8');                                // 藍瓦（商店）
+      case 'c': roofTile(R, { roof: '#3a68b8', roof2: adj('#3a68b8', -.28) }, fr);                                // 藍瓦（商店）
         for (let x = 0; x < 16; x += 4) R(x, 4, 3, 9, '#4a78c8');
         R(0, 13, 16, 3, '#22406e'); break;
       case 'C': R(0, 0, 16, 16, '#3a68b8'); R(0, 0, 16, 3, '#5a88d8');                                // 藍瓦＋商店招牌
@@ -345,7 +389,7 @@ const GFX = (() => {
         R(0, 13, 16, 3, '#22406e');
         R(2, 3, 12, 9, '#f4ecd8'); R(2, 3, 12, 1, '#c8bca4');
         R(5, 6, 6, 5, '#e8a030'); R(5, 5, 6, 1, '#c07a20'); R(7, 4, 2, 2, '#c07a20'); break;
-      case 'G': R(0, 0, 16, 16, '#b8861a'); R(0, 0, 16, 3, '#f0c040');                                // 金瓦（道館）
+      case 'G': roofTile(R, { roof: '#b8861a', roof2: adj('#b8861a', -.28) }, fr);                                // 金瓦（道館）
         for (let x = 0; x < 16; x += 3) R(x, 4, 2, 9, '#c8961e');
         R(0, 13, 16, 3, '#6a4a12'); break;
       case 'y': R(0, 0, 16, 16, '#b8861a'); R(0, 0, 16, 3, '#f0c040');                                // 金瓦＋匾額
