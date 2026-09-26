@@ -591,9 +591,12 @@ MAPS.dianji = {
   signs: { '12,1': 'sign_dianji', '24,4': 'sg30', '17,11': 'sg10' },
   npcs: [
     { role: 'townTip3', x: 10, y: 8,  dir: 'down' },
-    { role: 'gymTip2',  x: 19, y: 5,  dir: 'up' },
+    /* 勁敵①：擋在往道館②的路上。boss2 的 needDefeated 指名 dianji:rival1，
+       沒有他，成語圖書股長永遠打不了。 */
+    { role: 'rival1',   x: 19, y: 7,  dir: 'up', sight: 2 },
+    { role: 'gymTip2',  x: 21, y: 6,  dir: 'down' },   // 不能站在 (19,5)：那是道館門唯一的門前站位
     { role: 't_dj_a',   x: 7,  y: 12, dir: 'down' },
-    { role: 't_dj_b',   x: 21, y: 7,  dir: 'down', wander: 1 },
+    { role: 't_dj_b',   x: 22, y: 9,  dir: 'down', wander: 1 },
   ],
   chests: [{ x: 23, y: 18, id: 'dj1', items: { heal2: 2, hint: 1 } }],
 };
