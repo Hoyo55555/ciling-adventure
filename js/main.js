@@ -108,16 +108,52 @@ function resize() {
 }
 
 /* ---------- 教師測試版：網址加上 ?teacher=1 就會略過所有戰鬥 ---------- */
-const TEACHER = /[?&]teacher=1/.test(location.search);
-if (TEACHER) addEventListener('DOMContentLoaded', () => {
+/* 教師測試版：網址加 ?teacher=1，或用教師帳號登入（班級 T、座號 0）都算 */
+const TEACHER_URL = /[?&]teacher=1/.test(location.search);
+const isTeacher = () => TEACHER_URL || (typeof TeacherAuth !== 'undefined' && TeacherAuth.on);
+function showTeacherBadge() {
+  if (document.querySelector('.teacherbadge')) return;
   const b = document.createElement('div');
-  b.textContent = '教師測試版：略過所有戰鬥';
+  b.className = 'teacherbadge';
+  b.textContent = '教師測試版：略過所有戰鬥・滿裝備';
   b.style.cssText = 'position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:99;' +
     'background:#7a2a1e;color:#f0e0c0;font:600 12px system-ui,"Noto Sans TC",sans-serif;' +
     'padding:3px 12px;border-radius:10px;border:1px solid #c8a040;pointer-events:none;opacity:.92';
   document.body.appendChild(b);
-});
-function markTeacher() { if (G && TEACHER) G.teacher = true; }
+}
+if (TEACHER_URL) addEventListener('DOMContentLoaded', showTeacherBadge);
+function markTeacher() {
+  if (!G || !isTeacher()) return;
+  G.teacher = true;
+  if (G.flags.teacherKit) return;          // 一個存檔只發一次
+  G.flags.teacherKit = 1;
+  teacherKit();
+}
+/* 教師測試版的配備：六把最高階武器（涵蓋全部題型）＋滿背包道具。
+   沒有武器的話引擎會擋住所有戰鬥（「……你手上沒有武器？」），
+   老師就什麼都測不了。 */
+function teacherKit() {
+  const TOP = RARITY.length - 2;                       // 神品（彩色的守護神器另外給）
+  const KIT = [
+    ['brush',  '字形・字音'],
+    ['tome',   '成語・詞義'],
+    ['scroll', '文言・詩詞'],
+    ['fan',    '修辭'],
+    ['seal',   '常識・閱讀'],
+    ['legend', '全題型'],
+  ];
+  for (const [arch] of KIT) { const w = giveWeapon(arch, TOP); w.mastery = 99; w.bond = 99; }
+  /* 三件守護神器放進「電腦」，需要時再換上（硯海墨池要用） */
+  if (typeof GUARDIAN_FIRST !== 'undefined') for (const k of GUARDIAN_FIRST) {
+    const g = newWeapon(k, RARITY.length - 1); g.mastery = 99; g.bond = 99;
+    G.storage.push(g); if (typeof Meta !== 'undefined') Meta.seeWeapon(G.world, k, RARITY.length - 1);
+  }
+  for (const k of Object.keys(G.bag)) G.bag[k] = 20;
+  G.money = 99999;
+  G.flags.tut = 'skip';                                // 不用再跑一次選武器的教學
+  playerStats(); G.hp = G.maxhp;
+  showTeacherBadge();
+}
 
 /* ---------- 迴圈 ---------- */
 let lastT = performance.now();
