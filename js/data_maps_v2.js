@@ -80,7 +80,7 @@ for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
        exits:  [ { x: 16, y: 21, to: 'r1', tx: 11, ty: 15, dir: 'up' } ],
        npcs: [], chests: [], signs: {},
      };
-   已完成：chendu、r1、zhuyin（室外）／ home、c8、clinic_h、store_h（室內）
+   已完成：chendu、r1、zhuyin（室外）／ home、c8、clinic_h、store_h、c1a（室內）
    ------------------------------------------------------------ */
 const MAPS = {};
 
@@ -309,6 +309,58 @@ MAPS.store_h = {
   ],
   warps: [{ x: 4, y: 6, to: '@ret' }, { x: 5, y: 6, to: '@ret' }],
   npcs: [{ role: 'clerk', x: 4, y: 2, dir: 'down' }],
+};
+
+/* ============================================================
+   ⑧ 注音坡道館 c1a　12×9　低年級教室（橘黃＋粉筆色）
+   ------------------------------------------------------------
+   道館的共通版型（之後四座照這個做）：
+     · 玩家從最下面那排牆的缺口進來（正中央兩格）
+     · 館主站在正上方中央，前面一定留一格站位
+     · 三個機關做在最上面那排牆上，站在它下面按 A 互動
+     · 寶箱放在右下
+   這一座：後牆一整排黑板，三塊是「錯字黑板」（考字形），
+   三塊都淨化之後館主血量 −20%（flag: bbAll）。
+   ============================================================ */
+MAPS.c1a = {
+  music: 'hall', qlv: 1, chapter: 1, indoor: 1, theme: 't_slope',
+  rows: [
+    'wwwwBBBBBBww',
+    'w____e_____w',
+    'w__________w',
+    'w_tt_rr_tt_w',
+    'w__________w',
+    'w_tt_rr_tt_w',
+    'wp________pw',
+    'w__________w',
+    'wwwww__wwwww',
+  ],
+  warps: [
+    { x: 5, y: 8, to: 'zhuyin', tx: 6, ty: 6, dir: 'down' },
+    { x: 6, y: 8, to: 'zhuyin', tx: 6, ty: 6, dir: 'down' },
+  ],
+  npcs: [
+    { role: 'boss1',  x: 5, y: 2, dir: 'down' },
+    { role: 'gy1a',   x: 3, y: 4, dir: 'right', sight: 3 },
+    { role: 'gy1b',   x: 8, y: 4, dir: 'left',  sight: 3 },
+    { role: 'c1aTip', x: 2, y: 7, dir: 'right' },
+  ],
+  chests: [{ x: 9, y: 6, id: 'c1a1', items: { heal: 2, hint: 1 } }],
+  devices: {
+    '4,0': { group: 'bb', flag: 'bb1', cat: '字形', label: '錯字黑板',
+      text: '黑板上浮著扭曲的錯字，正一個個滴下黑墨……\n（找出正確的寫法，就能淨化它！）',
+      ok: '錯字被擦掉了，黑板恢復了乾淨！',
+      allText: '三塊黑板都被淨化了！小老師身上的錯字怨念淡了許多。' },
+    '6,0': { group: 'bb', flag: 'bb2', cat: '字形', label: '錯字黑板',
+      text: '第二塊黑板上的錯字正在發抖。',
+      ok: '錯字被擦掉了！',
+      allText: '三塊黑板都被淨化了！' },
+    '8,0': { group: 'bb', flag: 'bb3', cat: '字形', label: '錯字黑板',
+      text: '最後一塊黑板寫滿了形近字。',
+      ok: '錯字被擦掉了！',
+      allText: '三塊黑板都被淨化了！小老師身上的錯字怨念淡了許多。',
+      onAll: 'bbAll' },
+  },
 };
 
 /* 全部地圖一次掛進引擎（新地圖請加在這一行之前） */
