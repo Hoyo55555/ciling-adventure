@@ -64,6 +64,8 @@ const TILES = {
   'N': { walk: 0, name: '門牌' },
   'O': { walk: 0, name: '石碑' },
   'Q': { walk: 0, name: '木箱堆' },
+  'm': { walk: 0, name: '市集攤位' },
+  'n': { walk: 0, name: '布招／旗幟' },
   'B': { walk: 0, name: '黑板' },
   'w': { walk: 0, name: '室內牆' },
   'k': { walk: 0, name: '書架' },
@@ -84,7 +86,8 @@ for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
        exits:  [ { x: 16, y: 21, to: 'r1', tx: 11, ty: 15, dir: 'up' } ],
        npcs: [], chests: [], signs: {},
      };
-   已完成：chendu、r1、zhuyin、r2（室外）／ home、c8、clinic_h、store_h、c1a（室內）
+   已完成：chendu、r1、zhuyin、r2、chaoshu（室外）／
+           home、c8、clinic_h、store_h、c1a、forge（室內）
    ------------------------------------------------------------ */
 const MAPS = {};
 
@@ -407,8 +410,8 @@ MAPS.r2 = {
   warps: [
     { x: 8, y: 24, to: 'zhuyin',  tx: 11, ty: 1,  dir: 'down' },
     { x: 9, y: 24, to: 'zhuyin',  tx: 12, ty: 1,  dir: 'down' },
-    { x: 8, y: 0,  to: 'chaoshu', tx: 8,  ty: 1,  dir: 'up' },
-    { x: 9, y: 0,  to: 'chaoshu', tx: 9,  ty: 1,  dir: 'up' },
+    { x: 8, y: 0,  to: 'chaoshu', tx: 11, ty: 18, dir: 'up' },
+    { x: 9, y: 0,  to: 'chaoshu', tx: 12, ty: 18, dir: 'up' },
   ],
   foes: { n: 7, lv: [4, 7], scale: 1, auto: 1 },
   npcs: [
@@ -417,6 +420,78 @@ MAPS.r2 = {
     { role: 'roamHint2', x: 11, y: 12, dir: 'down' },
   ],
   chests: [{ x: 4, y: 13, id: 'r2a', frags: { tome: 2 }, items: { heal: 1 } }],
+};
+
+/* ============================================================
+   ⑩ 抄書巷 chaoshu　25×20　老街（暗紅褐＋燈籠，t_alley）
+   ------------------------------------------------------------
+   兩條橫街串起三個門：補給站(5,4)、鍛造工坊(17,4)、商店(5,11)。
+   街上有市集攤位、布招、燈籠、木箱——全部走不過去，
+   路與空地才走得過去（規則 5）。
+   南接抄書石階、北接運書河道。
+   ============================================================ */
+MAPS.chaoshu = {
+  music: 'town', qlv: 2, chapter: 2, theme: 't_alley',
+  rows: [
+    'TTTTTTTTTTT,,TTTTTTTTTTTT',
+    'TT........S,,..........TT',
+    'TT.hhHhh...,,..RRRRR...TT',
+    'TT.hhhhh...,,..RRRRR...TT',
+    'TT.#WDW#.S.,,..#WDW#...TT',
+    'TT.,,,,,,,,,,,,,,,,,,..TT',
+    'TT.....L.L.,,.L...L....TT',
+    'TT.........,,..n...n...TT',
+    'TT.........,,..mmmm....TT',
+    'TT.ccCcc...,,..mmmm....TT',
+    'TT.ccccc...,,..........TT',
+    'TT.#WDW#.S.,,..........TT',
+    'TT.,,,,,,,,,,,,,,,,,,..TT',
+    'TT.....L.L.,,.L...L....TT',
+    'TT.........,,......QQ..TT',
+    'TT.........,,......QQ..TT',
+    'TT.........,,..mmmm....TT',
+    'TT.........,,..........TT',
+    'TT.........,,..........TT',
+    'TTTTTTTTTTT,,TTTTTTTTTTTT',
+  ],
+  doorWarps: {
+    '5,4':  { to: 'clinic_h', tx: 5, ty: 5, dir: 'up', ret: { x: 5,  y: 5 } },
+    '17,4': { to: 'forge',    tx: 5, ty: 5, dir: 'up', ret: { x: 17, y: 5 } },
+    '5,11': { to: 'store_h',  tx: 5, ty: 5, dir: 'up', ret: { x: 5,  y: 12 } },
+  },
+  warps: [
+    { x: 11, y: 19, to: 'r2', tx: 8, ty: 1,  dir: 'down' },
+    { x: 12, y: 19, to: 'r2', tx: 9, ty: 1,  dir: 'down' },
+    { x: 11, y: 0,  to: 'r3', tx: 11, ty: 1, dir: 'up' },
+    { x: 12, y: 0,  to: 'r3', tx: 12, ty: 1, dir: 'up' },
+  ],
+  shop: ['heal', 'heal2', 'cure', 'ward', 'atkup', 'defup', 'hint'],
+  signs: { '10,1': 'sign_chaoshu', '9,4': 'sg7', '9,11': 'sg9' },
+  npcs: [
+    { role: 'busStop',  x: 14, y: 7,  dir: 'down' },
+    { role: 'forgeTip', x: 16, y: 6,  dir: 'up' },
+    { role: 'townTip2', x: 8,  y: 7,  dir: 'left', wander: 1 },
+    { role: 'roamHint', x: 9,  y: 14, dir: 'down' },
+    { role: 't_cs_a',   x: 6,  y: 14, dir: 'down' },
+    { role: 't_cs_b',   x: 15, y: 13, dir: 'down' },
+  ],
+  chests: [{ x: 21, y: 14, id: 'cs1', items: { hint: 2, heal2: 1 } }],
+};
+
+/* ⑪ 鍛造工坊 forge　12×7（碎片換武器） */
+MAPS.forge = {
+  music: 'town', qlv: 2, chapter: 2, indoor: 1, theme: 't_alley',
+  rows: [
+    'wwwwwwwwwwww',
+    'wkk_ttt__kkw',
+    'w__________w',
+    'w_t_____t__w',
+    'w__r____r__w',
+    'wp________pw',
+    'wwwww__wwwww',
+  ],
+  warps: [{ x: 5, y: 6, to: '@ret' }, { x: 6, y: 6, to: '@ret' }],
+  npcs: [{ role: 'smith', x: 5, y: 2, dir: 'down' }],
 };
 
 /* 全部地圖一次掛進引擎（新地圖請加在這一行之前） */
