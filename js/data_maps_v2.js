@@ -86,8 +86,9 @@ for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
        exits:  [ { x: 16, y: 21, to: 'r1', tx: 11, ty: 15, dir: 'up' } ],
        npcs: [], chests: [], signs: {},
      };
-   已完成：chendu、r1、zhuyin、r2、chaoshu、r3、dianji（室外）／
-           home、c8、clinic_h、store_h、clinic_c、store_c、c1a、forge、lib（室內）
+   已完成（第一～三章）：
+     室外 chendu r1 zhuyin r2 chaoshu r3 dianji r4 tingyu huanan
+     室內 home c8 clinic_h store_h clinic_c store_c clinic_o forge c1a lib yard
    ------------------------------------------------------------ */
 const MAPS = {};
 
@@ -589,8 +590,8 @@ MAPS.dianji = {
   warps: [
     { x: 13, y: 19, to: 'r3', tx: 9,  ty: 1,  dir: 'down' },
     { x: 14, y: 19, to: 'r3', tx: 10, ty: 1,  dir: 'down' },
-    { x: 13, y: 0,  to: 'r4', tx: 13, ty: 1,  dir: 'up' },
-    { x: 14, y: 0,  to: 'r4', tx: 14, ty: 1,  dir: 'up' },
+    { x: 13, y: 0,  to: 'r4', tx: 9,  ty: 26, dir: 'up' },
+    { x: 14, y: 0,  to: 'r4', tx: 10, ty: 26, dir: 'up' },
   ],
   shop: ['heal', 'heal2', 'cure', 'ward', 'atkup', 'defup', 'hint'],
   signs: { '12,1': 'sign_dianji', '24,4': 'sg30', '17,11': 'sg10' },
@@ -683,6 +684,215 @@ MAPS.store_c = {
   ],
   warps: [{ x: 5, y: 6, to: '@ret' }, { x: 6, y: 6, to: '@ret' }],
   npcs: [{ role: 'clerk', x: 4, y: 2, dir: 'down' }],
+};
+
+/* ============================================================
+   ⑬ 聲音鐘步道 r4　20×28　竹林（t_bamboo）
+   ------------------------------------------------------------
+   南接典籍港、北接花南街，中段往西有一條岔路通到聽雨亭（死路休息站）。
+   往北的路被墨塵纏住（gates: sideA）——要先打贏分組報告三人組 m1/m2/m3
+   才過得去；三個人都站在主路旁邊，往北走一定會遇到。
+   ============================================================ */
+MAPS.r4 = {
+  music: 'route', qlv: 2, chapter: 3, theme: 't_bamboo',
+  rows: [
+    'TTTTTTTTT,,TTTTTTTTT',
+    'TT.......,,.......TT',
+    'TT.......,,.YY....TT',
+    'TT.gggg..,,.YY....TT',
+    'TT.gggg..,,.......TT',
+    'TT.gggg..,,.......TT',
+    'TT.......,,.......TT',
+    'TT.......,,.gggg..TT',
+    'TT.......,,.gggg..TT',
+    'TT.......,,.gggg..TT',
+    'TT.......,,.......TT',
+    'TT.......,,.......TT',
+    'TT.......,,.......TT',
+    'TT.gggg..,,.......TT',
+    'TT.gggg..,,.......TT',
+    'TT.gggg..,,.......TT',
+    'TT.......,,.......TT',
+    'TT.......,,..^^^..TT',
+    'TT.......,,..^^^..TT',
+    'TT.......,,.......TT',
+    ',,,,,,,,,,,.......TT',
+    'TT.......,,.......TT',
+    'TT.......,,.gggg..TT',
+    'TT.......,,.gggg..TT',
+    'TT..YY...,,.gggg..TT',
+    'TT..YY...,,.......TT',
+    'TT.......,,.......TT',
+    'TTTTTTTTT,,TTTTTTTTT',
+  ],
+  gates: { '9,5': 'sideA', '10,5': 'sideA' },
+  warps: [
+    { x: 9,  y: 27, to: 'dianji', tx: 13, ty: 1,  dir: 'down' },
+    { x: 10, y: 27, to: 'dianji', tx: 14, ty: 1,  dir: 'down' },
+    { x: 9,  y: 0,  to: 'huanan', tx: 11, ty: 18, dir: 'up' },
+    { x: 10, y: 0,  to: 'huanan', tx: 12, ty: 18, dir: 'up' },
+    { x: 0,  y: 20, to: 'tingyu', tx: 18, ty: 8,  dir: 'left' },
+  ],
+  foes: { n: 8, lv: [8, 11], scale: 1, auto: 1 },
+  npcs: [
+    { role: 'm1',         x: 8,  y: 7,  dir: 'right', sight: 3 },
+    { role: 'm2',         x: 11, y: 12, dir: 'left',  sight: 3 },
+    { role: 'm3',         x: 11, y: 16, dir: 'left',  sight: 3 },
+    { role: 'sideAGiver', x: 12, y: 6,  dir: 'down' },
+    { role: 'roamHint2',  x: 4,  y: 19, dir: 'down' },
+  ],
+  chests: [{ x: 16, y: 2, id: 'r4a', items: { ward: 1, heal2: 1 } }],
+};
+
+/* ============================================================
+   ⑭ 聽雨亭 tingyu　20×15　雨中茶亭（t_bamboo）
+   ------------------------------------------------------------
+   只有東邊一個出入口的死路支線：茶屋（補給站）可以回血，
+   還有水池、涼亭與兩位可以切磋的同學。
+   ============================================================ */
+MAPS.tingyu = {
+  music: 'town', qlv: 2, chapter: 3, theme: 't_bamboo',
+  rows: [
+    'TTTTTTTTTTTTTTTTTTTT',
+    'TT.................T',
+    'TT........S........T',
+    'TT..hhHhh..~~~~~...T',
+    'TT..hhhhh..~~~~~...T',
+    'TT..#WDW#..~~~~~...T',
+    'TT.........~~~~~...T',
+    'TT.................T',
+    'TT.,,,,,,,,,,,,,,,,,',
+    'TT............F....T',
+    'TT.......AA........T',
+    'TT.......AA........T',
+    'TT.................T',
+    'TT.................T',
+    'TTTTTTTTTTTTTTTTTTTT',
+  ],
+  doorWarps: { '6,5': { to: 'clinic_o', tx: 5, ty: 5, dir: 'up', ret: { x: 6, y: 6 } } },
+  warps: [{ x: 19, y: 8, to: 'r4', tx: 1, ty: 20, dir: 'right' }],
+  signs: { '10,2': 'sign_tingyu' },
+  npcs: [
+    { role: 'busStop',   x: 7,  y: 10, dir: 'down' },
+    { role: 'sparring',  x: 13, y: 9,  dir: 'down' },
+    { role: 'townTip4',  x: 4,  y: 9,  dir: 'right', wander: 1 },
+    { role: 'sparring2', x: 16, y: 10, dir: 'left' },
+    { role: 'roamHint',  x: 3,  y: 11, dir: 'down' },
+    { role: 't_ty_a',    x: 14, y: 12, dir: 'down' },
+  ],
+  chests: [{ x: 17, y: 12, id: 'ty1', items: { heal2: 2, wenqi: 1 } }],
+};
+
+/* ============================================================
+   ⑮ 花南街 huanan　25×20　花市拱廊（t_flower）
+   ------------------------------------------------------------
+   兩條橫街接到道館③(17,4)、補給站(5,4)、商店(5,11)；
+   右邊是花圃與水池。南接聲音鐘步道、北接古碑小徑。
+   道館③要兩片碎片。
+   ============================================================ */
+MAPS.huanan = {
+  music: 'town', qlv: 3, chapter: 3, theme: 't_flower',
+  rows: [
+    'TTTTTTTTTTT,,TTTTTTTTTTTT',
+    'TT........S,,..........TT',
+    'TT.hhHhh...,,.GGyyyGG..TT',
+    'TT.hhhhh...,,.GGGGGGG..TT',
+    'TT.#WDW#.S.,,.#WWDWW#..TT',
+    'TT.........,,..........TT',
+    'TT.,,,,,,,,,,,,,,,,,,..TT',
+    'TT.........,,..........TT',
+    'TT.........,,..FFFFFF..TT',
+    'TT.ccCcc...,,..FFFFFF..TT',
+    'TT.ccccc...,,..FFFFFF..TT',
+    'TT.#WDW#.S.,,..........TT',
+    'TT.........,,..........TT',
+    'TT.,,,,,,,,,,,,,,,,,,..TT',
+    'TT.........,,..........TT',
+    'TT.....FFF.,,..~~~~~~..TT',
+    'TT.....FFF.,,..~~~~~~..TT',
+    'TT.........,,..........TT',
+    'TT.........,,..........TT',
+    'TTTTTTTTTTT,,TTTTTTTTTTTT',
+  ],
+  doorWarps: {
+    '17,4': { to: 'yard',     tx: 7, ty: 10, dir: 'up', ret: { x: 17, y: 5 }, need: 2, gate: 'need2' },
+    '5,4':  { to: 'clinic_c', tx: 5, ty: 5,  dir: 'up', ret: { x: 5,  y: 5 } },
+    '5,11': { to: 'store_c',  tx: 5, ty: 5,  dir: 'up', ret: { x: 5,  y: 12 } },
+  },
+  warps: [
+    { x: 11, y: 19, to: 'r4', tx: 9,  ty: 1, dir: 'down' },
+    { x: 12, y: 19, to: 'r4', tx: 10, ty: 1, dir: 'down' },
+    { x: 11, y: 0,  to: 'r5', tx: 11, ty: 1, dir: 'up' },
+    { x: 12, y: 0,  to: 'r5', tx: 12, ty: 1, dir: 'up' },
+  ],
+  shop: ['heal', 'heal2', 'cure', 'ward', 'atkup', 'defup', 'dodgeup', 'wenqi', 'hint'],
+  signs: { '10,1': 'sign_huanan', '9,4': 'sg31', '9,11': 'sg17' },
+  npcs: [
+    { role: 'busStop',  x: 8,  y: 7,  dir: 'down' },
+    { role: 'gymTip3',  x: 17, y: 7,  dir: 'up' },
+    { role: 'roamHint', x: 21, y: 12, dir: 'down' },
+    { role: 't_hn_a',   x: 6,  y: 14, dir: 'down' },
+    { role: 't_hn_b',   x: 20, y: 18, dir: 'down', wander: 1 },
+  ],
+  chests: [{ x: 21, y: 17, id: 'hn1', items: { dodgeup: 1, heal2: 1 } }],
+};
+
+/* ============================================================
+   ⑯ 花南街道館 yard　16×12　室內花園
+   ------------------------------------------------------------
+   中央一條紅毯直通館主，兩側水池與花圃、兩座涼亭。
+   三盆枯萎的花全部開花後，館主攻擊 −20%（flag: flAll）。
+   ============================================================ */
+MAPS.yard = {
+  music: 'hall', qlv: 3, chapter: 3, indoor: 1, theme: 't_flower',
+  rows: [
+    'wwwwwwwwwwwwwwww',
+    'w____t____t____w',
+    'w_FF________FF_w',
+    'w______rr______w',
+    'w_~~~__rr__~~~_w',
+    'w_~~~__rr__~~~_w',
+    'w______rr______w',
+    'w_FF___rr___FF_w',
+    'w______________w',
+    'wp____A__A____pw',
+    'w______________w',
+    'wwwwwww__wwwwwww',
+  ],
+  warps: [
+    { x: 7, y: 11, to: 'huanan', tx: 17, ty: 5, dir: 'down' },
+    { x: 8, y: 11, to: 'huanan', tx: 17, ty: 5, dir: 'down' },
+  ],
+  npcs: [{ role: 'boss3', x: 7, y: 1, dir: 'down' }],
+  chests: [{ x: 14, y: 10, id: 'yard1', items: { heal2: 1, cure: 1 } }],
+  devices: {
+    '2,2':  { group: 'fl', flag: 'fl1', cat: '修辭', label: '枯萎的花',
+      text: '一盆花因為墨塵而低著頭。\n（用心感受文字，也許它會重新綻放。）',
+      ok: '花瓣舒展開來，散發出淡淡的香氣！',
+      allText: '三盆花都開了，花室恢復了生氣——助教的氣勢也弱了下來。' },
+    '13,2': { group: 'fl', flag: 'fl2', cat: '閱讀', label: '枯萎的花',
+      text: '第二盆花的葉子上積了一層黑墨。',
+      ok: '黑墨散去，花開了！', allText: '三盆花都開了！' },
+    '2,7':  { group: 'fl', flag: 'fl3', cat: '修辭', label: '枯萎的花',
+      text: '最後一盆花只剩下花苞。',
+      ok: '花苞綻放了！', allText: '三盆花都開了，花室恢復了生氣！', onAll: 'flAll' },
+  },
+};
+
+/* ⑰ 保健室（古風）clinic_o　10×7 */
+MAPS.clinic_o = {
+  music: 'town', qlv: 2, chapter: 3, indoor: 1, theme: 't_stele',
+  rows: [
+    'wwwwwwwwww',
+    'wb_ttt__bw',
+    'w________w',
+    'wk_____k_w',
+    'w_p____p_w',
+    'w________w',
+    'wwww__wwww',
+  ],
+  warps: [{ x: 4, y: 6, to: '@ret' }, { x: 5, y: 6, to: '@ret' }],
+  npcs: [{ role: 'healer', x: 2, y: 2, dir: 'down' }],
 };
 
 /* 全部地圖一次掛進引擎（新地圖請加在這一行之前） */
