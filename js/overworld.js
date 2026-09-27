@@ -86,6 +86,11 @@ const OW = {
     const R0 = W.roles.stoneSpirit; if (!R0) return;
     this.npcs.push({ key: 'inkpool:stoneSpirit', role: R0, x: 8, y: 6, dir: 'down', home: 'down', sight: 0, ox: 0, oy: 0, fr: 0, look: R0.look });
   },
+  /* 上／右／下／左 四個位元：哪幾邊不是同一種磚。水面的岸線與球場的邊線都靠它畫 */
+  edgeMask(x, y, c) {
+    return (this.tile(x, y - 1) !== c ? 1 : 0) | (this.tile(x + 1, y) !== c ? 2 : 0)
+         | (this.tile(x, y + 1) !== c ? 4 : 0) | (this.tile(x - 1, y) !== c ? 8 : 0);
+  },
   tile(x, y) { const r = this.L.rows; if (y < 0 || y >= r.length || x < 0 || x >= r[0].length) return this.L.indoor ? 'X' : 'T'; const o = G && G.opened && G.opened[this.id + ':' + x + ',' + y]; return o || r[y][x]; },
   npcAt(x, y) { return this.npcs.find(n => n.x === x && n.y === y); },
   foeAt(x, y) { return this.foes.find(f => f.x === x && f.y === y); },
@@ -199,7 +204,18 @@ const OW = {
     const now = performance.now(), wf = Math.floor(now / 500) % 2;
     const x0 = Math.floor(cx / 16) - 1, y0 = Math.floor(cy / 16) - 1;
     if (L.art) ArtMap.draw(g, L.art, cx, cy);            // 美術地圖：直接畫草圖
-    else for (let ty = y0; ty < y0 + 12; ty++) for (let tx = x0; tx < x0 + 17; tx++) { const c = this.tile(tx, ty); g.drawImage(GFX.tile(theme, c, c === '~' ? wf : (tx * 5 + ty * 11) & 3), tx * 16 - cx, ty * 16 - cy); }
+    else for (let ty = y0; ty < y0 + 12; ty++) for (let tx = x0; tx < x0 + 17; tx++) {
+      const c = this.tile(tx, ty);
+      /* 水面：低兩位是波浪動畫、高位是岸線；球場：整個 fr 就是邊線；其餘：由座標決定的四種變化 */
+      const fr2 = c === '~' ? (wf | (this.edgeMask(tx, ty, '~') << 2) | (((tx * 5 + ty * 11) & 3) << 6))
+                : c === 'K' ? this.edgeMask(tx, ty, 'K')
+                /* 室內牆：哪幾邊是房間（下／右／左），才在那一邊畫護牆板與收邊陰影 */
+                : c === 'w' ? ((SOLID.has(this.tile(tx, ty + 1)) ? 0 : 1)
+                             | (SOLID.has(this.tile(tx + 1, ty)) ? 0 : 2)
+                             | (SOLID.has(this.tile(tx - 1, ty)) ? 0 : 4))
+                : (tx * 5 + ty * 11) & 3;
+      g.drawImage(GFX.tile(theme, c, fr2), tx * 16 - cx, ty * 16 - cy);
+    }
     for (const [kind, bx, by] of L.props || []) g.drawImage(GFX.building(kind, theme), bx * 16 - cx, by * 16 - cy);   // 整棟建築跨多格
     for (const c of L.chests || []) g.drawImage(GFX.chest(!!G.chests[c.id]), c.x * 16 - cx, c.y * 16 - cy);
     const actors = this.npcs.map(n => ({ y: n.y * 16 + n.oy, draw: () => {
