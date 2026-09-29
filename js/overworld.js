@@ -191,7 +191,9 @@ const OW = {
                 : (tx * 5 + ty * 11) & 3;
       g.drawImage(GFX.tile(theme, c, fr2), tx * 16 - cx, ty * 16 - cy);
     }
-    for (const [kind, bx, by] of L.props || []) g.drawImage(GFX.building(kind, theme), bx * 16 - cx, by * 16 - cy);   // 整棟建築跨多格
+    /* 整棟建築跨多格：校園建築走 GFX.campus，其餘沿用舊的 GFX.building */
+    for (const [kind, bx, by] of L.props || [])
+      g.drawImage((GFX.CAMPUS && GFX.CAMPUS[kind]) ? GFX.campus(kind) : GFX.building(kind, theme), bx * 16 - cx, by * 16 - cy);
     for (const c of L.chests || []) g.drawImage(GFX.chest(!!G.chests[c.id]), c.x * 16 - cx, c.y * 16 - cy);
     const actors = this.npcs.map(n => ({ y: n.y * 16 + n.oy, draw: () => {
       if (n.look.sprite) { const sp = GFX.special(n.look.sprite), sz = sp.width; const bob = Math.round(Math.sin(now / 300) * 1.5);

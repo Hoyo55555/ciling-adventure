@@ -1340,4 +1340,32 @@ MAPS.aud = {
 };
 
 /* 全部地圖一次掛進引擎（新地圖請加在這一行之前） */
+/* ============================================================
+   建築佔位：把 props 宣告的整棟建築「蓋」進地圖字元裡
+   ------------------------------------------------------------
+   整棟建築是一張圖，蓋住底下的磚。如果由人手動維護
+   底下那幾格是不是走不過去，遲早會對不上 —— 那正是舊版空氣牆的來源。
+   所以這裡反過來做：**碰撞由建築自己產生**。
+     props: [['clinic', 5, 3]]   ← 只要寫這一行
+   程式會把 6×5 那塊蓋成走不過去的字元，門的位置蓋成 D。
+   畫面與碰撞因此不可能各走各的，不是靠人小心，是由程式保證。
+   ============================================================ */
+function stampProps(L) {
+  if (!L.props || !L.rows) return;
+  const C0 = (typeof GFX !== 'undefined' && GFX.CAMPUS) || {};
+  const rows = L.rows.map(r => r.split(''));
+  for (const [kind, bx, by] of L.props) {
+    const C = C0[kind]; if (!C) continue;            // 舊的 GFX.building() 不在這裡處理
+    for (let y = 0; y < C.h; y++) for (let x = 0; x < C.w; x++) {
+      const gx = bx + x, gy = by + y;
+      if (!rows[gy] || gx < 0 || gx >= rows[gy].length) continue;
+      rows[gy][gx] = (y === C.h - 1) ? '#' : 'R';    // 最下面一列當牆，其餘當屋頂
+    }
+    const [dx, dy] = C.door;
+    if (rows[by + dy] && rows[by + dy][bx + dx] !== undefined) rows[by + dy][bx + dx] = 'D';
+  }
+  L.rows = rows.map(r => r.join(''));
+}
+for (const L of Object.values(MAPS)) stampProps(L);
+
 Object.assign(LAYOUTS, MAPS);
