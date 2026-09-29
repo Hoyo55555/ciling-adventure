@@ -182,6 +182,8 @@ const OW = {
                 : c === 'K' ? this.edgeMask(tx, ty, 'K')
                 /* 跑道：低四位是白邊線、高位是雜訊變化 */
                 : c === 'u' ? (this.edgeMask(tx, ty, 'u') | (((tx * 5 + ty * 11) & 3) << 4))
+                /* 司令台：只有中段才擺講桌，整排鋪起來才不會重複 */
+                : c === 'd' ? this.edgeMask(tx, ty, 'd')
                 /* 室內牆：哪幾邊是房間（下／右／左），才在那一邊畫護牆板與收邊陰影 */
                 : c === 'w' ? ((SOLID.has(this.tile(tx, ty + 1)) ? 0 : 1)
                              | (SOLID.has(this.tile(tx + 1, ty)) ? 0 : 2)
