@@ -21,7 +21,7 @@ const Store = {
 };
 
 /* ============ 設定 ============ */
-const Settings = Object.assign({ music: 6, sfx: 7, speed: 1, hud: true }, Store.get('ciling_settings', {}));
+const Settings = Object.assign({ music: 6, sfx: 7, speed: 1, hud: true, fill: false }, Store.get('ciling_settings', {}));
 const saveSettings = () => Store.set('ciling_settings', Settings);
 
 /* ============ 輸入 ============ */

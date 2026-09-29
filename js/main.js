@@ -100,10 +100,39 @@ const SCENES = { title: Title, overworld: OW, battle: Battle, blank: Blank, worl
 
 function setWorldClass(wid) { document.body.classList.remove('w-school', 'w-literati', 'w-wuxia'); if (wid) document.body.classList.add('w-' + wid); }
 
-/* ---------- 版面大小 ---------- */
+/* ---------- 版面大小 ----------
+   畫布內部固定 240×160（和 GBA 一樣）。關鍵是放大倍率**一定要是整數個裝置像素**：
+   倍率如果是 1.9375 倍，瀏覽器只能有的來源像素畫 3 點、有的畫 4 點，
+   同一張圖裡線條就會忽粗忽細，1 像素的細節還會整條不見 —— 那是縮放造成的，
+   不是圖畫得不好。所以這裡先換算成裝置像素、取整數倍，再換回 CSS 尺寸。
+   Retina（dpr=2）時倍率每一階是 120 CSS px，不會跳太大。 */
+/* 外框（body 內距＋機殼內距＋螢幕邊框）到底佔掉多少寬度，用量的不要用猜的。
+   以前寫死 34／64，跟實際的 54 不合，窄畫面會算出塞不下的寬度。 */
+function chromeX() {
+  const px = v => parseFloat(v) || 0;
+  const el = id => document.getElementById(id);
+  const b = getComputedStyle(document.body);
+  let n = px(b.paddingLeft) + px(b.paddingRight);
+  for (const id of ['console', 'screen']) {
+    const e = el(id); if (!e) continue;
+    const c = getComputedStyle(e);
+    n += px(c.paddingLeft) + px(c.paddingRight) + px(c.borderLeftWidth) + px(c.borderRightWidth);
+  }
+  return n;
+}
 function resize() {
-  const narrow = window.innerWidth <= 560; const padH = narrow ? 250 : 215, vw = window.innerWidth - (narrow ? 34 : 64), vh = window.innerHeight - padH;
-  const w = Math.max(240, Math.floor(Math.min(vw, vh * 1.5, 900)));
+  const narrow = window.innerWidth <= 560, padH = narrow ? 250 : 215;
+  const vw = (document.documentElement.clientWidth || window.innerWidth) - chromeX();
+  const vh = window.innerHeight - padH;
+  const avail = Math.min(vw, vh * 1.5, 900);
+  const dpr = window.devicePixelRatio || 1;
+  let w;
+  if (Settings.fill) {                        // 使用者選「填滿畫面」：回到舊行為
+    w = Math.max(240, Math.floor(avail));
+  } else {
+    const steps = Math.max(1, Math.floor(avail * dpr / 240));   // 一個遊戲像素佔幾個裝置像素
+    w = steps * 240 / dpr;
+  }
   document.documentElement.style.setProperty('--w', w + 'px'); document.documentElement.style.setProperty('--u', (w / 240) + 'px');
 }
 

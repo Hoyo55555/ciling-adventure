@@ -22,6 +22,10 @@ button{ font-family:inherit; }
   max-width:100%;
 }
 #screen{
+  /* content-box：--w 指的是「畫面內容」的寬度，5px 邊框要畫在外面。
+     用預設的 border-box 的話邊框會從裡面吃掉 10px，
+     360 變成 350，放大倍率就不是整數了，像素會忽粗忽細。 */
+  box-sizing:content-box;
   position:relative; width:var(--w); height:calc(var(--w) * 2 / 3);
   background:#000; border:5px solid #0c1d17; border-radius:6px; overflow:hidden;
   box-shadow:0 0 0 2px #2c8a66;
@@ -198,8 +202,9 @@ button{ font-family:inherit; }
 .teacher .catwrap{ display:flex; flex-wrap:wrap; gap:calc(var(--u)*1.5) calc(var(--u)*3); font-size:calc(var(--u)*6.5); }
 .teacher .col > .btns{ flex:none; }
 @media (max-width: 560px){
-  body{ padding:8px 4px; }
-  #console{ padding:10px 10px 8px; border-radius:14px 14px 30px 14px; }
+  /* 手機：外框盡量收窄，螢幕的整數放大倍率才跳得上一階（240→360） */
+  body{ padding:4px 2px; }
+  #console{ padding:6px 5px 6px; border-radius:12px 12px 28px 12px; }
   #pad{ width:100%; flex-wrap:wrap; row-gap:4px; }
   #pad .mid{ order:3; width:100%; justify-content:center; }
   .hint{ font-size:11px; }

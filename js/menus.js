@@ -643,13 +643,20 @@ const Records = {
 const SettingsPanel = {
   open() {
     return UI.panel(ctl => {
-      const F = [{ k: 'music', label: '音樂音量' }, { k: 'sfx', label: '音效音量' }, { k: 'speed', label: '文字速度' }, { k: 'hud', label: '地圖狀態列' }, { k: 'help', label: '遊戲說明' }];
+      const F = [{ k: 'music', label: '音樂音量' }, { k: 'sfx', label: '音效音量' }, { k: 'speed', label: '文字速度' }, { k: 'hud', label: '地圖狀態列' }, { k: 'fill', label: '畫面縮放' }, { k: 'help', label: '遊戲說明' }];
       ctl.box.innerHTML = `<h2>設定</h2><div class="fields"></div>` + footKeys('↑↓ 選擇　←→ 調整　B 返回');
       const wrap = $('.fields', ctl.box); const els = F.map(() => { const d = h('div', 'field'); wrap.appendChild(d); return d; });
       let sel = 0;
-      const val = k => k === 'help' ? '<span class="muted">按 A 查看</span>' : k === 'speed' ? ['慢', '中', '快'][Settings.speed] : k === 'hud' ? (Settings.hud ? '顯示' : '隱藏') : '■'.repeat(Settings[k]) + '<span class="muted">' + '□'.repeat(10 - Settings[k]) + '</span>';
+      const val = k => k === 'help' ? '<span class="muted">按 A 查看</span>' : k === 'speed' ? ['慢', '中', '快'][Settings.speed] : k === 'hud' ? (Settings.hud ? '顯示' : '隱藏')
+        : k === 'fill' ? (Settings.fill ? '填滿畫面<span class="muted">（像素會忽粗忽細）</span>' : '銳利<span class="muted">（整數倍，畫面略小）</span>')
+        : '■'.repeat(Settings[k]) + '<span class="muted">' + '□'.repeat(10 - Settings[k]) + '</span>';
       const paint = () => F.forEach((f, i) => { els[i].classList.toggle('sel', i === sel); els[i].innerHTML = `<label>${f.label}</label><div class="val"><span class="arrow">◀</span>${val(f.k)}<span class="arrow">▶</span></div>`; });
-      const change = (k, d) => { if (k === 'help') return; if (k === 'speed') Settings.speed = clamp(Settings.speed + d, 0, 2); else if (k === 'hud') Settings.hud = !Settings.hud; else Settings[k] = clamp(Settings[k] + d, 0, 10); Sound.applyVol(); saveSettings(); Sound.sfx('cursor'); paint(); };
+      const change = (k, d) => { if (k === 'help') return;
+        if (k === 'speed') Settings.speed = clamp(Settings.speed + d, 0, 2);
+        else if (k === 'hud') Settings.hud = !Settings.hud;
+        else if (k === 'fill') { Settings.fill = !Settings.fill; resize(); }
+        else Settings[k] = clamp(Settings[k] + d, 0, 10);
+        Sound.applyVol(); saveSettings(); Sound.sfx('cursor'); paint(); };
       els.forEach((d, i) => d.addEventListener('pointerdown', e => { e.preventDefault(); sel = i; if (F[i].k === 'help') { Help.open(); return; } change(F[i].k, e.target === d.querySelector('.arrow') ? -1 : 1); }));
       ctl.update = () => { const d = Input.dir(); if (d === 'up' && sel > 0) { sel--; paint(); } if (d === 'down' && sel < F.length - 1) { sel++; paint(); } if (d === 'left' || d === 'right') change(F[sel].k, d === 'left' ? -1 : 1);
         if (Input.p('A') && F[sel].k === 'help') { Sound.sfx('ok'); Help.open(); return; } if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } };
