@@ -24,6 +24,11 @@
       門前一定留一格 `,` 的路。房子本身整塊都走不過去。
    3. 路 `,` 要連成一條線，不能斷掉；草地 `.` 可以走，但主要動線靠路引導。
    4. 每張地圖做完都要跑連通測試：出入口之間一定走得通。
+      野生武器妖不站在地圖上，走進草叢 g 才會隨機遇到。
+      地圖的 foes 就是那張地圖的遇敵表：
+        on   踩哪一種磚才遇敵（預設 'g'）   safe 剛進草叢前幾步一定安全（預設 2）
+        rate 之後每走一步的遇敵機率（預設 .16）
+        lv [下限, 上限]　scale 每拿一片碎片加幾級　auto 1＝自動依進度挑妖怪
    5. **會讓人猶豫「這到底能不能走」的東西一律不要放。**
       看起來像器材、像設施的，就要設成走不過去；
       看起來像地面的（球場、廣場），就要用柵欄或路把邊界圈出來，
@@ -197,7 +202,7 @@ MAPS.r1 = {
     { x: 9,  y: 0,  to: 'zhuyin', tx: 11, ty: 16, dir: 'up' },
     { x: 10, y: 0,  to: 'zhuyin', tx: 12, ty: 16, dir: 'up' },
   ],
-  foes: { n: 6, lv: [2, 4], scale: 1, auto: 1 },
+  foes: { lv: [2, 4], scale: 1, auto: 1, rate: .16, safe: 2 },
   npcs: [
     { role: 'dictA',     x: 8,  y: 7,  dir: 'right', sight: 3 },
     { role: 'dictB',     x: 11, y: 18, dir: 'left',  sight: 3 },
@@ -432,7 +437,7 @@ MAPS.r2 = {
     { x: 8, y: 0,  to: 'chaoshu', tx: 11, ty: 18, dir: 'up' },
     { x: 9, y: 0,  to: 'chaoshu', tx: 12, ty: 18, dir: 'up' },
   ],
-  foes: { n: 7, lv: [4, 7], scale: 1, auto: 1 },
+  foes: { lv: [4, 7], scale: 1, auto: 1, rate: .16, safe: 2 },
   npcs: [
     { role: 't_r2a',     x: 7,  y: 7,  dir: 'right', sight: 3 },
     { role: 't_r2b',     x: 10, y: 17, dir: 'left',  sight: 3 },
@@ -556,7 +561,7 @@ MAPS.r3 = {
     { x: 9,  y: 0,  to: 'dianji',  tx: 13, ty: 18, dir: 'up' },
     { x: 10, y: 0,  to: 'dianji',  tx: 14, ty: 18, dir: 'up' },
   ],
-  foes: { n: 7, lv: [6, 9], scale: 1, auto: 1 },
+  foes: { lv: [6, 9], scale: 1, auto: 1, rate: .16, safe: 2 },
   npcs: [
     { role: 't_r3a',     x: 8,  y: 8,  dir: 'right', sight: 3 },
     { role: 't_r3b',     x: 11, y: 12, dir: 'left',  sight: 3 },
@@ -746,7 +751,7 @@ MAPS.r4 = {
     { x: 10, y: 0,  to: 'huanan', tx: 12, ty: 18, dir: 'up' },
     { x: 0,  y: 20, to: 'tingyu', tx: 18, ty: 8,  dir: 'left' },
   ],
-  foes: { n: 8, lv: [8, 11], scale: 1, auto: 1 },
+  foes: { lv: [8, 11], scale: 1, auto: 1, rate: .16, safe: 2 },
   npcs: [
     { role: 'm1',         x: 8,  y: 7,  dir: 'right', sight: 3 },
     { role: 'm2',         x: 11, y: 12, dir: 'left',  sight: 3 },
@@ -948,7 +953,7 @@ MAPS.r5 = {
     { x: 8, y: 0,  to: 'beilin', tx: 11, ty: 18, dir: 'up' },
     { x: 9, y: 0,  to: 'beilin', tx: 12, ty: 18, dir: 'up' },
   ],
-  foes: { n: 8, lv: [11, 14], scale: 1, auto: 1 },
+  foes: { lv: [11, 14], scale: 1, auto: 1, rate: .16, safe: 2 },
   npcs: [
     { role: 'rival2',    x: 7,  y: 9,  dir: 'right', sight: 3 },
     { role: 't_r5a',     x: 10, y: 17, dir: 'left',  sight: 3 },
@@ -1115,7 +1120,7 @@ MAPS.r6 = {
     { x: 11, y: 0,  to: 'zhongta', tx: 14, ty: 18, dir: 'up' },
     { x: 0,  y: 20, to: 'moquan',  tx: 20, ty: 9,  dir: 'left' },
   ],
-  foes: { n: 9, lv: [14, 18], scale: 1, auto: 1 },
+  foes: { lv: [14, 18], scale: 1, auto: 1, rate: .16, safe: 2 },
   npcs: [
     { role: 'sideBGiver', x: 12, y: 6,  dir: 'down' },
     { role: 'roamHint2',  x: 5,  y: 19, dir: 'down' },

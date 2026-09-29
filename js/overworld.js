@@ -4,7 +4,7 @@ let G = null;   // 目前存檔
 let W = null;   // 目前世界觀
 
 const OW = {
-  L: null, id: null, npcs: [], foes: [], busy: false, bubble: null, bumpCd: 0, idleT: 0, hud: null, hudKey: '',
+  L: null, id: null, npcs: [], busy: false, bubble: null, bumpCd: 0, idleT: 0, hud: null, hudKey: '',
   p: { x: 0, y: 0, dir: 'down', moving: false, t: 0, tx: 0, ty: 0, dur: 0.22, step: 0, turnWait: 0, cont: false },
 
   shake: 0, dark: 0, flash: 0, fx: [],
@@ -26,7 +26,7 @@ const OW = {
       if (s.hideFlag && G.flags[s.hideFlag]) return null;
       return { key: id + ':' + s.role, role, x: s.x, y: s.y, dir: s.dir, home: s.dir, sight: s.sight || 0, wander: s.wander, ox: 0, oy: 0, fr: 0, look: role.look };
     }).filter(Boolean);
-    this.spawnFoes();
+    this.resetEncounter();
     if (id === 'inkpool') this.spawnSpirit();
     else this.spawnRoamer();
     G.map = id; G.x = x; G.y = y;
@@ -34,34 +34,30 @@ const OW = {
     Sound.play(W.music[this.L.music] || this.L.music); Cloud.paint();
     showBanner(W.mapNames[id]);
   },
-  /* 撤退後：讓這隻武器妖消失，並在地圖上別的地方重新生成一隻 */
-  respawnFoe(f) {
-    this.foes = this.foes.filter(x => x !== f);
-    const F = this.L.foes; if (!F) return;
-    const spots = [];
-    for (let y = 0; y < this.L.rows.length; y++) for (let x = 0; x < this.L.rows[0].length; x++) {
-      if (this.tile(x, y) !== (F.on || 'g')) continue;
-      if (this.foeAt(x, y) || this.npcAt(x, y)) continue;
-      if (Math.abs(x - this.p.x) + Math.abs(y - this.p.y) < 6) continue;     // 不要生在玩家臉上
-      spots.push([x, y]);
-    }
-    if (!spots.length) return;
-    const [sx, sy] = pick(spots), st = G.badges.length;
+  /* 野生武器妖不再站在地圖上，改成「走在草叢裡才會隨機遇到」。
+     地圖的 foes 設定從「放幾隻」變成「這張地圖的遇敵表」：
+       on    踩在哪一種磚上才會遇敵（預設 'g' 草叢）
+       safe  剛踩進草叢的前幾步一定不會遇到
+       rate  之後每走一步的遇敵機率
+       lv / scale / auto / list 與原本相同 */
+  resetEncounter() { this.grassSteps = 0; },
+  /* 回傳 true 代表這一步觸發了戰鬥，onStep 就不要再做別的事 */
+  rollEncounter() {
+    const F = this.L.foes; if (!F) return false;
+    if (G && G.teacher) return false;              // 教師測試版：不遇敵
+    if (!G.equip || !G.equip.length) return false; // 手上沒武器就不該被拖進戰鬥
+    const p = this.p;
+    if (this.tile(p.x, p.y) !== (F.on || 'g')) { this.grassSteps = 0; return false; }
+    this.grassSteps = (this.grassSteps || 0) + 1;
+    if (this.grassSteps <= (F.safe == null ? 2 : F.safe)) return false;
+    if (Math.random() >= (F.rate == null ? 0.16 : F.rate)) return false;
+    this.grassSteps = 0;
+    const st = G.badges.length;
     const sp = F.auto ? pick(monsAtStage(st)) : weighted(F.list.filter(x => (x.stage || 0) <= st)).sp;
-    this.foes.push({ sp, lv: rnd(F.lv[0], F.lv[1]) + (F.scale || 0) * st + (G.ng || 0) * 4, x: sx, y: sy, hx: sx, hy: sy, ox: 0, oy: 0, t: Math.random() * 1.5, cool: 1.5, moving: false });
-  },
-  spawnFoes() {
-    this.foes = []; const F = this.L.foes; if (!F) return;
-    if (G && G.teacher) return;                    // 教師測試版：不生成野生妖怪
-    const on = F.on || 'g';
-    const spots = []; this.L.rows.forEach((r, y) => [...r].forEach((c, x) => { if (c === on) spots.push([x, y]); }));
-    const used = new Set();
-    for (let i = 0; i < F.n && spots.length; i++) {
-      let s, tries = 0; do { s = pick(spots); tries++; } while ((used.has(s + '') || Math.abs(s[0] - this.p.x) + Math.abs(s[1] - this.p.y) < 4) && tries < 30);
-      used.add(s + ''); const st = G.badges.length;
-      const sp = F.auto ? pick(monsAtStage(st)) : weighted(F.list.filter(x => (x.stage || 0) <= st)).sp;
-      this.foes.push({ sp, lv: rnd(F.lv[0], F.lv[1]) + (F.scale || 0) * st + (G.ng || 0) * 4, x: s[0], y: s[1], hx: s[0], hy: s[1], ox: 0, oy: 0, t: Math.random() * 1.5, cool: 0, moving: false });
-    }
+    const lv = rnd(F.lv[0], F.lv[1]) + (F.scale || 0) * st + (G.ng || 0) * 4;
+    p.cont = false;
+    this.run(() => wildEncounter(sp, lv));
+    return true;
   },
   /* 二週目：筆靈／紙靈／墨靈會在城鎮與路線上隨機現身 */
   spawnRoamer() {
@@ -93,7 +89,6 @@ const OW = {
   },
   tile(x, y) { const r = this.L.rows; if (y < 0 || y >= r.length || x < 0 || x >= r[0].length) return this.L.indoor ? 'X' : 'T'; const o = G && G.opened && G.opened[this.id + ':' + x + ',' + y]; return o || r[y][x]; },
   npcAt(x, y) { return this.npcs.find(n => n.x === x && n.y === y); },
-  foeAt(x, y) { return this.foes.find(f => f.x === x && f.y === y); },
   chestAt(x, y) { return (this.L.chests || []).find(c => c.x === x && c.y === y); },
   solid(x, y) { return SOLID.has(this.tile(x, y)) || !!this.npcAt(x, y) || !!this.chestAt(x, y); },
 
@@ -104,7 +99,6 @@ const OW = {
     if (this.busy) return;
     this.idleT += dt;
     if (this.idleT > 1.6) { this.idleT = 0; for (const n of this.npcs) if (n.wander && Math.random() < 0.35) n.dir = pick(['up', 'down', 'left', 'right']); }
-    if (this.updateFoes(dt)) return;
     if (p.moving) {
       p.t += dt / p.dur;
       if (p.t >= 1) { p.x = p.tx; p.y = p.ty; p.moving = false; p.t = 0; G.x = p.x; G.y = p.y; if (this.onStep()) return; }
@@ -125,9 +119,7 @@ const OW = {
     if (gate && !gateOpen(gate)) { p.cont = false; this.run(() => say(W.gates[gate])); return; }
     const dw = this.L.doorWarps && this.L.doorWarps[nx + ',' + ny];
     if (dw) { p.cont = false; this.run(() => enterDoor(dw)); return; }
-    const f = this.foeAt(nx, ny);
-    if (f && f.cool <= 0) { p.cont = false; this.run(() => foeBattle(f)); return; }
-    if (this.solid(nx, ny) || f) { if (this.bumpCd <= 0) { Sound.sfx('bump'); this.bumpCd = 0.35; } p.cont = false; return; }
+    if (this.solid(nx, ny)) { if (this.bumpCd <= 0) { Sound.sfx('bump'); this.bumpCd = 0.35; } p.cont = false; return; }
     p.moving = true; p.tx = nx; p.ty = ny; p.t = 0; p.cont = true; p.step++;
     p.dur = Input.h('B') ? 0.12 : 0.22;
   },
@@ -143,6 +135,8 @@ const OW = {
     if (w) { this.run(() => w.to === '@ret' ? warpTo(G.ret.map, G.ret.x, G.ret.y, 'down') : warpTo(w.to, w.tx, w.ty, w.dir)); return true; }
     for (const n of this.npcs) if (n.sight && !G.defeated[n.key] && this.sees(n)) { p.cont = false; this.run(() => spotted(n)); return true; }
     if (this.tile(p.x, p.y) === 'g') Sound.sfx('grass');
+    /* 草叢隨機遇敵：擺在最後，出口與被發現都優先於遇敵 */
+    if (this.rollEncounter()) return true;
     return false;
   },
   sees(n) {
@@ -150,33 +144,10 @@ const OW = {
     for (let i = 1; i <= n.sight; i++) { const x = n.x + dx * i, y = n.y + dy * i; if (x === p.x && y === p.y) return true; if (SOLID.has(this.tile(x, y)) || this.npcAt(x, y)) return false; }
     return false;
   },
-  /* 敵人巡邏：玩家靠近 3 格內會追過來，碰到就開戰 */
-  updateFoes(dt) {
-    const p = this.p;
-    for (const f of this.foes) {
-      if (f.cool > 0) f.cool -= dt;
-      if (f.moving) continue;
-      f.t -= dt; if (f.t > 0) continue;
-      const dist = Math.abs(f.x - p.x) + Math.abs(f.y - p.y);
-      const chase = dist <= 3 && f.cool <= 0 && G.equip.length;
-      f.t = chase ? 0.45 : 0.9 + Math.random() * 1.2;
-      let dir;
-      if (chase) { const dx = p.x - f.x, dy = p.y - f.y; dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'); }
-      else { if (Math.random() < 0.4) continue; dir = pick(['up', 'down', 'left', 'right']); }
-      const [ddx, ddy] = DIRS[dir], nx = f.x + ddx, ny = f.y + ddy;
-      const tx = p.moving ? p.tx : p.x, ty = p.moving ? p.ty : p.y;
-      if (nx === tx && ny === ty) { if (chase && !p.moving) { this.run(() => foeBattle(f)); return true; } continue; }
-      if (this.solid(nx, ny) || this.foeAt(nx, ny) || (this.L.warps || []).some(w => w.x === nx && w.y === ny)) continue;
-      if (!chase && (Math.abs(nx - f.hx) > 3 || Math.abs(ny - f.hy) > 3)) continue;
-      f.moving = true; Anim.run(0.28, k => { f.ox = ddx * 16 * k; f.oy = ddy * 16 * k; }).then(() => { f.x = nx; f.y = ny; f.ox = f.oy = 0; f.moving = false; });
-    }
-    return false;
-  },
   interact() {
     const p = this.p, [dx, dy] = DIRS[p.dir], tx = p.x + dx, ty = p.y + dy, key = tx + ',' + ty;
     const n = this.npcAt(tx, ty) || (this.tile(tx, ty) === 't' && this.npcAt(tx + dx, ty + dy)); if (n) { this.run(() => talkTo(n)); return; }
     const c = this.chestAt(tx, ty); if (c) { this.run(() => openChest(c)); return; }
-    const f = this.foeAt(tx, ty); if (f && f.cool <= 0) { this.run(() => foeBattle(f)); return; }
     if (this.L.signs && this.L.signs[key]) { this.run(() => say(W.signs[this.L.signs[key]])); return; }
     const dw = this.L.doorWarps && this.L.doorWarps[key];
     if (dw) { this.run(() => enterDoor(dw)); return; }
@@ -222,12 +193,6 @@ const OW = {
       if (n.look.sprite) { const sp = GFX.special(n.look.sprite), sz = sp.width; const bob = Math.round(Math.sin(now / 300) * 1.5);
         g.drawImage(sp, n.x * 16 + n.ox - cx - (sz - 16) / 2, n.y * 16 + n.oy - cy - (sz - 16) - 3 + bob); }   // 依圖原尺寸畫，不拉伸
       else g.drawImage(GFX.person(n.look, n.dir, n.fr), n.x * 16 + n.ox - cx, n.y * 16 + n.oy - cy - 3); } }));
-    for (const f of this.foes) actors.push({ y: f.y * 16 + f.oy, draw: () => {
-      const bob = Math.round(Math.abs(Math.sin(now / 220 + f.hx)) * 2); const fx = f.x * 16 + f.ox - cx, fy = f.y * 16 + f.oy - cy;
-      g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(fx + 3, fy + 13, 10, 2);
-      if (f.cool > 0 && Math.floor(now / 120) % 2) return;
-      g.drawImage(GFX.weaponMon(f.sp, W.theme), fx - 1, fy - 4 - bob, 18, 18);
-    } });
     const fr = p.moving ? (k < 0.5 ? (p.step % 2 ? 1 : 2) : 0) : 0;
     actors.push({ y: py, draw: () => {
       g.drawImage(GFX.person(G.player.look, p.dir, fr), px - cx, py - cy - 3);
@@ -566,15 +531,52 @@ const GQ_CLUE = {
     clue: '「去那個把墨磨了幾百年的地方——墨泉鄉的泉眼旁邊。」' },
 };
 const CUTS = {
-  /* 鐘塔台道館門口：小墨衝出來 */
+  /* 鐘塔台道館門口：小墨從道館裡面跑出來擋住你 */
   async moIntro() {
     const M = '小墨';
-    Sound.sfx('alert');
-    await Anim.run(0.35, k => OW.dark = k * 0.45);
+    const L = OW.L;
+    /* 從地圖資料找出道館那扇門，小墨就是從那裡跑出來的 */
+    const doorKey = Object.keys(L.doorWarps || {}).find(k => (L.doorWarps[k].needFlag === 'guardianDone'));
+    const [dx, dy] = (doorKey || '14,5').split(',').map(Number);
+    const p = OW.p;
+
     await say('（你正要走上禮堂的台階——）');
-    await say('（一團黑影從紅毯上彈起來，擋在你面前。）');
-    await Anim.run(0.35, k => OW.dark = 0.45 * (1 - k)); OW.dark = 0;
-    for (const t of (W.moIntro || [])) await say(t, M);
+    /* 門「碰」地被推開 */
+    Sound.sfx('door'); OW.shake = 3;
+    await Anim.run(0.25, k => OW.shake = 3 * (1 - k)); OW.shake = 0;
+    await Anim.run(0.30, k => OW.dark = k * 0.35);
+
+    /* 小墨從門後冒出來，再一路跑到你面前停住 */
+    const mo = { key: 'cut:xiaomo', role: { name: M }, x: dx, y: dy, dir: 'down',
+                 home: 'down', sight: 0, ox: 0, oy: 0, fr: 0, look: { sprite: 'xiaomo' } };
+    OW.npcs.push(mo);
+    try {
+      mo.oy = 15;                                            // 先整隻藏在門後面
+      Sound.sfx('alert');
+      await Anim.run(0.30, k => { mo.oy = Math.round(15 - 13 * k); });    // 從門縫探出來
+      /* 從門口一跳，落在台階上、擋在玩家正前方。
+         玩家就貼著門站，所以格子不動，靠 ox／oy 把他畫在台階邊緣。 */
+      const dxPix = (p.x - dx) * 16;
+      Sound.sfx('bump');
+      await Anim.run(0.42, k => {
+        mo.ox = Math.round(dxPix * k);
+        mo.oy = Math.round(2 + 4 * k - Math.sin(k * Math.PI) * 9);        // 跳起來再落下
+      });
+      mo.ox = dxPix; mo.oy = 6; mo.dir = 'down';
+      Sound.sfx('ok'); OW.shake = 2.5;
+      await Anim.run(0.22, k => { OW.shake = 2.5 * (1 - k); mo.oy = 6 - Math.round(Math.sin(k * Math.PI) * 2); });
+      mo.oy = 6; OW.shake = 0;
+      await Anim.run(0.30, k => OW.dark = 0.35 * (1 - k)); OW.dark = 0;
+
+      await say('（小墨從禮堂的門裡衝了出來，一路蹦到你面前，張開雙手擋住台階。）');
+      for (const t of (W.moIntro || [])) await say(t, M);
+      await CUTS._moAsk(M);
+    } finally {
+      OW.npcs = OW.npcs.filter(n => n !== mo); OW.dark = 0; OW.shake = 0;
+    }
+  },
+  /* 問題與線索（從 moIntro 拆出來，動畫結束後才問） */
+  async _moAsk(M) {
     const k = await UI.ask(
       '小墨：「那我問你——把心裡的話留下來，最要緊的是哪一件事？」',
       ['動筆的勇氣', '攤開來面對', '沉住氣慢慢磨'],
@@ -776,10 +778,15 @@ async function questTalk(n) {
   else await say(R.after, R.name);
   n.dir = n.home;
 }
-async function foeBattle(f) {
-  const res = await Battle.start({ kind: 'wild', foe: makeFoe(f.sp, f.lv) });
-  if (res === 'win') { OW.foes = OW.foes.filter(x => x !== f); const q = G.quests.bugs; if (q && q.state === 'active' && f.drop === 'brush') q.n = Math.min(3, q.n + 1); }
-  else if (res === 'run' || res === 'flee') OW.respawnFoe(f);   // 撤退：這一隻消失，換個地方重新出現
+/* 草叢裡蹦出一隻武器妖 */
+async function wildEncounter(sp, lv) {
+  const foe = makeFoe(sp, lv);
+  Sound.sfx('grass'); OW.shake = 2;
+  await Anim.run(0.22, k => OW.shake = 2 * (1 - k)); OW.shake = 0;
+  const res = await Battle.start({ kind: 'wild', foe });
+  /* 支線任務「消滅 3 隻錯字蟲」：用戰鬥物件的 drop 判斷，
+     地圖上那份簡略的野怪資料沒有 drop，以前這一行永遠不成立。 */
+  if (res === 'win') { const q = G.quests.bugs; if (q && q.state === 'active' && foe.drop === 'brush') q.n = Math.min(3, q.n + 1); }
 }
 async function openChest(c) {
   if (G.chests[c.id]) { await say('寶箱是空的。'); return; }

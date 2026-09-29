@@ -610,7 +610,7 @@ const GFX = (() => {
   function special(kind) {
     const key = 'sp:' + kind; if (cache.has(key)) return cache.get(key);
     const q = qart(kind);
-    if (q) { const n = q.size || 32; const cv0 = toCanvas(n, n, raster(n, n, q.parts, null)); cache.set(key, cv0); return cv0; }
+    if (q) { const n = q.size || 32; const cv0 = toCanvas(n, n, raster(n, n, q.parts, null), q.shade !== false); cache.set(key, cv0); return cv0; }
     let cv;
     if (kind === 'xiaomo') {
       cv = toCanvas(16, 16, raster(16, 16, [
