@@ -4,9 +4,9 @@ const Battle = {
   s: null,
   async start(cfg) {
     if (this.s) return 'busy';   // 防止重複開戰
-    /* 教師測試版：只有「會發碎片的五位道館館主」要真的打一場，
-       其餘（路人、勁敵、器靈、野怪）一律直接判勝。 */
-    if (G && G.teacher && !(cfg.role && cfg.role.kind === 'gym' && cfg.role.badge)) {
+    /* 教師測試版：所有對手一律略過對戰，對話完直接判勝（含道館館主）。
+       老師是來看流程與內容的，不需要真的打完每一場。 */
+    if (G && G.teacher) {
       const nm = (cfg.role && cfg.role.name) || (cfg.foe && cfg.foe.name) || '對手';
       Sound.sfx('ok');
       await say(`（教師測試版：略過與「${nm}」的對戰）`);

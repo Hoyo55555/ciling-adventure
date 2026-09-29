@@ -102,7 +102,8 @@ const BookMenu = {
   async open() {
     let sel = 0;
     while (true) {
-      const opts = ['角色', '地圖', '武器', '電腦', '鍛造', '道具', '兵器譜', '妖怪圖鑑', '稱號', '任務', '存檔', '設定'].concat(Cloud.user ? ['登出'] : [], ['回到主畫面', '關閉']);
+      const opts = ['角色', '地圖', '武器', '電腦', '鍛造', '道具', '兵器譜', '妖怪圖鑑', '稱號', '任務', '存檔', '設定']
+        .concat(G && G.teacher ? ['🚌 直達'] : [], Cloud.user ? ['登出'] : [], ['回到主畫面', '關閉']);
       const i = await UI.choose(opts, { pos: {}, cls: 'bookmenu', start: sel });
       const L = opts[i]; if (i < 0 || L === '關閉') return; sel = i;
       if (L === '角色') await CharPanel.open();
@@ -117,11 +118,79 @@ const BookMenu = {
       if (L === '任務') await Quests.open();
       if (L === '存檔') { autosave(); Sound.sfx('badge'); await say(`已儲存到欄位 ${G.slot}！（${fmtDate(G.savedAt)}）`); }
       if (L === '設定') await SettingsPanel.open();
+      if (L === '🚌 直達') { if (await TeacherTravel.open()) return; }
       if (L === '登出') { if (await Cloud.logoutFlow()) { await fade(1, 0.3); titleScreen(); await fade(0, 0.3); return; } }
       if (L === '回到主畫面') { await goHome(); if (Game.scene === 'title') return; }
     }
   },
 };
+/* ============ 教師測試版：直達任何一張地圖 ============
+   老師是來看內容的，不必照著路線一段一段走。
+   落點會自動挑一個「走得到、不會馬上觸發出口或過場」的格子。 */
+const TeacherTravel = {
+  /* 每張地圖的安全落點：城鎮優先用公車站的位置，其餘自動找靠中間的空地 */
+  spot(id) {
+    const bus = BUS_STOPS.find(b => b.map === id);
+    const L = LAYOUTS[id];
+    if (!L || !L.rows) return null;
+    const taken = (x, y) =>
+      (L.warps || []).some(w => w.x === x && w.y === y) ||
+      (L.cuts && L.cuts[x + ',' + y]) ||
+      (L.npcs || []).some(e => e.x === x && e.y === y) ||
+      (L.chests || []).some(e => e.x === x && e.y === y) ||
+      (L.devices && L.devices[x + ',' + y]);
+    if (bus && !SOLID.has(L.rows[bus.y][bus.x]) && !taken(bus.x, bus.y)) return [bus.x, bus.y];
+    const H = L.rows.length, W2 = L.rows[0].length;
+    let best = null, bd = Infinity;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W2; x++) {
+      if (SOLID.has(L.rows[y][x]) || taken(x, y)) continue;
+      const d = Math.abs(x - W2 / 2) + Math.abs(y - H / 2);
+      if (d < bd) { bd = d; best = [x, y]; }
+    }
+    return best;
+  },
+  list() {
+    const G1 = [], G2 = [], G3 = [];
+    for (const id of Object.keys(LAYOUTS)) {
+      const L = LAYOUTS[id]; if (!L || !L.rows) continue;
+      const row = { id, name: (W.mapNames && W.mapNames[id]) || id };
+      if (L.indoor) G3.push(row); else if (/^r\d/.test(id)) G2.push(row); else G1.push(row);
+    }
+    return [['城鎮', G1], ['道路', G2], ['室內．道館．特殊', G3]];
+  },
+  /* 分兩層選：先選大類再選地點，一次的清單才不會長到爆版。
+     回傳 true 代表已經傳送出去，外層的選單要一起關掉。 */
+  async open() {
+    const groups = this.list().filter(([, arr]) => arr.length);
+    while (true) {
+      const gi = await UI.ask('教師測試版：要直達哪一類？',
+        groups.map(([t, arr]) => `${t}（${arr.length}）`).concat(['取消']), {});
+      if (gi < 0 || gi >= groups.length) return false;
+      const arr = groups[gi][1];
+      const k = await UI.ask(`要直達哪一個${groups[gi][0]}？`,
+        arr.map(r => r.name + (r.id === OW.id ? '（目前位置）' : '')).concat(['上一層']), {});
+      if (k < 0 || k >= arr.length) continue;
+      const id = arr[k].id;
+      if (id === OW.id) { await say('（你已經在這裡了。）'); continue; }
+      const at = this.spot(id);
+      if (!at) { await say(`（「${arr[k].name}」找不到可以站的地方，跳過。）`); continue; }
+      Sound.sfx('door');
+      UI.clear();
+      await warpTo(id, at[0], at[1], 'down');
+      /* 室外才更新休息處與 @ret；直達室內時要留著原本的室外落點，
+         不然室內的出口會把人送回同一間房間，出不來 */
+      if (!LAYOUTS[id].indoor) {
+        G.lastHeal = { map: id, x: at[0], y: at[1] };
+        G.ret = { map: id, x: at[0], y: at[1] };
+      } else if (!G.ret || !LAYOUTS[G.ret.map] || LAYOUTS[G.ret.map].indoor) {
+        G.ret = Object.assign({ map: 'chendu', x: 11, y: 7 }, W.homeTown || {});
+      }
+      autosave();
+      return true;
+    }
+  },
+};
+
 const CharPanel = {
   open() {
     return UI.panel(ctl => {

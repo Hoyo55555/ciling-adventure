@@ -114,7 +114,7 @@ function showTeacherBadge() {
   if (document.querySelector('.teacherbadge')) return;
   const b = document.createElement('div');
   b.className = 'teacherbadge';
-  b.textContent = '教師測試版：滿裝備・只打道館館主';
+  b.textContent = '教師測試版：滿裝備・略過對戰・地圖全開';
   b.style.cssText = 'position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:99;' +
     'background:#7a2a1e;color:#f0e0c0;font:600 12px system-ui,"Noto Sans TC",sans-serif;' +
     'padding:3px 12px;border-radius:10px;border:1px solid #c8a040;pointer-events:none;opacity:.92';
@@ -149,6 +149,9 @@ function teacherKit() {
   G.badges = ['准考證碎片（一）', '准考證碎片（二）', '准考證碎片（三）', '准考證碎片（四）', '准考證碎片（五）'];
   for (const k of Object.keys(G.bag)) G.bag[k] = 20;
   G.money = 99999; G.lv = Math.max(G.lv, 30);
+  /* 地圖全開：所有城鎮與道路都算「去過」，公車站直接列出全部目的地 */
+  G.visited = G.visited || {};
+  for (const id of Object.keys(LAYOUTS)) if (!LAYOUTS[id].indoor) G.visited[id] = 1;
   playerStats(); G.hp = G.maxhp;
   showTeacherBadge();
 }
