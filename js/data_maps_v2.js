@@ -48,6 +48,7 @@ const TILES = {
   's': { walk: 1, name: '沙坑（看起來就是地面，走得過去）' },
   'K': { walk: 1, name: '球場（要用柵欄圍起來才看得出是場地）' },
   'r': { walk: 1, name: '地毯' },
+  'u': { walk: 1, name: '跑道（紅色ＰＵ，白邊線自動算）' },
   /* ---- 走不過去 ---- */
   'T': { walk: 0, name: '樹' },
   '#': { walk: 0, name: '牆' },
@@ -87,6 +88,23 @@ const TILES = {
   'p': { walk: 0, name: '盆栽' },
   'e': { walk: 0, name: '講桌' },
   'x': { walk: 0, name: '掛軸' },
+  /* ---- 校園設施（2026-09 校園改版）---- */
+  'a': { walk: 0, name: '籃球架' },
+  'v': { walk: 0, name: '排球網' },
+  'd': { walk: 0, name: '司令台' },
+  'j': { walk: 0, name: '單槓／爬竿' },
+  'l': { walk: 0, name: '觀眾席階梯' },
+  'o': { walk: 0, name: '停好的腳踏車' },
+  'f': { walk: 0, name: '飲水機' },
+  'z': { walk: 0, name: '置物櫃／掃具櫃' },
+  '1': { walk: 0, name: '陽台欄杆' },
+  '2': { walk: 0, name: '公佈欄／獎盃櫃' },
+  '3': { walk: 0, name: '爬滿藤蔓的舊牆' },
+  '4': { walk: 0, name: '施工圍籬' },
+  '5': { walk: 0, name: '水塔' },
+  '6': { walk: 0, name: '資源回收桶' },
+  '7': { walk: 0, name: '時鐘（走廊／禮堂）' },
+  '8': { walk: 0, name: '溫室' },
 };
 for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
 

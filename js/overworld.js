@@ -180,6 +180,8 @@ const OW = {
       /* 水面：低兩位是波浪動畫、高位是岸線；球場：整個 fr 就是邊線；其餘：由座標決定的四種變化 */
       const fr2 = c === '~' ? (wf | (this.edgeMask(tx, ty, '~') << 2) | (((tx * 5 + ty * 11) & 3) << 6))
                 : c === 'K' ? this.edgeMask(tx, ty, 'K')
+                /* 跑道：低四位是白邊線、高位是雜訊變化 */
+                : c === 'u' ? (this.edgeMask(tx, ty, 'u') | (((tx * 5 + ty * 11) & 3) << 4))
                 /* 室內牆：哪幾邊是房間（下／右／左），才在那一邊畫護牆板與收邊陰影 */
                 : c === 'w' ? ((SOLID.has(this.tile(tx, ty + 1)) ? 0 : 1)
                              | (SOLID.has(this.tile(tx + 1, ty)) ? 0 : 2)
