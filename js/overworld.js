@@ -195,7 +195,7 @@ const OW = {
       else g.drawImage(GFX.person(n.look, n.dir, n.fr), n.x * 16 + n.ox - cx, n.y * 16 + n.oy - cy - 3); } }));
     const fr = p.moving ? (k < 0.5 ? (p.step % 2 ? 1 : 2) : 0) : 0;
     actors.push({ y: py, draw: () => {
-      g.drawImage(GFX.person(G.player.look, p.dir, fr), px - cx, py - cy - 3);
+      g.drawImage(GFX.person(G.player.look, p.dir, fr), px - cx, py - cy - 3 - (p.hop || 0));   // hop：過場用的跳起高度
       if (this.tile(p.moving ? p.tx : p.x, p.moving ? p.ty : p.y) === 'g' && (!p.moving || k > 0.5)) g.drawImage(GFX.tile(theme, 'g'), 0, 10, 16, 6, px - cx, py - cy + 10, 16, 6);
     } });
     actors.sort((a, b) => a.y - b.y).forEach(a => a.draw());
@@ -554,18 +554,31 @@ const CUTS = {
       mo.oy = 15;                                            // 先整隻藏在門後面
       Sound.sfx('alert');
       await Anim.run(0.30, k => { mo.oy = Math.round(15 - 13 * k); });    // 從門縫探出來
-      /* 從門口一跳，落在台階上、擋在玩家正前方。
-         玩家就貼著門站，所以格子不動，靠 ox／oy 把他畫在台階邊緣。 */
-      const dxPix = (p.x - dx) * 16;
+      /* 玩家被嚇得往後跳一格 —— 空出來的那一格才是小墨的落點，兩個人才不會疊在一起 */
+      const [pdx, pdy] = DIRS[p.dir] || [0, -1];
+      const bx = p.x - pdx, by = p.y - pdy;
+      const landX = p.x, landY = p.y;
+      const canHop = !OW.solid(bx, by) && !(OW.L.warps || []).some(w => w.x === bx && w.y === by)
+                     && !(OW.L.cuts && OW.L.cuts[bx + ',' + by]);
+      if (canHop) {
+        Sound.sfx('bump');
+        p.moving = true; p.tx = bx; p.ty = by; p.t = 0;
+        await Anim.run(0.30, k => { p.t = k; p.hop = Math.round(Math.sin(k * Math.PI) * 6); });
+        p.x = bx; p.y = by; p.moving = false; p.t = 0; p.hop = 0;
+        G.x = p.x; G.y = p.y;
+      }
+      /* 小墨從門口一跳，落在玩家原本站的那一格，正對著你 */
       Sound.sfx('bump');
-      await Anim.run(0.42, k => {
-        mo.ox = Math.round(dxPix * k);
-        mo.oy = Math.round(2 + 4 * k - Math.sin(k * Math.PI) * 9);        // 跳起來再落下
+      const fromX = dx * 16, fromY = dy * 16, toX = landX * 16, toY = landY * 16;
+      await Anim.run(0.40, k => {
+        mo.ox = Math.round((toX - fromX) * k);
+        mo.oy = Math.round(2 + (toY - fromY - 2) * k - Math.sin(k * Math.PI) * 10);
       });
-      mo.ox = dxPix; mo.oy = 6; mo.dir = 'down';
+      mo.x = landX; mo.y = landY; mo.ox = 0; mo.oy = canHop ? 0 : 6; mo.dir = 'down';
       Sound.sfx('ok'); OW.shake = 2.5;
-      await Anim.run(0.22, k => { OW.shake = 2.5 * (1 - k); mo.oy = 6 - Math.round(Math.sin(k * Math.PI) * 2); });
-      mo.oy = 6; OW.shake = 0;
+      const rest = mo.oy;
+      await Anim.run(0.22, k => { OW.shake = 2.5 * (1 - k); mo.oy = rest - Math.round(Math.sin(k * Math.PI) * 2); });
+      mo.oy = rest; OW.shake = 0;
       await Anim.run(0.30, k => OW.dark = 0.35 * (1 - k)); OW.dark = 0;
 
       await say('（小墨從禮堂的門裡衝了出來，一路蹦到你面前，張開雙手擋住台階。）');
@@ -573,6 +586,7 @@ const CUTS = {
       await CUTS._moAsk(M);
     } finally {
       OW.npcs = OW.npcs.filter(n => n !== mo); OW.dark = 0; OW.shake = 0;
+      p.hop = 0; p.moving = false; p.t = 0;
     }
   },
   /* 問題與線索（從 moIntro 拆出來，動畫結束後才問） */
