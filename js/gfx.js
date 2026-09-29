@@ -204,6 +204,10 @@ const GFX = (() => {
                 wall: '#eeeae2', fence: '#d8b040', fence2: '#a07f20', door: '#c83838', door2: '#7a1c1c' },
   };
   for (const [k, v] of Object.entries(TOWN_THEMES)) THEMES[k] = Object.assign({}, THEMES.school, v);
+  /* 位置雜訊用的亂數。回傳的是 uint32，取位元時**一定要用 >>>**：
+     `v >> 5` 是帶符號位移，v 超過 2^31 就變負數，`% n` 會得到負的餘數，
+     畫出來的雜點會跑到指定範圍的上面去（在 16×16 的磚上只是被裁掉看不見，
+     在 96×80 的整棟建築上就會直接畫到屋頂）。 */
   function hash(a, b) { let s = (a * 374761393 + b * 668265263) >>> 0; s = (s ^ (s >>> 13)) * 1274126177 >>> 0; return (s ^ (s >>> 16)) >>> 0; }
   /* 一片瓦屋頂：上緣受光、下緣深色屋簷，瓦列交錯排，整棟疊起來才有立體感 */
   function roofTile(R, T, fr = 0) {
@@ -255,7 +259,7 @@ const GFX = (() => {
           for (const [x, y] of [[2, 3], [9, 4], [7, 12], [14, 11]]) R(x, y, 2, 1, adj(T.path, -.04));
         } else {                                                        // 泥土路：細碎石＋輪痕
           for (let i = 0; i < 9; i++) { const v = hash(i + fr * 3, 7);
-            R(v % 15, (v >> 4) % 15, 1 + (v >> 9) % 2, 1, lo); }
+            R(v % 15, (v >>> 4) % 15, 1 + (v >>> 9) % 2, 1, lo); }
           R(0, 5, 16, 1, adj(T.path, -.05)); R(0, 11, 16, 1, adj(T.path, -.05));
           for (const [x, y] of [[3, 2], [11, 8], [6, 13]]) R(x, y, 2, 1, hi);
         }
@@ -329,7 +333,7 @@ const GFX = (() => {
         R(0, 0, 16, 16, w);
         R(0, 0, 16, 2, adj(w, -.15));                                     // 屋簷投在牆上的陰影
         R(0, 2, 16, 1, hi);                                               // 陰影正下方的受光線
-        for (let i = 0; i < 5; i++) { const v = hash(i + fr * 6, 11); R(1 + v % 13, 3 + (v >> 4) % 9, 2, 1, adj(w, -.05)); }
+        for (let i = 0; i < 5; i++) { const v = hash(i + fr * 6, 11); R(1 + v % 13, 3 + (v >>> 4) % 9, 2, 1, adj(w, -.05)); }
         if (theme === 'wuxia') { for (const x of [0, 5, 10, 15]) R(x, 2, 1, 14, lo); }      // 木構直柱
         else if (theme === 'literati') { R(0, 11, 16, 5, lo); R(0, 11, 16, 1, dk); }        // 磚砌牆裙
         else { R(0, 8, 16, 1, lo); }                                                        // 腰帶
@@ -395,7 +399,7 @@ const GFX = (() => {
       case 'u': {                                 // 跑道：紅色 PU。低四位＝邊線（鄰格算出來），高位＝雜訊變化
         R(0, 0, 16, 16, '#a8462f');
         const v0 = (fr >> 4) & 3;
-        for (let i = 0; i < 14; i++) { const v = hash(i + v0 * 7, 29); R(v % 16, (v >> 4) % 16, 1, 1, (v >> 9) & 1 ? '#b25138' : '#993d29'); }
+        for (let i = 0; i < 14; i++) { const v = hash(i + v0 * 7, 29); R(v % 16, (v >>> 4) % 16, 1, 1, (v >>> 9) & 1 ? '#b25138' : '#993d29'); }
         /* 縱向分道線：左右都還是跑道時才畫，跑道鋪成一整圈才會連起來 */
         if (!(fr & 2) && !(fr & 8)) R(15, 0, 1, 16, '#c88a78');
         const LW = '#f2f4ea';
@@ -449,7 +453,7 @@ const GFX = (() => {
           R(0, y + 2, 16, 3, '#aaa497');                              // 座位面
           for (let x = 3; x < 16; x += 5) R(x, y + 2, 1, 3, '#8f8a7c');  // 座位分隔
         }
-        for (let i = 0; i < 4; i++) { const v = hash(i + (fr & 3) * 5, 13); R(v % 15, (v >> 4) % 15, 2, 1, '#a79e90'); }
+        for (let i = 0; i < 4; i++) { const v = hash(i + (fr & 3) * 5, 13); R(v % 15, (v >>> 4) % 15, 2, 1, '#a79e90'); }
         break;
       case 'o': ground();                         // 停好的腳踏車（正面看的一排車頭）
         R(0, 13, 16, 2, '#9a968c');                                   // 停車格的地面標線
@@ -490,7 +494,7 @@ const GFX = (() => {
         R(0, 12, 16, 1, '#523620');
         break;
       case '3': R(0, 0, 16, 16, '#c8bca4');       // 爬滿藤蔓的舊牆
-        for (let i = 0; i < 7; i++) { const v = hash(i + (fr & 3) * 3, 31); R(v % 15, (v >> 4) % 12, 2, 1, '#a89c84'); }
+        for (let i = 0; i < 7; i++) { const v = hash(i + (fr & 3) * 3, 31); R(v % 15, (v >>> 4) % 12, 2, 1, '#a89c84'); }
         for (const x of [1, 6, 10, 14]) { R(x, 0, 1, 16, '#3a6a38'); R(x + 1, 3, 1, 11, '#4c8a46'); }
         for (const [x, y] of [[2, 4], [7, 8], [11, 2], [14, 10], [4, 12], [12, 6], [8, 14]]) { R(x, y, 2, 2, '#5aa04c'); R(x, y, 1, 1, '#7cc266'); }
         break;
@@ -538,13 +542,13 @@ const GFX = (() => {
         R(0, 14, 16, 2, '#8a7a4a'); break;
       case 's': {                                   // 沙坑：細沙，看起來就是地面，走得過去
         R(0, 0, 16, 16, '#e7d3a4');
-        for (let i = 0; i < 7; i++) { const v = hash(i + fr * 4, 3); R(v % 15, (v >> 4) % 15, 2, 1, '#d8c294'); }
+        for (let i = 0; i < 7; i++) { const v = hash(i + fr * 4, 3); R(v % 15, (v >>> 4) % 15, 2, 1, '#d8c294'); }
         for (const [x, y] of [[[3, 5], [11, 9]], [[6, 2], [2, 12]], [[9, 6], [13, 13]], [[1, 8], [7, 14]]][fr & 3])
           R(x, y, 3, 1, '#f2e2ba');                                       // 被耙過的淺痕
         break; }
       case 'U': {                                   // 鞦韆架：一格一座，明顯是器材，走不過去
         R(0, 0, 16, 16, '#e7d3a4');
-        for (let i = 0; i < 5; i++) { const v = hash(i + 9, 3); R(v % 14, 10 + (v >> 4) % 6, 2, 1, '#d8c294'); }
+        for (let i = 0; i < 5; i++) { const v = hash(i + 9, 3); R(v % 14, 10 + (v >>> 4) % 6, 2, 1, '#d8c294'); }
         R(1, 2, 2, 12, '#8a6a4a'); R(13, 2, 2, 12, '#8a6a4a');            // 兩根立柱
         R(1, 2, 1, 12, '#a88a64'); R(13, 2, 1, 12, '#a88a64');
         R(0, 0, 16, 3, '#6a4f36'); R(0, 0, 16, 1, '#a88a64');             // 橫樑
@@ -627,21 +631,21 @@ const GFX = (() => {
         if (theme === 'school') {
           R(0, 0, 16, 1, lo); R(0, 0, 1, 16, lo);                    // 磚縫
           R(1, 1, 15, 1, hi); R(1, 1, 1, 15, hi);                    // 縫旁受光
-          for (let i = 0; i < 9; i++) { const v = hash(i + fr * 7, 21); R(2 + v % 13, 2 + (v >> 4) % 13, 1, 1, (v >> 9) & 1 ? hi : lo); }
+          for (let i = 0; i < 9; i++) { const v = hash(i + fr * 7, 21); R(2 + v % 13, 2 + (v >>> 4) % 13, 1, 1, (v >>> 9) & 1 ? hi : lo); }
         } else {
           const off = (fr & 1) ? 3 : 10;                             // 上下排的板頭錯開
           for (let y = 0; y < 16; y += 5) {
             R(0, y, 16, 1, dk);                                      // 板縫
             R(0, y + 1, 16, 1, hi);                                  // 板面上緣受光
             R((off + y) % 15, y + 1, 1, 4, lo);                      // 木板接頭
-            for (let i = 0; i < 2; i++) { const v = hash(i + y + fr * 3, 5); R(v % 12, y + 2 + (v >> 4) % 2, 3, 1, lo); }
+            for (let i = 0; i < 2; i++) { const v = hash(i + y + fr * 3, 5); R(v % 12, y + 2 + (v >>> 4) % 2, 3, 1, lo); }
           }
         }
         break;
       }
       case 'w': {                                   // 室內牆：只有「下面就是房間地板」的那一排才有護牆板
         R(0, 0, 16, 16, T.iwall);
-        for (let i = 0; i < 4; i++) { const v = hash(i + fr * 5, 17); R(1 + v % 13, 1 + (v >> 4) % 8, 2, 1, adj(T.iwall, -.05)); }
+        for (let i = 0; i < 4; i++) { const v = hash(i + fr * 5, 17); R(1 + v % 13, 1 + (v >>> 4) % 8, 2, 1, adj(T.iwall, -.05)); }
         if (fr & 1) { R(0, 10, 16, 6, T.iwall2); R(0, 10, 16, 1, adj(T.iwall2, -.30)); R(0, 15, 16, 1, adj(T.iwall2, -.40)); }
         if (fr & 2) { R(14, 0, 2, 16, adj(T.iwall, -.10)); R(15, 0, 1, 16, adj(T.iwall, -.22)); }   // 右邊是房間：右緣收邊
         if (fr & 4) { R(0, 0, 2, 16, adj(T.iwall, -.10)); R(0, 0, 1, 16, adj(T.iwall, -.22)); }     // 左邊是房間：左緣收邊
@@ -954,5 +958,121 @@ const GFX = (() => {
     cache.set(key, cv); return cv;
   }
 
-  return { person, tile, weapon, weaponMon, special, chest, draft, building, THEMES, adj, hue, star, pxEllipse, el, OUT };
+  /* ============================================================
+     校園建築：整棟畫成一張圖，不是把同一塊 16×16 磚重複鋪
+     ------------------------------------------------------------
+     為什麼要這樣做：一個字元只能對應一張固定的磚，屋頂那格
+     永遠不知道自己是不是角落，所以拼出來一定是平的、重複的。
+     這裡直接在 96×80 的畫布上畫，弧形屋簷、轉角柱、招牌才做得出來。
+
+     碰撞不放在這裡。建築宣告自己佔幾格（cells），地圖底下那塊
+     一定要是走不過去的字元，門的位置一定要是門 —— 由 checker 擋著，
+     兩份資料不會各走各的（那正是舊版空氣牆的來源）。
+     ============================================================ */
+  const CAMPUS = {
+    clinic: { w: 6, h: 5, door: [2, 4], name: '保健室',
+      roof: '#c8443c', roof2: '#e0685c', roof3: '#8e2a26', mark: 'cross' },
+    store:  { w: 6, h: 5, door: [2, 4], name: '福利社',
+      roof: '#3a68b8', roof2: '#5a8ad8', roof3: '#244a8e', mark: 'shop' },
+  };
+  function campus(kind) {
+    const key = 'camp:' + kind; if (cache.has(key)) return cache.get(key);
+    const C = CAMPUS[kind] || CAMPUS.clinic;
+    const W = C.w * 16, H = C.h * 16, SH = 8;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H + SH;
+    const g = cv.getContext('2d');
+    const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+
+    const ROOF_H = Math.round(H * 0.44);          // 屋頂佔的高度
+    const WALL_Y = ROOF_H + 6;                     // 牆從哪裡開始
+
+    /* ---- 落地陰影 ---- */
+    R(4, H - 2, W - 8, SH, 'rgba(0,0,0,.20)');
+    R(7, H + 2, W - 14, SH - 4, 'rgba(0,0,0,.14)');
+
+    /* ---- 屋頂：上窄下寬的弧形，轉角是圓的 ---- */
+    const inset = y => Math.round(11 * Math.pow(1 - y / ROOF_H, 0.62));
+    for (let y = 0; y < ROOF_H; y++) {
+      const i = inset(y), x0 = i, w = W - i * 2;
+      const t = y / ROOF_H;
+      let col = C.roof;
+      if (t < 0.18) col = C.roof2;                 // 上緣受光
+      else if (t > 0.76) col = C.roof3;            // 下緣壓深
+      R(x0, y, w, 1, col);
+      if (y === 0) R(x0, y, w, 1, adj(C.roof2, .30));
+    }
+    /* 瓦的直溝：每 8 px 一條，兩側跟著弧線縮進去 */
+    for (let x = 8; x < W; x += 8) {
+      for (let y = 2; y < ROOF_H - 2; y++) { const i = inset(y); if (x > i + 1 && x < W - i - 1) R(x, y, 1, 1, adj(C.roof, -.16)); }
+    }
+    /* 屋簷：最下面三層，一層比一層深，最後壓一條黑邊 */
+    R(0, ROOF_H, W, 3, C.roof3);
+    R(0, ROOF_H, W, 1, adj(C.roof3, .22));
+    R(0, ROOF_H + 3, W, 2, adj(C.roof3, -.42));
+    R(0, ROOF_H + 5, W, 1, 'rgba(0,0,0,.30)');
+
+    /* ---- 屋頂上的招牌 ---- */
+    {
+      const sw = 30, sh = 18, sx = Math.round((W - sw) / 2), sy = Math.round(ROOF_H * 0.30);
+      R(sx - 1, sy - 1, sw + 2, sh + 2, '#d8d2c4');
+      R(sx, sy, sw, sh, '#fbf8f0'); R(sx, sy, sw, 1, '#ffffff');
+      R(sx, sy + sh - 1, sw, 1, '#cdc7b8');
+      if (C.mark === 'cross') {                    // 保健室：紅十字
+        R(sx + sw / 2 - 2, sy + 3, 4, 12, '#d83a34');
+        R(sx + 5, sy + sh / 2 - 2, sw - 10, 4, '#d83a34');
+      } else {                                     // 福利社：黃色貨牌
+        R(sx + 4, sy + 4, sw - 8, sh - 8, '#e8a030');
+        R(sx + 4, sy + 4, sw - 8, 1, '#f8c860');
+        R(sx + 7, sy + 7, sw - 14, 2, '#8a5a18'); R(sx + 7, sy + 11, sw - 18, 2, '#8a5a18');
+      }
+    }
+
+    /* ---- 牆體 ---- */
+    R(0, WALL_Y, W, H - WALL_Y, '#f0ece0');
+    R(0, WALL_Y, W, 2, '#ded8c8');                 // 屋簷投下的陰影
+    R(0, WALL_Y + 2, W, 1, '#fbf8ee');
+    for (let i = 0; i < 26; i++) { const v = hash(i, 7); R(v % W, WALL_Y + 4 + (v >>> 5) % (H - WALL_Y - 12), 2, 1, '#e6e1d4'); }
+
+    /* ---- 轉角柱 ---- */
+    for (const x of [0, W - 7]) {
+      R(x, WALL_Y, 7, H - WALL_Y, '#e4dfd2');
+      R(x, WALL_Y, 1, H - WALL_Y, '#fbf8ee');
+      R(x + 6, WALL_Y, 1, H - WALL_Y, '#bdb7a8');
+      R(x, H - 6, 7, 6, '#c8c2b2'); R(x, H - 6, 7, 1, '#ded8c8');
+    }
+
+    /* ---- 窗戶（左右各一扇大窗）---- */
+    const winY = WALL_Y + 7, winH = H - WALL_Y - 20;
+    for (const wx of [10, W - 10 - 24]) {
+      R(wx - 1, winY - 1, 26, winH + 2, '#8a9098');
+      R(wx, winY, 24, winH, '#7fb4d8');
+      R(wx, winY, 24, Math.round(winH * 0.42), '#bfe0f2');
+      R(wx + 2, winY + 2, 7, 4, '#eaf7ff');        // 反光
+      R(wx + 11, winY, 2, winH, '#8a9098');        // 中框
+      R(wx, winY + Math.round(winH / 2), 24, 1, '#8a9098');
+      R(wx - 2, winY + winH, 28, 2, '#ded8c8');    // 窗台
+      R(wx - 2, winY + winH + 2, 28, 1, '#b5afa0');
+    }
+
+    /* ---- 門：正中央的雙開玻璃門 ---- */
+    {
+      const dw = 22, dx = Math.round((W - dw) / 2), dy = WALL_Y + 6;
+      R(dx - 2, dy - 2, dw + 4, H - dy + 2, '#5a6a78');
+      R(dx, dy, dw, H - dy - 4, '#a8d4ee');
+      R(dx, dy, dw, 4, '#d6efff');
+      R(dx + dw / 2 - 1, dy, 2, H - dy - 4, '#5a6a78');       // 中縫
+      R(dx + dw / 2 - 5, dy + 14, 2, 5, '#42505c');           // 門把
+      R(dx + dw / 2 + 3, dy + 14, 2, 5, '#42505c');
+      R(dx - 5, H - 4, dw + 10, 4, '#cdc7b8');                // 台階
+      R(dx - 5, H - 4, dw + 10, 1, '#e4dfd2');
+      R(dx - 8, H - 1, dw + 16, 1, '#ada798');
+    }
+
+    /* ---- 牆基 ---- */
+    R(0, H - 2, W, 2, '#a8a296');
+
+    cache.set(key, cv); return cv;
+  }
+
+  return { person, tile, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
 })();
