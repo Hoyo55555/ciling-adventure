@@ -970,14 +970,130 @@ const GFX = (() => {
      兩份資料不會各走各的（那正是舊版空氣牆的來源）。
      ============================================================ */
   const CAMPUS = {
-    clinic: { w: 6, h: 5, door: [2, 4], name: '保健室',
+    /* style: 'hut' ＝ 斜屋頂的小房子（保健室、福利社）
+              'block' ＝ 平屋頂的教學樓，兩層、外走廊、可以拉很長 */
+    clinic:  { style: 'hut', w: 6, h: 5, door: [2, 4], name: '保健室',
       roof: '#c8443c', roof2: '#e0685c', roof3: '#8e2a26', mark: 'cross' },
-    store:  { w: 6, h: 5, door: [2, 4], name: '福利社',
+    store:   { style: 'hut', w: 6, h: 5, door: [2, 4], name: '福利社',
       roof: '#3a68b8', roof2: '#5a8ad8', roof3: '#244a8e', mark: 'shop' },
+    /* 教學樓：門在正中央那一跨，左右各排教室。w 可以改，長短都畫得出來 */
+    block:   { style: 'block', w: 12, h: 7, door: [5, 6], name: '教學樓', band: '#c8443c' },
+    block8:  { style: 'block', w: 8,  h: 7, door: [3, 6], name: '教學樓（短）', band: '#c8443c' },
+    oldblock:{ style: 'block', w: 10, h: 7, door: [4, 6], name: '舊校舍', band: '#7a6a52', old: 1 },
   };
+  /* 教學樓／舊校舍：平屋頂、兩層、外走廊。
+     重點是「長」但不能「重複」—— 兩端有樓梯間、正中央有大門與校名，
+     中間的教室跨才是重複的，而且每一跨的窗戶開合不一樣。 */
+  function campusBlock(C) {
+    const W = C.w * 16, H = C.h * 16, SH = 8;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H + SH;
+    const g = cv.getContext('2d');
+    const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+    const old = !!C.old;
+    const CON = old ? '#b6ae9c' : '#d8d2c2';      // 水泥
+    const CON2 = old ? '#948c7a' : '#b8b2a2';
+    const CON3 = old ? '#6e6858' : '#9a9484';
+    const TILE = old ? '#cdbfa2' : '#e8d8bc';     // 二丁掛磚
+    const TILE2 = old ? '#ab9d80' : '#cfbfa2';
+    const GLASS = old ? '#9ab0b8' : '#bfe0f2', GLASS2 = old ? '#6e848c' : '#7fb4d8';
+    const FRAME = old ? '#6a7078' : '#8a9098';
+
+    const ROOF_H = 30, F2 = 34, F2H = 34, SLAB = F2 + F2H, F1 = SLAB + 6, BASE = H - 6;
+
+    R(4, H - 2, W - 8, SH, 'rgba(0,0,0,.20)');    // 落地陰影
+
+    /* ---- 平屋頂：女兒牆圍一圈，裡面是水泥屋頂 ---- */
+    R(0, 0, W, ROOF_H, CON2);
+    R(3, 3, W - 6, ROOF_H - 6, CON);                       // 屋頂面
+    for (let x = 10; x < W - 10; x += 24) R(x, 5, 1, ROOF_H - 10, CON2);   // 洩水溝
+    R(0, 0, W, 3, adj(CON, .16));                          // 女兒牆上緣受光
+    R(0, ROOF_H - 4, W, 4, CON3);                          // 女兒牆下緣壓深
+    R(0, ROOF_H - 1, W, 1, 'rgba(0,0,0,.28)');
+    /* 屋頂上的雜物：水塔與通風口，只擺一邊，不要對稱 */
+    R(W - 26, 6, 12, 10, '#8ac0d8'); R(W - 26, 6, 12, 2, '#b2dcee'); R(W - 26, 15, 12, 1, '#5a90a8');
+    R(W - 24, 16, 2, 5, CON3); R(W - 18, 16, 2, 5, CON3);
+    for (const x of [12, 20]) { R(x, 8, 5, 5, CON3); R(x, 8, 5, 1, CON); }
+
+    /* 女兒牆到二樓之間那一段：屋簷的厚度。沒填就會透出背景，屋頂看起來像浮著 */
+    R(0, ROOF_H, W, F2 - ROOF_H, CON3);
+    R(0, ROOF_H, W, 1, adj(CON3, .18));
+    R(0, F2 - 1, W, 1, 'rgba(0,0,0,.30)');
+
+    /* ---- 二樓：外走廊 ---- */
+    R(0, F2, W, F2H, TILE);
+    for (let y = F2 + 3; y < SLAB; y += 6) R(0, y, W, 1, TILE2);          // 二丁掛的橫縫
+    R(0, F2, W, 2, 'rgba(0,0,0,.18)');                                     // 屋簷陰影
+    /* 教室窗：每 32px 一跨，兩端留給樓梯間 */
+    const bayL = 16, bayR = W - 16;
+    for (let x = bayL + 4; x + 24 <= bayR - 4; x += 32) {
+      R(x - 1, F2 + 8, 26, 16, FRAME);
+      R(x, F2 + 9, 24, 14, GLASS2); R(x, F2 + 9, 24, 7, GLASS);
+      R(x + 11, F2 + 9, 2, 14, FRAME);
+      if (((x / 32) | 0) % 3 === 1) R(x + 13, F2 + 9, 10, 14, adj(GLASS, .18));   // 有的窗開著，不要每扇一樣
+      R(x + 2, F2 + 11, 6, 3, '#eaf7ff');
+    }
+    /* 外走廊欄杆：整條，但上緣扶手是連續的，所以看起來是一條不是一格格 */
+    R(0, SLAB - 12, W, 3, adj(CON, .10)); R(0, SLAB - 12, W, 1, adj(CON, .26));
+    for (let x = 2; x < W; x += 4) R(x, SLAB - 9, 1, 7, CON2);
+    R(0, SLAB - 3, W, 3, CON2);
+
+    /* ---- 樓板 ---- */
+    R(0, SLAB, W, 6, CON); R(0, SLAB, W, 1, adj(CON, .22)); R(0, SLAB + 5, W, 1, CON3);
+    if (C.band) { R(0, SLAB + 2, W, 2, C.band); }                          // 學校常見的色帶
+
+    /* ---- 一樓 ---- */
+    R(0, F1, W, BASE - F1, TILE);
+    for (let y = F1 + 3; y < BASE; y += 6) R(0, y, W, 1, TILE2);
+    R(0, F1, W, 2, 'rgba(0,0,0,.16)');
+    for (let x = bayL + 4; x + 24 <= bayR - 4; x += 32) {
+      const dx2 = C.door[0] * 16;
+      if (x < dx2 + 24 && x + 24 > dx2) continue;                          // 大門那一跨不放窗
+      R(x - 1, F1 + 6, 26, 18, FRAME);
+      R(x, F1 + 7, 24, 16, GLASS2); R(x, F1 + 7, 24, 8, GLASS);
+      R(x + 11, F1 + 7, 2, 16, FRAME);
+      R(x + 2, F1 + 9, 6, 3, '#eaf7ff');
+      R(x - 2, F1 + 24, 28, 2, CON2);
+    }
+
+    /* ---- 兩端的樓梯間：整片實牆＋直長窗，讓長條建築有「端點」 ---- */
+    for (const sx of [0, W - 16]) {
+      R(sx, F2, 16, BASE - F2, CON);
+      R(sx, F2, 16, 2, 'rgba(0,0,0,.18)');
+      R(sx + (sx ? 0 : 15), F2, 1, BASE - F2, CON2);
+      R(sx + 5, F2 + 8, 6, 20, FRAME); R(sx + 6, F2 + 9, 4, 18, GLASS2);
+      R(sx + 6, F2 + 9, 4, 6, GLASS);
+      R(sx + 5, F1 + 6, 6, 18, FRAME); R(sx + 6, F1 + 7, 4, 16, GLASS2);
+      R(sx + 6, F1 + 7, 4, 5, GLASS);
+    }
+
+    /* ---- 正中央的大門與校名 ---- */
+    {
+      const dw = 26, dx = C.door[0] * 16 + 8 - dw / 2, dy = F1 + 4;
+      R(dx - 6, SLAB - 2, dw + 12, 8, CON);                                // 門廊雨遮
+      R(dx - 6, SLAB - 2, dw + 12, 1, adj(CON, .22));
+      R(dx - 6, SLAB + 5, dw + 12, 1, CON3);
+      R(dx - 4, F1 + 2, 3, BASE - F1 - 2, CON);                            // 門廊柱
+      R(dx + dw + 1, F1 + 2, 3, BASE - F1 - 2, CON);
+      R(dx - 2, dy - 2, dw + 4, BASE - dy + 2, '#5a6a78');
+      R(dx, dy, dw, BASE - dy - 2, '#a8d4ee'); R(dx, dy, dw, 5, '#d6efff');
+      R(dx + dw / 2 - 1, dy, 2, BASE - dy - 2, '#5a6a78');
+      R(dx + dw / 2 - 6, dy + 16, 2, 5, '#42505c'); R(dx + dw / 2 + 4, dy + 16, 2, 5, '#42505c');
+      /* 校名牌：掛在雨遮上方 */
+      const sw = 34, sx2 = dx + dw / 2 - sw / 2;
+      R(sx2 - 1, SLAB - 13, sw + 2, 11, CON3);
+      R(sx2, SLAB - 12, sw, 9, old ? '#9a9080' : '#f6f2e4');
+      for (let i = 0; i < 4; i++) R(sx2 + 4 + i * 8, SLAB - 10, 5, 5, old ? '#6e6858' : '#7a6a52');
+      R(dx - 8, BASE, dw + 16, 4, CON2); R(dx - 8, BASE, dw + 16, 1, CON);  // 台階
+    }
+
+    /* ---- 牆基 ---- */
+    R(0, BASE, W, H - BASE, CON2); R(0, H - 2, W, 2, CON3);
+    return cv;
+  }
   function campus(kind) {
     const key = 'camp:' + kind; if (cache.has(key)) return cache.get(key);
     const C = CAMPUS[kind] || CAMPUS.clinic;
+    if (C.style === 'block') { const cv0 = campusBlock(C); cache.set(key, cv0); return cv0; }
     const W = C.w * 16, H = C.h * 16, SH = 8;
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H + SH;
     const g = cv.getContext('2d');
