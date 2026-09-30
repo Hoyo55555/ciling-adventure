@@ -198,6 +198,23 @@ const GFX = (() => {
                 wall: '#5a5670', wall2: '#3a3650', iwall: '#4a4660', iwall2: '#2e2b3e',
                 floor: '#6e6a80', floor2: '#4e4a60', rock: '#7a7690', lamp: '#b8a8f0',
                 flower: ['#8a7ad0', '#d0c8f8', '#ffffff'], fence: '#6a6480', fence2: '#46425a' },
+    /* 校園：水泥鋪面、學校草皮、二丁掛磚牆（校園改版用） */
+    t_campus: { ground: '#84c25f', ground2: '#68a746', path: '#cfcabb', path2: '#a9a393', pathStyle: 'slab',
+                tall: '#4f9a3f', tall2: '#8fd06a', tall3: '#2f6a2a',
+                leaf: '#5aa848', leaf2: '#8fd06a', leaf3: '#356b2c', trunk: '#7a5a34', treeStyle: 'round',
+                roof: '#c8443c', roof2: '#8e2a26', wall: '#e8e2d4', wall2: '#bdb5a2',
+                win: '#bfe0f2', win2: '#7fb4d8', door: '#5a6a78', door2: '#3e4a56',
+                fence: '#dcd8cc', fence2: '#a8a294', rock: '#a8a396', lamp: '#f8e878',
+                flower: ['#f06a92', '#ffd54a', '#ffffff'],
+                floor: '#e0dbcc', floor2: '#c2bcaa', iwall: '#f2eee2', iwall2: '#9ab8d8' },
+    /* 舊校舍：同一套但褪色、偏黃灰 */
+    t_oldwing:{ ground: '#8aa864', ground2: '#6e8c4c', path: '#b8b2a0', path2: '#948e7c', pathStyle: 'slab',
+                leaf: '#5a8a48', leaf2: '#86b068', leaf3: '#35562c', trunk: '#6a5230', treeStyle: 'round',
+                roof: '#8a6a52', roof2: '#5c432f', wall: '#cfc5ac', wall2: '#a29882',
+                win: '#9ab0b8', win2: '#6e848c', door: '#5a5248', door2: '#3a3630',
+                fence: '#b4ae9c', fence2: '#8a8472', rock: '#9a9488', lamp: '#d8cfa0',
+                flower: ['#c08a9a', '#d8c86a', '#e8e4d8'],
+                floor: '#c8c0ae', floor2: '#a8a08e', iwall: '#ddd6c4', iwall2: '#8a9aa8' },
     /* 鐘塔台：冷灰石階與金旗 */
     t_tower:  { ground: '#8ab08a', ground2: '#6a8e6a', path: '#c8c2ba', path2: '#9a948c', pathStyle: 'slab',
                 roof: '#4e4e60', roof2: '#30304a', leaf: '#5a9a6a', leaf2: '#8ac490', leaf3: '#36663f', trunk: '#5a5a52',
