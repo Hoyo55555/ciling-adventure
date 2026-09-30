@@ -1361,6 +1361,7 @@ function stampProps(L) {
       if (!rows[gy] || gx < 0 || gx >= rows[gy].length) continue;
       rows[gy][gx] = (y === C.h - 1) ? '#' : 'R';    // 最下面一列當牆，其餘當屋頂
     }
+    if (!C.door) continue;                           // door: null ＝ 進不去的建築，不蓋門
     const [dx, dy] = C.door;
     if (rows[by + dy] && rows[by + dy][bx + dx] !== undefined) rows[by + dy][bx + dx] = 'D';
   }

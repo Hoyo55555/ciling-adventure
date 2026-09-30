@@ -989,14 +989,21 @@ const GFX = (() => {
   const CAMPUS = {
     /* style: 'hut' ＝ 斜屋頂的小房子（保健室、福利社）
               'block' ＝ 平屋頂的教學樓，兩層、外走廊、可以拉很長 */
-    clinic:  { style: 'hut', w: 6, h: 5, door: [2, 4], name: '保健室',
+    /* over: 1 ＝ 圖往上多畫一格。斜屋頂的尖端會蓋到上面那一格，
+       但那一格仍然走得過去（走過去時人會被屋頂擋住一點，寶可夢也是這樣）。
+       這樣 footprint 內就能完全塗滿，底下的磚不會透出來。 */
+    clinic:  { style: 'hut', w: 6, h: 4, over: 1, door: [2, 3], name: '保健室',
       roof: '#c8443c', roof2: '#e0685c', roof3: '#8e2a26', mark: 'cross' },
-    store:   { style: 'hut', w: 6, h: 5, door: [2, 4], name: '福利社',
+    store:   { style: 'hut', w: 6, h: 4, over: 1, door: [2, 3], name: '福利社',
       roof: '#3a68b8', roof2: '#5a8ad8', roof3: '#244a8e', mark: 'shop' },
     /* 教學樓：門在正中央那一跨，左右各排教室。w 可以改，長短都畫得出來 */
     block:   { style: 'block', w: 12, h: 7, door: [5, 6], name: '教學樓', band: '#c8443c' },
     block8:  { style: 'block', w: 8,  h: 7, door: [3, 6], name: '教學樓（短）', band: '#c8443c' },
     oldblock:{ style: 'block', w: 10, h: 7, door: [4, 6], name: '舊校舍', band: '#7a6a52', old: 1 },
+    /* door: null ＝ 進不去的建築（警衛室、校門本來就不是給人進去的）。
+       護欄會跳過門的檢查，stampProps 也不會蓋出 D。 */
+    guard:   { style: 'guard', w: 3, h: 2, door: null, name: '警衛室' },
+    gate:    { style: 'gate',  w: 6, h: 2, door: null, name: '校門' },
   };
   /* 教學樓／舊校舍：平屋頂、兩層、外走廊。
      重點是「長」但不能「重複」—— 兩端有樓梯間、正中央有大門與校名，
@@ -1107,11 +1114,72 @@ const GFX = (() => {
     R(0, BASE, W, H - BASE, CON2); R(0, H - 2, W, 2, CON3);
     return cv;
   }
+  /* 警衛室：小小一間，重點是那扇大窗（警衛要看得到外面）。進不去。 */
+  function campusGuard(C) {
+    const W = C.w * 16, H = C.h * 16, SH = 6;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H + SH;
+    const g = cv.getContext('2d');
+    const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+    R(3, H - 2, W - 6, SH, 'rgba(0,0,0,.20)');
+    const RH = 13;
+    /* 斜屋頂。整個 footprint 一定要塗滿：透明的地方會讓底下蓋出來的
+       實心磚透出來，屋頂看起來就會比房子還寬。 */
+    for (let y = 0; y < RH; y++) { const t = y / RH;
+      R(0, y, W, 1, t < 0.2 ? '#e0685c' : t > 0.74 ? '#8e2a26' : '#c8443c'); }
+    for (let x = 6; x < W; x += 6) for (let y = 2; y < RH - 2; y++) R(x, y, 1, 1, '#ad3a33');
+    R(0, RH, W, 2, '#8e2a26'); R(0, RH + 2, W, 2, '#5f1d1a'); R(0, RH + 4, W, 1, '#3d120f');   // 不透明，半透明的線底下沒東西會變成空洞
+    /* 牆與大窗 */
+    R(0, RH + 5, W, H - RH - 5, '#e8e2d4');
+    R(0, RH + 5, W, 2, 'rgba(0,0,0,.16)');
+    R(2, RH + 9, W - 4, 12, '#8a9098');
+    R(3, RH + 10, W - 6, 10, '#7fb4d8'); R(3, RH + 10, W - 6, 5, '#bfe0f2');
+    for (let x = 3 + 10; x < W - 4; x += 11) R(x, RH + 10, 1, 10, '#8a9098');
+    R(5, RH + 12, 5, 3, '#eaf7ff');
+    R(1, RH + 21, W - 2, 2, '#bdb5a2');                       // 窗台
+    R(0, H - 3, W, 3, '#a8a296');
+    return cv;
+  }
+
+  /* 校門：兩根門柱夾一道拉門。整個是實心的，通學路是單向的，進來就出不去。 */
+  function campusGate(C) {
+    const W = C.w * 16, H = C.h * 16, SH = 6;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H + SH;
+    const g = cv.getContext('2d');
+    const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+    R(3, H - 2, W - 6, SH, 'rgba(0,0,0,.22)');
+    const PW = 18;
+    /* footprint 內一定要塗滿，柱頂與燈都收進來，不能超出去 */
+    /* 中間的拉門：直立鐵欄 */
+    R(PW, 0, W - PW * 2, H, '#6e7682');
+    R(PW, 0, W - PW * 2, 4, '#4e555f');                        // 門楣
+    R(PW, 4, W - PW * 2, 2, '#98a0ac');
+    for (let x = PW + 3; x < W - PW - 2; x += 5) R(x, 7, 2, H - 12, '#8a929e');
+    R(PW, H - 5, W - PW * 2, 3, '#4e555f');
+    R(PW, H - 2, W - PW * 2, 2, '#3a4048');
+    /* 兩根門柱 */
+    for (const px of [0, W - PW]) {
+      R(px, 0, PW, H, '#c9c2b0');
+      R(px, 7, 2, H - 7, '#e2dbc8');
+      R(px + PW - 2, 7, 2, H - 7, '#a59e8c');
+      for (let y = 12; y < H - 6; y += 7) R(px + 2, y, PW - 4, 1, '#b6af9d');        // 磚縫
+      R(px, 0, PW, 7, '#b6af9d'); R(px, 0, PW, 2, '#dad3c0');                        // 柱頭
+      R(px + PW / 2 - 3, 2, 6, 4, '#f4e8a0'); R(px + PW / 2 - 3, 2, 6, 1, '#fff6c8'); // 柱頂的燈
+      R(px, H - 4, PW, 4, '#a59e8c'); R(px, H - 1, PW, 1, '#8a8478');                // 柱基
+    }
+    /* 左柱上的校名牌 */
+    R(2, 10, PW - 4, 16, '#f2eee2');
+    R(2, 10, PW - 4, 1, '#ffffff'); R(2, 25, PW - 4, 1, '#c9c2b0');
+    for (let i = 0; i < 3; i++) R(5, 12 + i * 5, 8, 3, '#4a5a70');
+    return cv;
+  }
+
   function campus(kind) {
     const key = 'camp:' + kind; if (cache.has(key)) return cache.get(key);
     const C = CAMPUS[kind] || CAMPUS.clinic;
     if (C.style === 'block') { const cv0 = campusBlock(C); cache.set(key, cv0); return cv0; }
-    const W = C.w * 16, H = C.h * 16, SH = 8;
+    if (C.style === 'guard') { const cv0 = campusGuard(C); cache.set(key, cv0); return cv0; }
+    if (C.style === 'gate')  { const cv0 = campusGate(C);  cache.set(key, cv0); return cv0; }
+    const W = C.w * 16, H = (C.h + (C.over || 0)) * 16, SH = 8;   // H 是圖的高度，含往上超出的部分
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H + SH;
     const g = cv.getContext('2d');
     const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
@@ -1124,7 +1192,9 @@ const GFX = (() => {
     R(7, H + 2, W - 14, SH - 4, 'rgba(0,0,0,.14)');
 
     /* ---- 屋頂：上窄下寬的弧形，轉角是圓的 ---- */
-    const inset = y => Math.round(11 * Math.pow(1 - y / ROOF_H, 0.62));
+    /* 弧線只在「往上超出去的那一格」裡收，第 15 列以後就是滿版，
+       footprint 內才不會有透明的地方 */
+    const inset = y => y >= 15 ? 0 : Math.round(11 * (1 - y / 15));
     for (let y = 0; y < ROOF_H; y++) {
       const i = inset(y), x0 = i, w = W - i * 2;
       const t = y / ROOF_H;
@@ -1142,7 +1212,7 @@ const GFX = (() => {
     R(0, ROOF_H, W, 3, C.roof3);
     R(0, ROOF_H, W, 1, adj(C.roof3, .22));
     R(0, ROOF_H + 3, W, 2, adj(C.roof3, -.42));
-    R(0, ROOF_H + 5, W, 1, 'rgba(0,0,0,.30)');
+    R(0, ROOF_H + 5, W, 1, adj(C.roof3, -.55));   // 不透明；半透明的線底下沒東西會變成空洞
 
     /* ---- 屋頂上的招牌 ---- */
     {
