@@ -106,6 +106,12 @@ const TILES = {
   '6': { walk: 0, name: '資源回收桶' },
   '7': { walk: 0, name: '時鐘（走廊／禮堂）' },
   '8': { walk: 0, name: '溫室' },
+  /* ---- 通學路（校外）---- */
+  '0': { walk: 1, name: '斑馬線' },
+  '!': { walk: 0, name: '電線桿' },
+  '%': { walk: 0, name: '停在路邊的機車' },
+  ':': { walk: 0, name: '公車站牌' },
+  ';': { walk: 1, name: '車道分向線（鋪在柏油路上）' },
 };
 for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
 

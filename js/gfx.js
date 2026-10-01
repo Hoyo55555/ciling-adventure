@@ -198,6 +198,15 @@ const GFX = (() => {
                 wall: '#5a5670', wall2: '#3a3650', iwall: '#4a4660', iwall2: '#2e2b3e',
                 floor: '#6e6a80', floor2: '#4e4a60', rock: '#7a7690', lamp: '#b8a8f0',
                 flower: ['#8a7ad0', '#d0c8f8', '#ffffff'], fence: '#6a6480', fence2: '#46425a' },
+    /* 通學路（校外）：柏油路、人行道、行道樹。和校園是兩套語彙 */
+    t_street: { ground: '#c6c0b4', ground2: '#a8a295', path: '#4e4e58', path2: '#3c3c45', pathStyle: 'road',
+                tall: '#4f9a3f', tall2: '#8fd06a', tall3: '#2f6a2a', grassBed: '#5e7a44',
+                leaf: '#4e9440', leaf2: '#86c468', leaf3: '#2e5e28', trunk: '#6a5238', treeStyle: 'round',
+                roof: '#b05a48', roof2: '#7e3a2e', wall: '#e4ddcc', wall2: '#b8b0a0',
+                win: '#bfe0f2', win2: '#7fb4d8', door: '#6a5238', door2: '#473424',
+                fence: '#c8ccd2', fence2: '#8e949c', rock: '#9a958c', lamp: '#ffe9a8',
+                flower: ['#f06a92', '#ffd54a', '#ffffff'],
+                floor: '#d8d2c4', floor2: '#b6b0a2', iwall: '#efe9db', iwall2: '#9ab8d8' },
     /* 校園：水泥鋪面、學校草皮、二丁掛磚牆（校園改版用） */
     t_campus: { ground: '#84c25f', ground2: '#68a746', path: '#cfcabb', path2: '#a9a393', pathStyle: 'slab',
                 tall: '#4f9a3f', tall2: '#8fd06a', tall3: '#2f6a2a',
@@ -267,6 +276,18 @@ const GFX = (() => {
       case ',': {
         R(0, 0, 16, 16, T.path);
         const hi = adj(T.path, .07), lo = T.path2;
+        if (T.pathStyle === 'road') {                                   // 柏油路：粗骨料＋中央虛線
+          const v0 = fr & 3, m = (fr >> 2) & 15;
+          for (let i = 0; i < 16; i++) { const v = hash(i + v0 * 5, 23);
+            R(v % 16, (v >>> 4) % 16, 1, 1, (v >>> 9) & 1 ? adj(T.path, .08) : adj(T.path, -.08)); }
+          /* 分向線不自動畫：4 格寬的路沒有「正中央那一格」，自動畫會畫到兩側去。
+             要分向線的話，地圖自己放一排 ; （車道分向線）。 */
+          if (m & 1) R(0, 0, 16, 1, adj(T.path, .20));                  // 和人行道交界
+          if (m & 4) R(0, 15, 16, 1, adj(T.path, .20));
+          if (m & 2) R(15, 0, 1, 16, adj(T.path, .20));
+          if (m & 8) R(0, 0, 1, 16, adj(T.path, .20));
+          break;
+        }
         if (T.pathStyle === 'tile') {                                  // 方磚
           R(0, 7, 16, 1, lo); R(7, 0, 1, 7, lo); R(15, 8, 1, 8, lo);
           R(0, 8, 16, 1, hi); R(8, 0, 1, 7, hi);
@@ -289,7 +310,11 @@ const GFX = (() => {
           R(3, 10, 2, 1, '#e04a4a'); R(11, 3, 1, 2, '#e04a4a'); R(4, 4, 1, 1, '#16120e'); R(12, 11, 2, 2, '#16120e');
           break;
         }
-        ground(fr);                                   // 底下先鋪一般草地，長草叢再長在上面
+        /* 底：一般地圖是草地；街道這種鋪面地圖要先鋪一塊植栽土，
+           不然草會看起來像從水泥地裡長出來的 */
+        if (T.grassBed) { R(0, 0, 16, 16, T.grassBed);
+          for (let i = 0; i < 9; i++) { const v = hash(i + fr * 3, 19); R(v % 16, (v >>> 4) % 16, 2, 1, adj(T.grassBed, (v >>> 9) & 1 ? .10 : -.12)); } }
+        else ground(fr);                              // 底下先鋪一般草地，長草叢再長在上面
         {
           const dk = T.tall3 || '#276a2a', md = T.tall || '#3f9a3a', lt = T.tall2 || '#86d860';
           const CLUMPS = [[[2, 13], [8, 15], [13, 12]], [[4, 15], [11, 14], [14, 10]],
@@ -305,7 +330,9 @@ const GFX = (() => {
         }
         break;
       case 'T':
-        ground();
+        if (T.grassBed) { R(0, 0, 16, 16, T.grassBed);
+          for (let i = 0; i < 7; i++) { const v = hash(i + 11, 19); R(v % 16, (v >>> 4) % 16, 2, 1, adj(T.grassBed, -.10)); } }
+        else ground();
         if (T.treeStyle === 'bamboo') {
           R(0, 0, 16, 16, '#2e4a22');
           for (const [x, o] of [[1, 0], [6, 5], [11, 2]]) { R(x, 0, 3, 16, '#8ab858'); R(x, 0, 1, 16, '#b8dc80'); R(x + 2, 0, 1, 16, '#5a8a38'); R(x, (4 + o) % 16, 3, 1, '#3e6a2a'); R(x, (11 + o) % 16, 3, 1, '#3e6a2a'); }
@@ -551,6 +578,43 @@ const GFX = (() => {
         R(2, 3, 3, 2, '#ffffff'); R(10, 7, 3, 2, '#eaf6fa');
         for (const [x, y] of [[3, 10], [7, 11], [12, 9]]) { R(x, y, 2, 3, '#4a8a4a'); R(x, y, 1, 1, '#6aba5a'); }
         R(0, 14, 16, 2, '#7a9098');
+        break;
+      /* ---- 通學路（校外）---- */
+      case '0': R(0, 0, 16, 16, T.path);          // 斑馬線
+        for (let i = 0; i < 10; i++) { const v = hash(i + (fr & 3) * 5, 23); R(v % 16, (v >>> 4) % 16, 1, 1, adj(T.path, -.07)); }
+        for (let x = 1; x < 16; x += 5) { R(x, 0, 3, 16, '#eceadf'); R(x, 0, 1, 16, '#ffffff'); }
+        break;
+      case '!': ground();                          // 電線桿
+        R(6, 0, 4, 16, '#9a8f7e'); R(6, 0, 1, 16, '#b8ad9a'); R(9, 0, 1, 16, '#7d7262');
+        for (let y = 3; y < 16; y += 5) R(6, y, 4, 1, '#8a7f6e');
+        R(1, 2, 14, 1, '#4a4a52'); R(2, 5, 12, 1, '#4a4a52');          // 橫擔
+        R(3, 1, 1, 2, '#6a6a74'); R(12, 1, 1, 2, '#6a6a74');
+        R(4, 7, 8, 4, '#6a6a74'); R(4, 7, 8, 1, '#8a8a94');            // 變壓器
+        break;
+      case '%': ground();                          // 停在路邊的機車
+        R(0, 13, 16, 2, adj(T.ground, -.12));
+        for (const [x0, col] of [[1, '#c83838'], [9, '#3a68b8']]) {
+          R(x0 + 1, 3, 4, 2, '#2a2a30'); R(x0, 4, 6, 1, '#4a4a52');     // 龍頭
+          R(x0 + 1, 5, 4, 4, col); R(x0 + 1, 5, 4, 1, adj(col, .3));
+          R(x0, 9, 6, 2, '#3a3a44'); R(x0 + 1, 11, 4, 4, '#26262e');    // 坐墊與前輪
+          R(x0 + 2, 11, 1, 4, '#44444e');
+          R(x0 + 1, 15, 4, 1, 'rgba(0,0,0,.3)');
+        }
+        break;
+      case ';': {                                  // 車道分向線（自己擺，走得過去）
+        g.drawImage(tile(theme, ',', fr & 3), 0, 0);
+        const m = (fr >> 2) & 15;
+        const vert = !(m & 1) && !(m & 4);           // 上下都還是分向線 ＝ 直向
+        if (vert) { for (let y = 1; y < 16; y += 6) R(7, y, 2, 4, '#e8d46a'); }
+        else { for (let x = 1; x < 16; x += 6) R(x, 7, 4, 2, '#e8d46a'); }
+        break;
+      }
+      case ':': ground();                          // 公車站牌
+        R(7, 4, 2, 12, '#8a8a92'); R(7, 4, 1, 12, '#b0b0b8');
+        R(5, 15, 6, 1, '#5a5a62');
+        R(2, 0, 12, 6, '#2a68a8'); R(2, 0, 12, 1, '#4a8ac8'); R(2, 5, 12, 1, '#1c4a7c');
+        R(3, 1, 10, 4, '#f4f2ea');
+        R(4, 2, 8, 1, '#2a68a8'); R(4, 3, 5, 1, '#6a7682');
         break;
       case 'X': R(0, 0, 16, 16, '#16120e'); break;
       /* ---- 城鎮地標 ---- */
@@ -1003,6 +1067,13 @@ const GFX = (() => {
     /* door: null ＝ 進不去的建築（警衛室、校門本來就不是給人進去的）。
        護欄會跳過門的檢查，stampProps 也不會蓋出 D。 */
     guard:   { style: 'guard', w: 3, h: 2, door: null, name: '警衛室' },
+    /* ---- 通學路（校外）的店面與住宅。style 'shopfront' ＝ 騎樓店面 ---- */
+    bfast:   { style: 'shopfront', w: 5, h: 4, over: 1, door: [2, 3], name: '早餐店',
+      awn: '#e8a030', awn2: '#b87818', sign: '#f4f0e4', signInk: '#8a4a20' },
+    cvs:     { style: 'shopfront', w: 6, h: 4, over: 1, door: [2, 3], name: '便利商店',
+      awn: '#3aa06a', awn2: '#247a4c', sign: '#f4f0e4', signInk: '#1f6b46', glassy: 1 },
+    flat:    { style: 'shopfront', w: 5, h: 5, over: 1, door: [2, 4], name: '公寓',
+      awn: '#8a8a92', awn2: '#62626a', sign: null, floors: 2, shutter: 1 },
     gate:    { style: 'gate',  w: 6, h: 2, door: null, name: '校門' },
   };
   /* 教學樓／舊校舍：平屋頂、兩層、外走廊。
@@ -1173,12 +1244,83 @@ const GFX = (() => {
     return cv;
   }
 
+  /* 騎樓店面／公寓：台灣街屋的樣子 —— 上面是住家，下面是店面，中間一道遮雨棚。
+     footprint 內一定塗滿；屋頂的女兒牆往上超出一格（over: 1）。 */
+  function shopFront(C) {
+    const W = C.w * 16, OV = C.over || 0, H = (C.h + OV) * 16, SH = 8;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H + SH;
+    const g = cv.getContext('2d');
+    const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+    const TILEC = '#ded5c2', TILE2 = '#bdb3a0', CON = '#cfc9bd', CON2 = '#a8a295', CON3 = '#847e72';
+    const GLASS = '#bfe0f2', GLASS2 = '#7fb4d8', FRAME = '#8a9098';
+    const floors = C.floors || 1;                       // 店面上面還有幾層住家
+    const SHOP_H = 30;                                  // 一樓店面的高度
+    const AWN = H - SHOP_H - 8;                         // 遮雨棚的位置
+    R(4, H - 2, W - 8, SH, 'rgba(0,0,0,.22)');
+
+    /* 屋頂女兒牆（超出的那一格） */
+    R(0, 0, W, 12, CON2); R(2, 2, W - 4, 8, CON); R(0, 0, W, 2, adj(CON, .18));
+    R(0, 10, W, 2, CON3);
+    /* 樓上住家 */
+    R(0, 12, W, AWN - 12, TILEC);
+    for (let y = 15; y < AWN; y += 6) R(0, y, W, 1, TILE2);
+    R(0, 12, W, 2, 'rgba(0,0,0,.16)');
+    for (let f = 0; f < floors; f++) {
+      const fy = 16 + f * Math.max(16, Math.floor((AWN - 18) / floors));
+      if (fy + 12 > AWN) break;
+      for (let x = 5; x + 12 <= W - 5; x += 18) {
+        R(x - 1, fy - 1, 14, 12, FRAME);
+        R(x, fy, 12, 10, GLASS2); R(x, fy, 12, 5, GLASS);
+        R(x + 5, fy, 2, 10, FRAME); R(x + 1, fy + 1, 4, 2, '#eaf7ff');
+        R(x - 2, fy + 11, 16, 2, CON2);                 // 窗台
+      }
+    }
+    /* 遮雨棚：街屋最明顯的特徵 */
+    R(0, AWN, W, 7, C.awn2);
+    for (let x = 0; x < W; x += 6) R(x, AWN, 3, 7, C.awn);
+    R(0, AWN, W, 1, adj(C.awn, .28));
+    R(0, AWN + 7, W, 2, adj(C.awn2, -.55));            // 不透明；半透明的線底下沒東西會變成空洞
+    /* 招牌：掛在遮雨棚上面 */
+    if (C.sign) {
+      const sw = Math.min(W - 12, 46), sx = Math.round((W - sw) / 2), sy = AWN - 13;
+      R(sx - 1, sy - 1, sw + 2, 13, C.awn2);
+      R(sx, sy, sw, 11, C.sign);
+      for (let i = 0; i * 10 + 10 < sw; i++) R(sx + 5 + i * 10, sy + 3, 6, 6, C.signInk);
+    }
+    /* 一樓店面 */
+    const SY = AWN + 9;
+    R(0, SY, W, H - SY, CON);
+    R(0, SY, W, 1, adj(CON, .20));
+    R(0, SY, 4, H - SY, CON2); R(W - 4, SY, 4, H - SY, CON2);          // 騎樓柱
+    R(3, SY, 1, H - SY, CON3); R(W - 4, SY, 1, H - SY, adj(CON, .2));
+    const dw = 22, dx = C.door[0] * 16 + 8 - dw / 2;
+    if (C.shutter) {                                    // 公寓：拉下來的鐵捲門
+      R(5, SY + 3, W - 10, H - SY - 7, '#9aa0a8');
+      for (let y = SY + 4; y < H - 5; y += 3) R(5, y, W - 10, 1, '#7e848c');
+      R(5, SY + 3, W - 10, 2, '#b8bec6');
+      R(5, H - 5, W - 10, 2, '#6a7078');
+    } else {                                            // 店面：整片落地玻璃＋中間的門
+      R(5, SY + 3, W - 10, H - SY - 7, FRAME);
+      R(6, SY + 4, W - 12, H - SY - 9, GLASS2);
+      R(6, SY + 4, W - 12, Math.round((H - SY - 9) * 0.4), GLASS);
+      for (let x = 6 + 13; x < W - 7; x += 13) R(x, SY + 4, 1, H - SY - 9, FRAME);
+      if (C.glassy) { R(8, SY + 6, 7, 3, '#eaf7ff'); R(W - 18, SY + 10, 6, 3, '#dff1fb'); }
+      R(dx - 2, SY + 2, dw + 4, H - SY - 4, '#5a6a78');
+      R(dx, SY + 4, dw, H - SY - 7, '#a8d4ee'); R(dx, SY + 4, dw, 4, '#d6efff');
+      R(dx + dw / 2 - 1, SY + 4, 2, H - SY - 7, '#5a6a78');
+      R(dx + dw / 2 - 5, SY + 16, 2, 5, '#42505c'); R(dx + dw / 2 + 3, SY + 16, 2, 5, '#42505c');
+    }
+    R(0, H - 3, W, 3, CON2); R(0, H - 1, W, 1, CON3);
+    return cv;
+  }
+
   function campus(kind) {
     const key = 'camp:' + kind; if (cache.has(key)) return cache.get(key);
     const C = CAMPUS[kind] || CAMPUS.clinic;
     if (C.style === 'block') { const cv0 = campusBlock(C); cache.set(key, cv0); return cv0; }
     if (C.style === 'guard') { const cv0 = campusGuard(C); cache.set(key, cv0); return cv0; }
     if (C.style === 'gate')  { const cv0 = campusGate(C);  cache.set(key, cv0); return cv0; }
+    if (C.style === 'shopfront') { const cv0 = shopFront(C); cache.set(key, cv0); return cv0; }
     const W = C.w * 16, H = (C.h + (C.over || 0)) * 16, SH = 8;   // H 是圖的高度，含往上超出的部分
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H + SH;
     const g = cv.getContext('2d');

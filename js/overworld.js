@@ -184,6 +184,9 @@ const OW = {
                 : c === 'u' ? (this.edgeMask(tx, ty, 'u') | (((tx * 5 + ty * 11) & 3) << 4))
                 /* 司令台：只有中段才擺講桌，整排鋪起來才不會重複 */
                 : c === 'd' ? this.edgeMask(tx, ty, 'd')
+                /* 路：低兩位是變化、高位是鄰格。柏油路靠它決定分向線的方向 */
+                : c === ',' ? (((tx * 5 + ty * 11) & 3) | (this.edgeMask(tx, ty, ',') << 2))
+                : c === ';' ? (((tx * 5 + ty * 11) & 3) | (this.edgeMask(tx, ty, ';') << 2))
                 /* 室內牆：哪幾邊是房間（下／右／左），才在那一邊畫護牆板與收邊陰影 */
                 : c === 'w' ? ((SOLID.has(this.tile(tx, ty + 1)) ? 0 : 1)
                              | (SOLID.has(this.tile(tx + 1, ty)) ? 0 : 2)
