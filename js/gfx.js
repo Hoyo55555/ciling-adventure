@@ -212,10 +212,12 @@ const GFX = (() => {
                 tall: '#4f9a3f', tall2: '#8fd06a', tall3: '#2f6a2a',
                 leaf: '#5aa848', leaf2: '#8fd06a', leaf3: '#356b2c', trunk: '#7a5a34', treeStyle: 'round',
                 roof: '#c8443c', roof2: '#8e2a26', wall: '#e8e2d4', wall2: '#bdb5a2',
-                win: '#bfe0f2', win2: '#7fb4d8', door: '#5a6a78', door2: '#3e4a56',
+                win: '#bfe0f2', win2: '#7fb4d8',
+                /* 教室門用木色：走廊上的置物櫃 z 是藍灰的，門再用藍灰就分不出來 */
+                door: '#9a6a3e', door2: '#6a4524',
                 fence: '#dcd8cc', fence2: '#a8a294', rock: '#a8a396', lamp: '#f8e878',
                 flower: ['#f06a92', '#ffd54a', '#ffffff'],
-                floor: '#e0dbcc', floor2: '#c2bcaa', iwall: '#f2eee2', iwall2: '#9ab8d8' },
+                floorStyle: 'terrazzo', floor: '#e0dbcc', floor2: '#c2bcaa', iwall: '#f2eee2', iwall2: '#9ab8d8' },
     /* 舊校舍：同一套但褪色、偏黃灰 */
     t_oldwing:{ ground: '#8aa864', ground2: '#6e8c4c', path: '#b8b2a0', path2: '#948e7c', pathStyle: 'slab',
                 leaf: '#5a8a48', leaf2: '#86b068', leaf3: '#35562c', trunk: '#6a5230', treeStyle: 'round',
@@ -223,7 +225,7 @@ const GFX = (() => {
                 win: '#9ab0b8', win2: '#6e848c', door: '#5a5248', door2: '#3a3630',
                 fence: '#b4ae9c', fence2: '#8a8472', rock: '#9a9488', lamp: '#d8cfa0',
                 flower: ['#c08a9a', '#d8c86a', '#e8e4d8'],
-                floor: '#c8c0ae', floor2: '#a8a08e', iwall: '#ddd6c4', iwall2: '#8a9aa8' },
+                floorStyle: 'terrazzo', floor: '#c8c0ae', floor2: '#a8a08e', iwall: '#ddd6c4', iwall2: '#8a9aa8' },
     /* 鐘塔台：冷灰石階與金旗 */
     t_tower:  { ground: '#8ab08a', ground2: '#6a8e6a', path: '#c8c2ba', path2: '#9a948c', pathStyle: 'slab',
                 roof: '#4e4e60', roof2: '#30304a', leaf: '#5a9a6a', leaf2: '#8ac490', leaf3: '#36663f', trunk: '#5a5a52',
@@ -709,7 +711,8 @@ const GFX = (() => {
       case '_': {                                   // 室內地板：校舍是磨石子地磚，其餘是木地板
         const lo = T.floor2, hi = adj(T.floor, .07), dk = adj(T.floor2, -.14);
         R(0, 0, 16, 16, T.floor);
-        if (theme === 'school') {
+        /* 磨石子還是木地板由主題決定，不要用主題名字硬判 */
+        if (T.floorStyle ? T.floorStyle === 'terrazzo' : theme === 'school') {
           R(0, 0, 16, 1, lo); R(0, 0, 1, 16, lo);                    // 磚縫
           R(1, 1, 15, 1, hi); R(1, 1, 1, 15, hi);                    // 縫旁受光
           for (let i = 0; i < 9; i++) { const v = hash(i + fr * 7, 21); R(2 + v % 13, 2 + (v >>> 4) % 13, 1, 1, (v >>> 9) & 1 ? hi : lo); }

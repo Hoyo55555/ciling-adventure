@@ -163,9 +163,68 @@ CAMPUS_MAPS.front = {
   props: [['clinic', 2, 4], ['block', 9, 1], ['guard', 3, 15], ['gate', 10, 17]],
   doorWarps: {
     '4,7':  { to: 'clinic_h', tx: 5, ty: 5, dir: 'up', ret: { x: 4,  y: 8 } },
-    '14,7': { to: 'c8',       tx: 6, ty: 7, dir: 'up', ret: { x: 14, y: 8 } },
+    '14,7': { to: 'hall',     tx: 11, ty: 10, dir: 'up', ret: { x: 14, y: 8 } },   // 教學樓大門→穿堂
   },
   warps: [],
+  signs: {},
+};
+
+/* ---- 穿堂 24×12（室內・校園中樞，四個方向都通）---- */
+CAMPUS_MAPS.hall = {
+  music: 'town', theme: 't_campus', chapter: 1, indoor: 1,
+  rows: [
+    'wwwwwwwwwww__wwwwwwwwwww',
+    'w__222_f__w__w__f_222__w',
+    'w______________________w',
+    'w_p__________________p_w',
+    'ww____________________ww',
+    '________________________',
+    '________________________',
+    'ww____________________ww',
+    'w_p__________________p_w',
+    'w______________________w',
+    'w____2__2_w__w_2__2____w',
+    'wwwwwwwwwww__wwwwwwwwwww',
+  ],
+  warps: [
+    /* 南→前庭　北→中庭　西→走廊1F　東→禮堂前廣場 */
+    { x: 11, y: 11, to: 'front', tx: 14, ty: 8, dir: 'down' },
+    { x: 12, y: 11, to: 'front', tx: 14, ty: 8, dir: 'down' },
+    { x: 11, y: 0,  to: 'yard2', tx: 11, ty: 14, dir: 'up' },
+    { x: 12, y: 0,  to: 'yard2', tx: 12, ty: 14, dir: 'up' },
+    { x: 0,  y: 5,  to: 'corridor1', tx: 30, ty: 3, dir: 'left' },
+    { x: 0,  y: 6,  to: 'corridor1', tx: 30, ty: 3, dir: 'left' },
+    { x: 23, y: 5,  to: 'audyard',   tx: 2,  ty: 8, dir: 'right' },
+    { x: 23, y: 6,  to: 'audyard',   tx: 2,  ty: 8, dir: 'right' },
+  ],
+  signs: {},
+};
+
+/* ---- 走廊 1F 32×6（室內）----
+   一整排都是窗，只有一扇真的門（一年甲班＝道館①）。
+   不放假的門：看起來能進去卻進不去，就是讓人猶豫的東西。
+   最左邊牆上的時鐘 7 ＝ 夢的破綻①（永遠停在玩家早上轉的那個時間）。 */
+CAMPUS_MAPS.corridor1 = {
+  music: 'town', theme: 't_campus', chapter: 1, indoor: 1,
+  rows: [
+    'wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww',
+    'w7wWWWwzzwWWWwzzwWDWwzzwWWWwzzww',
+    '________________________________',
+    '________________________________',
+    '________________________________',
+    '11111111111111111111111111111111',
+  ],
+  doorWarps: {
+    '18,1': { to: 'c1a', tx: 6, ty: 7, dir: 'up', ret: { x: 18, y: 2 } },   // 一年甲班＝道館①
+  },
+  warps: [
+    { x: 31, y: 2, to: 'hall', tx: 1, ty: 5, dir: 'right' },
+    { x: 31, y: 3, to: 'hall', tx: 1, ty: 5, dir: 'right' },
+    { x: 31, y: 4, to: 'hall', tx: 1, ty: 6, dir: 'right' },
+    { x: 0,  y: 2, to: 'stair1', tx: 8, ty: 6, dir: 'left' },
+    { x: 0,  y: 3, to: 'stair1', tx: 8, ty: 6, dir: 'left' },
+    { x: 0,  y: 4, to: 'stair1', tx: 8, ty: 6, dir: 'left' },
+  ],
   signs: {},
 };
 
