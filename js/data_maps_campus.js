@@ -256,6 +256,8 @@ CAMPUS_MAPS.yard2 = {
   warps: [
     { x: 11, y: 17, to: 'hall', tx: 11, ty: 1, dir: 'down' },
     { x: 12, y: 17, to: 'hall', tx: 12, ty: 1, dir: 'down' },
+    { x: 4,  y: 0,  to: 'field', tx: 15, ty: 22, dir: 'up' },   // 北→操場
+    { x: 5,  y: 0,  to: 'field', tx: 16, ty: 22, dir: 'up' },
   ],
   signs: {},
 };
@@ -338,6 +340,45 @@ CAMPUS_MAPS.corridor2 = {
     { x: 0, y: 2, to: 'stair1', tx: 4, ty: 3, dir: 'left' },
     { x: 0, y: 3, to: 'stair1', tx: 4, ty: 3, dir: 'left' },
     { x: 0, y: 4, to: 'stair1', tx: 4, ty: 3, dir: 'left' },
+  ],
+  signs: {},
+};
+
+/* ---- 操場與跑道 32×24（室外・全校最大的一張）----
+   跑道 u 的白邊線、球場 K 的邊線都是靠鄰格自動算出來的，
+   所以鋪多大一片，外圈的線都會自己接成一個完整的框。 */
+CAMPUS_MAPS.field = {
+  music: 'town', theme: 't_campus', chapter: 2,
+  rows: [
+    'TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT',
+    'TTllllllllllllllllllllllllllllTT',   // 觀眾席
+    'TTuuuuuuuuuuuuuuuuuuuuuuuuuuuuTT',   // 跑道（兩格厚的環）
+    'TTuuuuuuuuuuuuuuuuuuuuuuuuuuuuTT',
+    'TTuu........................uuTT',
+    'TTuu.....a..................uuTT',   // 籃球架
+    'TTuu.KKKKKKKKK....KKKKKKKKK.uuTT',   // 左：籃球場　右：排球場
+    'TTuu.KKKKKKKKK....KKKKKKKKK.uuTT',
+    'TTuu.KKKKKKKKK....KKKKKKKKK.uuTT',
+    'TTuu.KKKKKKKKK....KvvvvvvvK.uuTT',   // 排球網（兩端留得過去）
+    'TTuu.KKKKKKKKK....KKKKKKKKK.uuTT',
+    'TTuu.KKKKKKKKK....KKKKKKKKK.uuTT',
+    'TTuu.KKKKKKKKK....KKKKKKKKK.uuTT',
+    'TTuu.....a..................uuTT',
+    'TTuu........................uuTT',
+    'TTuu........................uuTT',
+    'TTuu.......dddd9dddd........uuTT',   // 司令台＋講桌
+    'TTuu.ssss.jj................uuTT',   // 跳遠沙坑＋單槓
+    'TTuu.ssss...................uuTT',
+    'TTuu........................uuTT',
+    'TTuuuuuuuuuuuuuuuuuuuuuuuuuuuuTT',
+    'TTuuuuuuuuuuuuuuuuuuuuuuuuuuuuTT',
+    'TT,,,,,,,,,,,,,,,,,,,,,,,,,,,,TT',
+    'TTTTTTTTTTTTTTT,,TTTTTTTTTTTTTTT',
+  ],
+  props: [],
+  warps: [
+    { x: 15, y: 23, to: 'yard2', tx: 4, ty: 1, dir: 'down' },
+    { x: 16, y: 23, to: 'yard2', tx: 5, ty: 1, dir: 'down' },
   ],
   signs: {},
 };
