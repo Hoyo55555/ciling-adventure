@@ -228,6 +228,120 @@ CAMPUS_MAPS.corridor1 = {
   signs: {},
 };
 
+/* ---- 中庭 24×18（室外・道館③ 文藝教室在北側）---- */
+CAMPUS_MAPS.yard2 = {
+  music: 'town', theme: 't_campus', chapter: 3,
+  rows: [
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT,,,,,,,,,,,,,,,,,,,,TT',
+    'TT.T.......,,..T....T.TT',
+    'TTF.~~~+~~.,,...AA....TT',
+    'TT..~~~+~~.,,...AA...FTT',
+    'TT..~~~+~~.,,..p..p...TT',
+    'TTF.~~~+~~.,,........FTT',
+    'TT.T.....T.,,.......T.TT',
+    'TT..dd9dd..,,..mmmm...TT',
+    'TT........F,,F.....T..TT',
+    'TTTTTTTTTTT,,TTTTTTTTTTT',
+  ],
+  props: [['artroom', 8, 1]],
+  doorWarps: { '11,6': { to: 'yard', tx: 7, ty: 10, dir: 'up', ret: { x: 11, y: 7 } } },
+  warps: [
+    { x: 11, y: 17, to: 'hall', tx: 11, ty: 1, dir: 'down' },
+    { x: 12, y: 17, to: 'hall', tx: 12, ty: 1, dir: 'down' },
+  ],
+  signs: {},
+};
+
+/* ---- 禮堂前廣場 24×17（室外・道館⑤）----
+   禮堂正面的大鐘 ＝ 夢的破綻⑤ */
+CAMPUS_MAPS.audyard = {
+  music: 'town', theme: 't_campus', chapter: 5,
+  rows: [
+    'TTTTTTTTTTTTTTTTTTTTTTTT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    ',,,,,,,,,,,rr,,,,,,,,,TT',
+    ',,,,,,,,,,,rr,,,,,,,,,TT',
+    'TT,,,n,,n,,rr,,n,,n,,,TT',
+    'TT,T,,,,,,,rr,,,,,,,T,TT',
+    'TT,,,,,,,,,rr,,,,,,,,,TT',
+    'TT,S,,p,,,,rr,,,,p,,S,TT',
+    'TT,,,,,,,,,rr,,,,,,,,,TT',
+    'TTTTTTTTTTTTTTTTTTTTTTTT',
+  ],
+  props: [['audi', 6, 1]],
+  doorWarps: {
+    '11,8': { to: 'aud', tx: 7, ty: 12, dir: 'up', ret: { x: 11, y: 9 },
+              need: 4, gate: 'need4',
+              needFlag: 'guardianDone',
+              flagText: '（小墨擋在台階前：「先照我說的去一趟，回來我就讓開。」）' },
+  },
+  cuts: { '11,9': 'moIntro', '12,9': 'moIntro' },
+  warps: [
+    { x: 0, y: 9,  to: 'hall', tx: 22, ty: 5, dir: 'left' },
+    { x: 0, y: 10, to: 'hall', tx: 22, ty: 6, dir: 'left' },
+  ],
+  signs: {},
+};
+
+/* ---- 樓梯間 10×8（室內）：踩上樓梯就上 2F ---- */
+CAMPUS_MAPS.stair1 = {
+  music: 'town', theme: 't_campus', chapter: 1, indoor: 1,
+  rows: [
+    'wwwwwwwwww',
+    'w__iiii__w',
+    'w__iiii__w',
+    'w________w',
+    'w_________',
+    'w_________',
+    'w________w',
+    'wwwwwwwwww',
+  ],
+  warps: [
+    { x: 3, y: 1, to: 'corridor2', tx: 1, ty: 3, dir: 'right' },
+    { x: 4, y: 1, to: 'corridor2', tx: 1, ty: 3, dir: 'right' },
+    { x: 5, y: 1, to: 'corridor2', tx: 1, ty: 3, dir: 'right' },
+    { x: 6, y: 1, to: 'corridor2', tx: 1, ty: 3, dir: 'right' },
+    { x: 9, y: 4, to: 'corridor1', tx: 1, ty: 3, dir: 'right' },
+    { x: 9, y: 5, to: 'corridor1', tx: 1, ty: 3, dir: 'right' },
+  ],
+  signs: {},
+};
+
+/* ---- 走廊 2F 32×6（室內）----
+   和 1F 的排列刻意不一樣：沒有真的門，改成公佈欄 */
+CAMPUS_MAPS.corridor2 = {
+  music: 'town', theme: 't_campus', chapter: 1, indoor: 1,
+  rows: [
+    'wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww',
+    'wzzwWWWwWWWwzzw22wWWWwWWWwzzwwww',
+    '________________________________',
+    '________________________________',
+    '________________________________',
+    '11111111111111111111111111111111',
+  ],
+  warps: [
+    { x: 0, y: 2, to: 'stair1', tx: 4, ty: 3, dir: 'left' },
+    { x: 0, y: 3, to: 'stair1', tx: 4, ty: 3, dir: 'left' },
+    { x: 0, y: 4, to: 'stair1', tx: 4, ty: 3, dir: 'left' },
+  ],
+  signs: {},
+};
+
 if (typeof LAYOUTS !== 'undefined') {
   for (const L of Object.values(CAMPUS_MAPS)) if (typeof stampProps === 'function') stampProps(L);
   Object.assign(LAYOUTS, CAMPUS_MAPS);

@@ -1070,6 +1070,10 @@ const GFX = (() => {
     /* door: null ＝ 進不去的建築（警衛室、校門本來就不是給人進去的）。
        護欄會跳過門的檢查，stampProps 也不會蓋出 D。 */
     guard:   { style: 'guard', w: 3, h: 2, door: null, name: '警衛室' },
+    /* 大禮堂（活動中心）：第五章的舞台。正面有門廊柱、大鐘與布條 */
+    audi:    { style: 'audi', w: 12, h: 8, over: 1, door: [5, 7], name: '大禮堂' },
+    /* 文藝教室（道館③）：中庭旁的小棟 */
+    artroom: { style: 'block', w: 8, h: 6, door: [3, 5], name: '文藝教室', band: '#d8629a' },
     /* ---- 通學路（校外）的店面與住宅。style 'shopfront' ＝ 騎樓店面 ---- */
     bfast:   { style: 'shopfront', w: 5, h: 4, over: 1, door: [2, 3], name: '早餐店',
       awn: '#e8a030', awn2: '#b87818', sign: '#f4f0e4', signInk: '#8a4a20' },
@@ -1317,6 +1321,90 @@ const GFX = (() => {
     return cv;
   }
 
+  /* 大禮堂：整個校園最大的一棟。正面有門廊柱、大鐘、布條與大階梯。
+     大鐘之後要接 G.flags.dreamClock（夢裡所有的鐘都停在玩家早上轉的那個時間），
+     現在先畫成固定的時間。 */
+  function campusAudi(C) {
+    const W = C.w * 16, OV = C.over || 0, H = (C.h + OV) * 16, SH = 10;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H + SH;
+    const g = cv.getContext('2d');
+    const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+    const ROOF = '#6e7686', ROOF2 = '#8e96a6', ROOF3 = '#484f5c';
+    const WALL = '#ece6d8', WALL2 = '#cdc6b4', WALL3 = '#a39c8a';
+    const COL = '#f4efe2', COL2 = '#d2cbb8';
+    const RH = 46, BASE = H - 8;
+
+    R(5, H - 2, W - 10, SH, 'rgba(0,0,0,.24)');
+
+    /* 屋頂：中間高、兩側低的大跨距屋頂 */
+    const inset = y => y >= 16 ? 0 : Math.round(9 * (1 - y / 16));
+    for (let y = 0; y < RH; y++) {
+      const i = inset(y), t = y / RH;
+      R(i, y, W - i * 2, 1, t < 0.14 ? ROOF2 : t > 0.80 ? ROOF3 : ROOF);
+    }
+    for (let x = 10; x < W; x += 10) for (let y = 2; y < RH - 3; y++) { const i = inset(y); if (x > i && x < W - i - 1) R(x, y, 1, 1, adj(ROOF, -.14)); }
+    R(0, RH, W, 3, ROOF3); R(0, RH, W, 1, adj(ROOF3, .26));
+    R(0, RH + 3, W, 2, adj(ROOF3, -.45));
+
+    /* 牆 */
+    R(0, RH + 5, W, BASE - RH - 5, WALL);
+    R(0, RH + 5, W, 2, 'rgba(0,0,0,.18)');
+    for (let i = 0; i < 40; i++) { const v = hash(i, 13); R(v % W, RH + 9 + (v >>> 5) % (BASE - RH - 16), 2, 1, WALL2); }
+
+    /* 兩側的高窗 */
+    for (const wx of [8, W - 8 - 22]) {
+      R(wx - 1, RH + 12, 24, 34, '#8a9098');
+      R(wx, RH + 13, 22, 32, '#7fb4d8'); R(wx, RH + 13, 22, 14, '#bfe0f2');
+      for (let x = wx + 7; x < wx + 22; x += 7) R(x, RH + 13, 1, 32, '#8a9098');
+      R(wx, RH + 27, 22, 1, '#8a9098');
+      R(wx + 2, RH + 15, 6, 4, '#eaf7ff');
+      R(wx - 2, RH + 45, 26, 2, WALL2);
+    }
+
+    /* 中央門廊：四根柱子 + 山牆 */
+    const px0 = Math.round(W / 2) - 36, pw = 72;
+    R(px0 - 3, RH + 2, pw + 6, 10, WALL2); R(px0 - 3, RH + 2, pw + 6, 2, '#fbf7ea');   // 山牆
+    for (let i = 0; i < 4; i++) {
+      const cx = px0 + 4 + i * 21;
+      R(cx, RH + 12, 9, BASE - RH - 14, COL);
+      R(cx, RH + 12, 2, BASE - RH - 14, '#ffffff');
+      R(cx + 7, RH + 12, 2, BASE - RH - 14, COL2);
+      R(cx - 2, RH + 12, 13, 3, COL2); R(cx - 2, BASE - 5, 13, 5, COL2);
+    }
+    /* 大鐘：掛在山牆正中央 */
+    {
+      const cx = Math.round(W / 2), cy = RH - 12;
+      R(cx - 13, cy - 13, 26, 26, '#3a3a44');
+      R(cx - 11, cy - 11, 22, 22, '#f8f6ee'); R(cx - 11, cy - 11, 22, 2, '#ffffff');
+      for (const [dx, dy] of [[0, -9], [0, 8], [-9, 0], [8, 0]]) R(cx + dx, cy + dy, 1, 1, '#6a6a74');
+      R(cx, cy - 7, 1, 7, '#2a2a30');            // 時針
+      R(cx, cy, 6, 1, '#c83838');                // 分針
+      R(cx - 1, cy - 1, 2, 2, '#2a2a30');
+    }
+    /* 門：正中央的雙開大門 */
+    {
+      const dw = 30, dx = C.door[0] * 16 + 8 - dw / 2, dy = RH + 24;
+      R(dx - 3, dy - 3, dw + 6, BASE - dy + 3, '#5a4a38');
+      R(dx, dy, dw, BASE - dy, '#8a5a34'); R(dx, dy, dw, 3, '#a8763f');
+      R(dx + dw / 2 - 1, dy, 2, BASE - dy, '#5a4a38');
+      for (let y = dy + 8; y < BASE - 6; y += 9) for (const ox of [7, dw - 9]) R(dx + ox, y, 2, 2, '#d8b060');
+      R(dx + dw / 2 - 7, dy + 20, 3, 7, '#d8b060'); R(dx + dw / 2 + 4, dy + 20, 3, 7, '#d8b060');
+    }
+    /* 布條：掛在門廊上方 */
+    R(px0 + 6, RH + 14, pw - 12, 9, '#c0302a');
+    R(px0 + 6, RH + 14, pw - 12, 2, '#e04a40');
+    for (let i = 0; i < 5; i++) R(px0 + 14 + i * 11, RH + 17, 5, 4, '#f0d878');
+
+    /* 牆基：先把整條鋪滿，再把階梯疊上去。
+       只畫階梯那一段的話，兩側會留下沒塗到的格子（護欄會抓出來）。 */
+    R(0, BASE, W, H - BASE, WALL2); R(0, BASE, W, 1, adj(WALL2, .18));
+    /* 大階梯 */
+    R(px0 - 8, BASE, pw + 16, 4, '#ddd7c8'); R(px0 - 8, BASE, pw + 16, 1, '#f4efe2');
+    R(px0 - 12, BASE + 4, pw + 24, 4, '#cdc6b4');
+    R(0, H - 1, W, 1, WALL3);
+    return cv;
+  }
+
   function campus(kind) {
     const key = 'camp:' + kind; if (cache.has(key)) return cache.get(key);
     const C = CAMPUS[kind] || CAMPUS.clinic;
@@ -1324,6 +1412,7 @@ const GFX = (() => {
     if (C.style === 'guard') { const cv0 = campusGuard(C); cache.set(key, cv0); return cv0; }
     if (C.style === 'gate')  { const cv0 = campusGate(C);  cache.set(key, cv0); return cv0; }
     if (C.style === 'shopfront') { const cv0 = shopFront(C); cache.set(key, cv0); return cv0; }
+    if (C.style === 'audi') { const cv0 = campusAudi(C); cache.set(key, cv0); return cv0; }
     const W = C.w * 16, H = (C.h + (C.over || 0)) * 16, SH = 8;   // H 是圖的高度，含往上超出的部分
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H + SH;
     const g = cv.getContext('2d');
