@@ -193,7 +193,7 @@ MAPS.chendu = {
    草叢共 60 格，是第一次遇到武器妖的地方。
    ============================================================ */
 MAPS.r1 = {
-  music: 'route', qlv: 1, chapter: 1, theme: 't_dawn',
+  music: 'route', qlv: 1, chapter: 1, theme: 't_dawn', tutorial: 1,   // tutorial：教學戰在這裡
   rows: [
     'TTTTTTTTT,,TTTTTTTTT',
     'TT.......,,.......TT',
@@ -326,11 +326,11 @@ MAPS.c8 = {
     'wp________pw',
     'wwwww__wwwww',
   ],
-  /* 這裡是新遊戲的起點：玩家不是從門進來的，所以 G.ret 還不存在，
-     出口不能用 '@ret'（會卡在教室裡出不去），要明確寫回晨讀村的教室門口。 */
+  /* 這裡是新遊戲的起點：玩家不是從門進來的，所以開局時由 W.start.ret 先設好 G.ret。
+     出口用 '@ret'：舊地圖回晨讀村教室門口，校園版回走廊 1F。 */
   warps: [
-    { x: 5, y: 8, to: 'chendu', tx: 17, ty: 6, dir: 'down' },
-    { x: 6, y: 8, to: 'chendu', tx: 17, ty: 6, dir: 'down' },
+    { x: 5, y: 8, to: '@ret' },
+    { x: 6, y: 8, to: '@ret' },
   ],
   npcs: [
     { role: 'mentor', x: 5, y: 2, dir: 'down' },

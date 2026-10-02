@@ -288,7 +288,7 @@ const WORLD_ORDER = ['school', 'literati', 'wuxia'];
   const S = WORLDS.school;
   const stu = (hair, c2, extra) => Object.assign({ hair, cloth: '#f8f8f8', cloth2: c2, style: 'school' }, extra || {});
   S.story = true;
-  S.start = { map: 'c8', x: 3, y: 3, dir: 'up' };
+  S.start = { map: 'c8', x: 3, y: 3, dir: 'up', ret: { map: 'chendu', x: 17, y: 6 } };   // ret：走出教室的落點
   S.homeTown = { map: 'chendu', x: 11, y: 7 };     // 一定要是走得過去的格子（舊的 16,11 是稻田）
   S.tagline = '找回被墨塵奪走的五片准考證碎片，堂堂正正走進考場！';
   S.fragName = '准考證碎片';
@@ -752,4 +752,6 @@ const WORLD_ORDER = ['school', 'literati', 'wuxia'];
     aud: [{ role: 'postMo', x: 6, y: 2, dir: 'down' }, { role: 'postBoss', x: 9, y: 2, dir: 'down' }],
     campus: [{ role: 'postRival', x: 12, y: 13, dir: 'down' }, { role: 'tipInk', x: 16, y: 5, dir: 'left' }],
   };
+  /* 施工中的校園地圖（只有測試頁載入）：把劇情條件換成校園的位置 */
+  if (typeof CAMPUS_PATCH === 'function') CAMPUS_PATCH(S);
 })();

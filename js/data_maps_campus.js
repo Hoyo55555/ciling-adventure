@@ -60,7 +60,7 @@ CAMPUS_MAPS.s1 = {
 
 /* ---- 2. 大馬路口 20×22：教商店、道具，以及第一場草叢遭遇 ---- */
 CAMPUS_MAPS.s2 = {
-  music: 'route', theme: 't_street', chapter: 0,
+  music: 'route', theme: 't_street', chapter: 0, tutorial: 1,   // tutorial：新手教學戰在這裡
   rows: [
     '##................##',
     '##................##',
@@ -201,21 +201,24 @@ CAMPUS_MAPS.hall = {
 };
 
 /* ---- 走廊 1F 32×6（室內）----
-   一整排都是窗，只有一扇真的門（一年甲班＝道館①）。
+   一整排窗之間有四扇門：福利社、自己的教室、一年甲班（道館①）、工藝教室。
    不放假的門：看起來能進去卻進不去，就是讓人猶豫的東西。
    最左邊牆上的時鐘 7 ＝ 夢的破綻①（永遠停在玩家早上轉的那個時間）。 */
 CAMPUS_MAPS.corridor1 = {
   music: 'town', theme: 't_campus', chapter: 1, indoor: 1,
   rows: [
     'wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww',
-    'w7wWWWwzzwWWWwzzwWDWwzzwWWWwzzww',
+    'w7wWDWwzzwWDWwzzwWDWwzzwWDWwzzww',
     '________________________________',
     '________________________________',
     '________________________________',
     '11111111111111111111111111111111',
   ],
   doorWarps: {
-    '18,1': { to: 'c1a', tx: 6, ty: 7, dir: 'up', ret: { x: 18, y: 2 } },   // 一年甲班＝道館①
+    '4,1':  { to: 'store_c', tx: 5, ty: 5, dir: 'up', ret: { x: 4,  y: 2 } },   // 福利社（通學路是單向的，校內要能補貨）
+    '11,1': { to: 'c8',      tx: 6, ty: 7, dir: 'up', ret: { x: 11, y: 2 } },   // 自己的教室（王老師、筆靈）
+    '18,1': { to: 'c1a',     tx: 6, ty: 7, dir: 'up', ret: { x: 18, y: 2 } },   // 一年甲班＝道館①
+    '25,1': { to: 'forge',   tx: 5, ty: 5, dir: 'up', ret: { x: 25, y: 2 } },   // 工藝教室（碎片合成、武器升階）
   },
   warps: [
     { x: 31, y: 2, to: 'hall', tx: 1, ty: 5, dir: 'right' },
@@ -252,7 +255,10 @@ CAMPUS_MAPS.yard2 = {
     'TTTTTTTTTTT,,TTTTTTTTTTT',
   ],
   props: [['artroom', 8, 1]],
-  doorWarps: { '11,6': { to: 'yard', tx: 7, ty: 10, dir: 'up', ret: { x: 11, y: 7 } } },
+  doorWarps: {
+    '11,6': { to: 'yard', tx: 7, ty: 10, dir: 'up', ret: { x: 11, y: 7 },
+              need: 2, gate: 'need2' },                       // 文藝教室＝道館③（要兩片碎片）
+  },
   warps: [
     { x: 11, y: 17, to: 'hall', tx: 11, ty: 1, dir: 'down' },
     { x: 12, y: 17, to: 'hall', tx: 12, ty: 1, dir: 'down' },
@@ -389,6 +395,130 @@ CAMPUS_MAPS.field = {
   ],
   signs: {},
 };
+
+/* ============================================================
+   人物配置（從舊的 30 張地圖搬進校園）
+   ------------------------------------------------------------
+   校園是一張網，不是一條線：一開學每個地方都走得到。
+   所以「什麼時候登場」不再靠地圖順序，而是靠碎片數：
+     minBadges  至少要幾片才出現　　maxBadges  超過幾片就離開
+   主線人物：
+     周以恆①  走廊 2F，1 片時出現（打贏他圖書館的股長才肯打）
+     三位組員  中庭，2 片起（點醒三人，文藝教室的助教才肯打）
+     周以恆②  樓梯間，3 片時出現（打贏他校史室的助教才肯打）
+     小墨      禮堂前，接下守護神器任務之後守在台階旁
+   居民的台詞還是舊城鎮的版本，寫新劇情時一起改。
+   ============================================================ */
+const CAMPUS_NPCS = {
+  s1: [
+    { role: 't_cd_a', x: 6,  y: 8,  dir: 'right' },
+    { role: 't_cd_b', x: 14, y: 9,  dir: 'down' },
+  ],
+  s2: [
+    { role: 'dictA',  x: 7,  y: 18, dir: 'right', sight: 3 },   // 草叢邊：第一個會攔人的同學
+  ],
+  s3: [
+    { role: 'dictB',     x: 7,  y: 6,  dir: 'right', sight: 3 },
+    { role: 'roamHint2', x: 16, y: 9,  dir: 'down' },
+    { role: 't_zy_a',    x: 4,  y: 11, dir: 'down' },
+  ],
+  front: [
+    { role: 'gymTip1',  x: 16, y: 8,  dir: 'down' },
+    { role: 't_zy_b',   x: 12, y: 12, dir: 'down', wander: 1 },
+    { role: 'townTip2', x: 20, y: 14, dir: 'down', wander: 1 },
+  ],
+  hall: [
+    { role: 't_cs_a',   x: 4,  y: 2,  dir: 'down' },
+    { role: 't_cs_b',   x: 19, y: 2,  dir: 'down' },
+    { role: 'townTip3', x: 4,  y: 9,  dir: 'right' },
+    { role: 'gymTip2',  x: 19, y: 9,  dir: 'left' },
+    { role: 'roamHint', x: 16, y: 3,  dir: 'down' },
+  ],
+  corridor1: [
+    { role: 't_r2a',    x: 14, y: 4,  dir: 'up', sight: 2 },    // 面向上：整條走廊的寬度都看得到
+    { role: 'forgeTip', x: 27, y: 2,  dir: 'down' },
+  ],
+  stair1: [
+    { role: 't_r2b',  x: 2, y: 5, dir: 'right', sight: 3 },
+    { role: 'rival2', x: 2, y: 3, dir: 'right', sight: 3, minBadges: 3, maxBadges: 3 },
+  ],
+  corridor2: [
+    { role: 'rival1',  x: 4,  y: 4, dir: 'up', sight: 2, minBadges: 1, maxBadges: 1 },
+    { role: 't_r3a',   x: 14, y: 2, dir: 'down', sight: 2 },
+    { role: 'gymTip4', x: 22, y: 2, dir: 'down' },
+    { role: 't_dj_a',  x: 27, y: 3, dir: 'left' },
+  ],
+  yard2: [
+    { role: 'm1', x: 14, y: 13, dir: 'left', sight: 3, minBadges: 2 },
+    { role: 'm2', x: 7,  y: 4,  dir: 'down', sight: 3, minBadges: 2 },
+    { role: 'm3', x: 19, y: 13, dir: 'left', sight: 3, minBadges: 2 },
+    { role: 'sideAGiver', x: 13, y: 10, dir: 'left', minBadges: 2 },
+    { role: 'gymTip3',  x: 13, y: 7,  dir: 'down' },
+    { role: 'townTip4', x: 19, y: 15, dir: 'down', wander: 1 },
+    { role: 't_hn_a',   x: 4,  y: 14, dir: 'down' },
+    { role: 't_hn_b',   x: 20, y: 10, dir: 'down', wander: 1 },
+    { role: 'gd_paper', x: 16, y: 12, dir: 'up',   gq: 'g_paper' },   // 涼亭下（神器據點重做前的暫時位置）
+    { role: 'gd_ink',   x: 10, y: 11, dir: 'left', gq: 'g_ink' },     // 水池邊（同上）
+  ],
+  field: [
+    { role: 'sideBGiver', x: 13, y: 14, dir: 'down' },
+    { role: 'sparring',   x: 7,  y: 15, dir: 'down' },
+    { role: 'sparring2',  x: 24, y: 15, dir: 'down' },
+    { role: 't_r3b',      x: 16, y: 5,  dir: 'down', sight: 3 },
+    { role: 't_r5a',      x: 20, y: 18, dir: 'left', sight: 3 },
+    { role: 't_bl_a',     x: 6,  y: 19, dir: 'down' },
+  ],
+  audyard: [
+    { role: 'moGuard', x: 13, y: 9,  dir: 'left', needFlag: 'guardianQuest' },   // 交代完之後守在台階旁
+    { role: 'gymTip5', x: 9,  y: 10, dir: 'right' },
+    { role: 't_zt_a',  x: 4,  y: 13, dir: 'down' },
+    { role: 't_zt_b',  x: 17, y: 13, dir: 'down', wander: 1 },
+    { role: 'townTip6', x: 19, y: 10, dir: 'down', wander: 1 },
+    { role: 'ngHint',  x: 6,  y: 12, dir: 'down' },
+  ],
+};
+for (const [id, list] of Object.entries(CAMPUS_NPCS)) CAMPUS_MAPS[id].npcs = list;
+
+/* 操場：學弟的三張准考證碎紙（支線Ｂ） */
+CAMPUS_MAPS.field.devices = {
+  '9,1':   { group: 'paper', flag: 'pa1', cat: '文言', label: '准考證碎紙',
+    text: '一張碎紙卡在觀眾席的椅縫裡。\n（讀懂上面的字，才能把它抽出來。）',
+    ok: '碎紙拿到了！', allText: '三張碎紙都找齊了！可以還給學弟了。' },
+  '10,17': { group: 'paper', flag: 'pa2', cat: '常識', label: '准考證碎紙',
+    text: '第二張碎紙夾在沙坑邊的單槓底下。', ok: '碎紙拿到了！', allText: '三張碎紙都找齊了！' },
+  '22,9':  { group: 'paper', flag: 'pa3', cat: '成語', label: '准考證碎紙',
+    text: '最後一張碎紙掛在排球網上。', ok: '碎紙拿到了！',
+    allText: '三張碎紙都找齊了！', onAll: 'sideB' },
+};
+
+/* ============================================================
+   校園版的劇情條件（由 data_worlds.js 在建好國中生涯之後呼叫）
+   舊地圖寫死的地名在這裡換成校園的位置。正式換上校園版時，
+   這些會直接寫回 data_worlds.js，這個函式就可以拿掉。
+   ============================================================ */
+function CAMPUS_PATCH(S) {
+  const R = S.roles;
+  R.boss2.needDefeated = ['corridor2:rival1'];
+  R.boss3.needDefeated = ['yard2:m1', 'yard2:m2', 'yard2:m3'];
+  R.sideAGiver.need    = ['yard2:m1', 'yard2:m2', 'yard2:m3'];
+  R.boss4.needDefeated = ['stair1:rival2'];
+  /* 器靈的地點：神器據點重做（待辦 1）之前先放在中庭 */
+  S.gqClue = {
+    g_paper: { where: 'yard2', place: '中庭的涼亭',
+      clue: '「去那個可以躲雨、把心事攤開來晾乾的地方——中庭的涼亭。」' },
+    g_ink:   { where: 'yard2', place: '中庭的水池',
+      clue: '「去那個水面黑得像墨的地方——中庭的水池邊。」' },
+  };
+  S.roamMaps = ['s1', 's2', 's3', 'front', 'yard2', 'field', 'audyard'];
+  S.postNpcs = Object.assign({}, S.postNpcs, {
+    front: [{ role: 'postRival', x: 12, y: 13, dir: 'down' }],
+  });
+  Object.assign(S.mapNames, {
+    s1: '巷口', s2: '大馬路口', s3: '校門前', front: '校門與前庭', hall: '穿堂',
+    corridor1: '走廊 1F', stair1: '樓梯間', corridor2: '走廊 2F', yard2: '中庭',
+    field: '操場與跑道', audyard: '禮堂前廣場',
+  });
+}
 
 if (typeof LAYOUTS !== 'undefined') {
   for (const L of Object.values(CAMPUS_MAPS)) if (typeof stampProps === 'function') stampProps(L);

@@ -403,7 +403,7 @@ const WorldMap = {
         const [col, kindName] = MAP_KIND[n.kind];
         const open = n.kind !== 'gym' || G.badges.length >= (n.gym - 1);
         const cleared = n.gym && G.badges.length >= n.gym;
-        const sideOpen = !n.side || (n.side === 'sideA' ? ['r4:m1', 'r4:m2', 'r4:m3'].every(k => G.defeated[k]) : !!G.flags.sideB);
+        const sideOpen = !n.side || (n.side === 'sideA' ? sideANeed().every(k => G.defeated[k]) : !!G.flags.sideB);
         return `<div class="row${isHere ? ' sel' : ''}" style="padding:${U(1)} ${U(2)}">
           <span style="display:inline-block;width:${U(4)};height:${U(4)};background:${col};border-radius:50%;margin-right:${U(2)}"></span>
           <b class="grow">${isHere ? '▶ ' : ''}${esc(name)}</b>

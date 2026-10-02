@@ -24,6 +24,9 @@ const OW = {
       if (s.gq && (G.flags.guardianQuest !== s.gq || G.flags.guardianDone)) return null;
       if (s.needFlag && !G.flags[s.needFlag]) return null;
       if (s.hideFlag && G.flags[s.hideFlag]) return null;
+      /* 校園版所有地方一開始就走得到，所以用「拿到幾片碎片」決定人物什麼時候登場、什麼時候離開 */
+      if (s.minBadges != null && G.badges.length < s.minBadges) return null;
+      if (s.maxBadges != null && G.badges.length > s.maxBadges) return null;
       return { key: id + ':' + s.role, role, x: s.x, y: s.y, dir: s.dir, home: s.dir, sight: s.sight || 0, wander: s.wander, ox: 0, oy: 0, fr: 0, look: role.look };
     }).filter(Boolean);
     this.resetEncounter();
@@ -127,7 +130,8 @@ const OW = {
     const p = this.p;
     /* 過場觸發格：踩上去播一次就不再播 */
     const cutName = this.L.cuts && this.L.cuts[p.x + ',' + p.y];
-    if (cutName && !G.flags['cut:' + this.id + ':' + cutName] && CUTS[cutName]) {
+    if (cutName && !G.flags['cut:' + this.id + ':' + cutName] && CUTS[cutName]
+        && G.badges.length >= (CUT_NEED[cutName] || 0)) {        // 校園裡禮堂一開始就到得了，碎片不夠時不播
       G.flags['cut:' + this.id + ':' + cutName] = true;
       this.run(() => CUTS[cutName]()); return true;
     }
@@ -257,9 +261,11 @@ function drawMark(g, x, y, type, now, dir) {
   g.globalAlpha = 1;
 }
 const wenqiDots = () => `<span class="wq">${Array.from({ length: ULT_COST }, (_, i) => `<i class="${i < G.wenqi ? 'on' : ''}"></i>`).join('')}</span>`;
+/* 支線Ａ要點醒的三個人：以任務人物的資料為準，換地圖時只要改一個地方 */
+function sideANeed() { const R = W.roles.sideAGiver; return (R && R.need) || ['r4:m1', 'r4:m2', 'r4:m3']; }
 function gateOpen(gate) {
   if (gate === 'needWeapon') return G.equip.length > 0;
-  if (gate === 'sideA') return ['r4:m1', 'r4:m2', 'r4:m3'].every(k => G.defeated[k]);
+  if (gate === 'sideA') return sideANeed().every(k => G.defeated[k]);
   if (gate === 'sideB') return !!G.flags.sideB;
   const m = /^need(\d)$/.exec(gate); if (m) return G.badges.length >= +m[1];
   return false;
@@ -273,7 +279,7 @@ async function warpTo(map, x, y, dir) {
     return;
   }
   Sound.sfx('door'); await fade(1, 0.22); OW.load(map, x, y, dir); autosave(); await sleep(60); await fade(0, 0.22);
-  if (map === 'r1' && G.flags.tut === 'pending') {       // 教學戰在步道入口進行（城鎮裡不戰鬥）
+  if (LAYOUTS[map].tutorial && G.flags.tut === 'pending') {   // 教學戰在有 tutorial 標記的地圖入口進行（城鎮裡不戰鬥）
     G.flags.tut = 'done'; const M = W.roles.mentor.name;
     await say('就在這裡練習吧！', M);
     await Battle.start({ kind: 'wild', foe: makeFoe('pen_auto', 2), tutorial: true, mentor: M });
@@ -468,7 +474,7 @@ async function sideQuestTalk(n) {
 }
 /* 器靈現在會待在某一張地圖，鎮上的小孩會告訴你在哪 */
 const ROAM_MAPS = ['chendu', 'r1', 'zhuyin', 'r2', 'chaoshu', 'r3', 'dianji', 'r4', 'tingyu', 'huanan', 'r5', 'beilin', 'r6', 'moquan', 'zhongta'];
-function rerollRoam() { const pool = ROAM_MAPS.filter(m => m !== OW.id); G.roamAt = pick(pool.length ? pool : ROAM_MAPS); }
+function rerollRoam() { const all = W.roamMaps || ROAM_MAPS, pool = all.filter(m => m !== OW.id); G.roamAt = pick(pool.length ? pool : all); }
 async function roamHintTalk(n) {
   const R = n.role;
   if (!G.ng) { await say(pick(R.idle), R.name); return; }
@@ -543,6 +549,10 @@ const GQ_CLUE = {
   g_ink:   { where: 'moquan', place: '墨泉鄉',
     clue: '「去那個把墨磨了幾百年的地方——墨泉鄉的泉眼旁邊。」' },
 };
+/* 世界可以覆寫器靈的地點（校園版用） */
+const gqClue = arch => (W.gqClue && W.gqClue[arch]) || GQ_CLUE[arch];
+/* 過場要幾片碎片才會播 */
+const CUT_NEED = { moIntro: 4 };
 const CUTS = {
   /* 鐘塔台道館門口：小墨從道館裡面跑出來擋住你 */
   async moIntro() {
@@ -610,7 +620,7 @@ const CUTS = {
       { name: M, cancel: false });
     const arch = ['g_pen', 'g_paper', 'g_ink'][k] || 'g_pen';
     G.flags.guardianQuest = arch;
-    const C = GQ_CLUE[arch];
+    const C = gqClue(arch);
     await say((W.moPick && W.moPick[k]) || '小墨：「……我就知道你會這樣說。」', M);
     await say(`小墨：「那牠會在那裡等你。」\n${C.clue}`, M);
     await say(`（目標：到「${C.place}」找「${weaponName(arch)}」。）\n（決定好之後再回來挑戰道館。）`);
@@ -649,7 +659,7 @@ async function guardianTalk(n) {
   const R = n.role, M = R.name;
   const arch = G.flags.guardianQuest;
   if (!arch) { await say('小墨：「先到門口看看吧，我有話要跟你說。」', M); return; }
-  const C = GQ_CLUE[arch];
+  const C = gqClue(arch);
   if (ownsArch(arch)) { await say(`小墨：「${weaponName(arch)}願意跟你走了啊……那就沒問題了。」`, M); await say(R.afterGive || '小墨：「上去吧，我在這裡等你。」', M); return; }
   if (G.flags.guardianDone) { await say('小墨：「你自己決定的，我不多說。」', M); await say('小墨：「上去吧——記得，答不出來的時候就深呼吸。」', M); return; }
   await say(`小墨：「還沒去嗎？${C.clue}」`, M);

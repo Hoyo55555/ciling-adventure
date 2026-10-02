@@ -354,6 +354,7 @@ const Flow = {
                        : { map: 'chendu', x: 11, y: 7, dir: 'down' };
     G.map = S0.map; G.lastHeal = W.story ? Object.assign({}, W.homeTown) : G.lastHeal;
     G.ret = G.ret || Object.assign({}, W.homeTown || { map: 'chendu', x: 11, y: 7 });   // 防呆：室內用 '@ret' 出來時要有落點
+    if (S0.ret) G.ret = Object.assign({}, S0.ret);  // 起點在室內（教室）：出門要回到那棟建築的門口
     await fade(1, 0.4); UI.clear(); Game.scene = 'overworld'; OW.load(S0.map, S0.x, S0.y, S0.dir); autosave(); await fade(0, 0.4);
     await sleep(200); showBanner(W.chapterName);
     if (W.story) { if (!G.flags.prologue) OW.run(() => storyPrologue()); }
