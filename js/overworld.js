@@ -157,6 +157,7 @@ const OW = {
     if (dw) { this.run(() => enterDoor(dw)); return; }
     if (this.L.doors && this.L.doors[key]) { this.run(() => doorAct(this.L.doors[key], tx, ty)); return; }
     const dv = this.L.devices && this.L.devices[key]; if (dv) { this.run(() => useDevice(dv)); return; }
+    const act = this.L.acts && this.L.acts[key]; if (act && ACTS[act]) { this.run(() => ACTS[act]()); return; }
     if (this.tile(tx, ty) === '~') this.run(() => say('水面波光粼粼，倒映著天空。'));
   },
   updateHud() {
@@ -199,6 +200,10 @@ const OW = {
                 : (tx * 5 + ty * 11) & 3;
       g.drawImage(GFX.tile(theme, c, fr2), tx * 16 - cx, ty * 16 - cy);
     }
+    /* 夢裡的鐘：玩家在房間轉過鬧鐘之後，每一個鐘都停在那個時間 */
+    if (G.flags.dreamClock != null) for (let ty = y0; ty < y0 + 12; ty++) for (let tx = x0; tx < x0 + 17; tx++) {
+      const c = this.tile(tx, ty); if (c === '7' || c === ']') GFX.clockHands(g, tx * 16 - cx, ty * 16 - cy, c, G.flags.dreamClock);
+    }
     /* 整棟建築跨多格：校園建築走 GFX.campus，其餘沿用舊的 GFX.building */
     for (const [kind, bx, by] of L.props || []) {
       const C = GFX.CAMPUS && GFX.CAMPUS[kind];
@@ -221,7 +226,9 @@ const OW = {
     for (const n of this.npcs) { const m = marks[n.role === W.roles.questGiver ? 'questGiver' : n.key.split(':')[1]]; if (m) drawMark(g, n.x * 16 + n.ox - cx + 3, n.y * 16 + n.oy - cy - (n.look.sprite === 'boss' ? 28 : 15), m, now); }
     for (const [k, d] of Object.entries(this.L.devices || {})) if (!G.flags[d.flag]) { const [dx2, dy2] = k.split(',').map(Number); drawMark(g, dx2 * 16 - cx + 4, Math.max(2, dy2 * 16 - cy - 9), 'side', now); }
     for (const f of this.fx || []) f(g, cx, cy);
-    if (this.dark > 0) { g.fillStyle = `rgba(8,6,14,${this.dark})`; g.fillRect(0, 0, 240, 160); }
+    /* night：序幕結束前房間是暗的（天還沒亮）。用地圖資料決定，讀檔回來也一樣暗 */
+    const dk = Math.max(this.dark, L.night && !G.flags.prologue ? L.night : 0);
+    if (dk > 0) { g.fillStyle = `rgba(8,6,14,${dk})`; g.fillRect(0, 0, 240, 160); }
     if (this.flash > 0) { g.fillStyle = `rgba(255,250,235,${this.flash})`; g.fillRect(0, 0, 240, 160); }
     if (this.bubble) { const n = this.bubble; const bx = n.x * 16 + n.ox - cx + 3, by = n.y * 16 + n.oy - cy - 16;
       g.fillStyle = '#2a2018'; g.fillRect(bx - 1, by - 1, 12, 13); g.fillStyle = '#fbf3dc'; g.fillRect(bx, by, 10, 11); g.fillStyle = '#b8322a'; g.fillRect(bx + 4, by + 2, 2, 5); g.fillRect(bx + 4, by + 8, 2, 2); }
@@ -267,6 +274,7 @@ function gateOpen(gate) {
   if (gate === 'needWeapon') return G.equip.length > 0;
   if (gate === 'sideA') return sideANeed().every(k => G.defeated[k]);
   if (gate === 'sideB') return !!G.flags.sideB;
+  if (gate === 'prologue') return !!G.flags.prologue;
   const m = /^need(\d)$/.exec(gate); if (m) return G.badges.length >= +m[1];
   return false;
 }
@@ -790,6 +798,7 @@ async function trainerTalk(n) {
 }
 /* 序幕：八年級教室 */
 async function storyPrologue() {
+  if (OW.id === 'room') return roomPrologue();     // 校園版：從自己房間醒來
   const M = '小墨';
   for (const t of W.prologue) await say(t);
   OW.npcs.push({ key: 'c8:xiaomo', role: W.roles.xiaomo, x: 3, y: 1, dir: 'down', home: 'down', sight: 0, ox: 0, oy: 0, fr: 0, look: W.roles.xiaomo.look });
@@ -805,6 +814,103 @@ async function storyPrologue() {
   OW.npcs = OW.npcs.filter(n => n.key !== 'c8:xiaomo');
   G.flags.prologue = true; G.chapter = 1; showBanner(W.chapterName); autosave();
 }
+/* ============================================================
+   校園版序幕：凌晨在自己房間驚醒
+   ------------------------------------------------------------
+   G.flags.pro：1 醒來了、要看時間　2 鬧鐘轉好了、要看准考證
+   房間裡可以按的東西寫在地圖的 acts（床頭鬧鐘、書包）。
+   ============================================================ */
+function hhmm(min) { return String(Math.floor(min / 60)).padStart(2, '0') + ':' + String(min % 60).padStart(2, '0'); }
+async function roomPrologue() {
+  if (!G.flags.pro) {
+    await sleep(400);
+    for (const t of W.wakeUp) await say(t);
+    G.flags.pro = 1; autosave();
+  } else await say(G.flags.pro === 1 ? '（先確認一下時間吧。床頭的鬧鐘就在旁邊。）' : '（接著是准考證。它應該還在書包裡。）');
+}
+const ACTS = {
+  /* 床頭鬧鐘：不判對錯，轉到幾點都可以。轉完就記住，夢裡每一個鐘都會停在這裡 */
+  async alarmClock() {
+    if (G.flags.dreamClock != null) {
+      await say(`（鬧鐘停在 ${hhmm(G.flags.dreamClock)}。）` + (G.flags.prologue ? '' : '\n（時間確認過了。接著是准考證。）'));
+      return;
+    }
+    await say('（鬧鐘的指針好像停住了。你把它拿起來，轉到——）');
+    const min = await ClockPanel.open(6 * 60);
+    G.flags.dreamClock = min; Sound.sfx('ok'); autosave();
+    await say(`（你把鬧鐘轉到 ${hhmm(min)}，放回床頭。）\n（……好，就是這個時間。）`);
+    if (!G.flags.prologue) { G.flags.pro = 2; autosave(); await say('（接著是……准考證。它應該還在書包裡。）'); }
+  },
+  /* 書包：確認准考證 → 墨水剝落 → 小墨登場 → 教學戰 */
+  async schoolbag() {
+    if (G.flags.prologue) { await say('（書包裡裝著課本和鉛筆盒。准考證……已經碎成五片了。）'); return; }
+    if (G.flags.pro !== 2) { await say('（准考證在書包裡……先看看現在幾點吧。）'); return; }
+    await roomXiaomo();
+  },
+};
+async function roomXiaomo() {
+  const M = '小墨';
+  for (const t of W.ticketCheck) await say(t);
+  Sound.sfx('grass'); OW.shake = 2; await Anim.run(0.4, k => OW.shake = 2 * (1 - k)); OW.shake = 0;
+  for (const t of W.ticketInk) await say(t);
+  /* 小墨從書桌上的課本裡跳出來 */
+  const [mx, my] = [[8, 1], [8, 2], [7, 2], [5, 2], [6, 3]].find(([x, y]) => !(x === OW.p.x && y === OW.p.y) && !OW.solid(x, y));
+  const mo = { key: 'room:xiaomo', role: W.roles.xiaomo, x: mx, y: my, dir: 'down', home: 'down', sight: 0, ox: 0, oy: -12, fr: 0, look: W.roles.xiaomo.look };
+  OW.npcs.push(mo); Sound.sfx('badge');
+  await Anim.run(0.35, k => mo.oy = -12 * (1 - k) - Math.sin(k * Math.PI) * 6); mo.oy = 0;
+  await sleep(200);
+  for (const t of W.xiaomoHome) await say(t, M);
+  giveWeapon('brush', 0); G.cur = 0; playerStats(); G.hp = G.maxhp;
+  await Battle.start({ kind: 'wild', foe: makeFoe('tool_eraser', 2), tutorial: true, mentor: M });
+  await say(W.xiaomoAfter[0], M);
+  const w = G.weapons[0]; w.r = 1; G.frags.eraser = Math.max(0, (G.frags.eraser || 0) - 1); Meta.seeWeapon(G.world, 'brush', 1); playerStats();
+  Sound.sfx('badge'); s_flash(); await say(`2B 鉛筆吸收了碎片，化成了「良品．${weaponName(w)}」！`);
+  G.bag.heal += 3; G.bag.hint += 2; await say(`小墨還給了你「${itemName('heal')}」×3、「${itemName('hint')}」×2！`);
+  await say(W.xiaomoAfter[1], M);
+  for (const t of W.xiaomoGo) await say(t, M);
+  OW.npcs = OW.npcs.filter(n => n !== mo);
+  await say('（小墨鑽進了你的書包。）');
+  G.flags.prologue = true; delete G.flags.pro; G.chapter = 1;
+  await say('（……窗外的天色，不知道什麼時候已經亮了。）');
+  showBanner(W.chapterName); autosave();
+}
+/* 轉鬧鐘的小面板：↑↓ 調整、←→ 換時／分、A 確定（手機可以直接點上下的箭頭） */
+const ClockPanel = {
+  open(start) {
+    return new Promise(res => {
+      let hh = Math.floor(start / 60), mm = start % 60, f = 0;
+      const box = UI.el('box clockp');
+      box.innerHTML = `<div class="ct">轉動鬧鐘</div><canvas width="40" height="40"></canvas>
+        <div class="cd"><div class="cf" data-f="0"><b data-d="1">▲</b><span></span><b data-d="-1">▼</b></div><i>:</i>
+        <div class="cf" data-f="1"><b data-d="1">▲</b><span></span><b data-d="-1">▼</b></div></div>
+        <div class="ch">↑↓ 調整　←→ 時／分　A 確定</div><div class="ok">確定</div>`;
+      const cv = box.querySelector('canvas'), g = cv.getContext('2d'), spans = box.querySelectorAll('.cf span'), fs = box.querySelectorAll('.cf');
+      const paint = () => {
+        spans[0].textContent = String(hh).padStart(2, '0'); spans[1].textContent = String(mm).padStart(2, '0');
+        fs.forEach((e, i) => e.classList.toggle('sel', i === f));
+        g.clearRect(0, 0, 40, 40); g.fillStyle = '#c83838'; g.beginPath(); g.arc(20, 21, 17, 0, 7); g.fill();
+        g.fillStyle = '#e0c040'; g.fillRect(4, 2, 7, 5); g.fillRect(29, 2, 7, 5);
+        g.fillStyle = '#f8f6ee'; g.beginPath(); g.arc(20, 21, 14, 0, 7); g.fill();
+        g.fillStyle = '#6a6a74'; for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; g.fillRect(Math.round(20 + Math.sin(a) * 12) - .5, Math.round(21 - Math.cos(a) * 12) - .5, 1, 1); }
+        const hand = (a, len, w, col) => { g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.moveTo(20, 21); g.lineTo(20 + Math.sin(a) * len, 21 - Math.cos(a) * len); g.stroke(); };
+        hand(((hh % 12) + mm / 60) / 12 * Math.PI * 2, 7, 2.5, '#2a2a30'); hand(mm / 60 * Math.PI * 2, 11, 1.5, '#2a2a30');
+        g.fillStyle = '#2a2a30'; g.fillRect(19, 20, 2, 2);
+      };
+      const bump = (field, d) => { if (field === 0) hh = (hh + d + 24) % 24; else mm = (mm + d * 5 + 60) % 60; Sound.sfx('cursor'); paint(); };
+      const done = () => { Sound.sfx('ok'); UI.pop(m); res(hh * 60 + mm); };
+      box.querySelectorAll('.cf b').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); f = +b.parentNode.dataset.f; bump(f, +b.dataset.d); }));
+      box.querySelector('.ok').addEventListener('pointerdown', e => { e.preventDefault(); done(); });
+      const m = { el: box, update() {
+        const d = Input.dir();
+        if (d === 'up') bump(f, 1); else if (d === 'down') bump(f, -1);
+        else if (d === 'left' || d === 'right') { f = 1 - f; Sound.sfx('cursor'); paint(); }
+        if (Input.p('A')) done();
+      } };
+      m.get = () => hh * 60 + mm; m.set = v => { hh = Math.floor(v / 60); mm = v % 60; paint(); }; m.done = done;   // 測試用
+      paint(); UI.push(m);
+    });
+  },
+};
 async function questTalk(n) {
   const R = Object.assign({}, n.role), q = G.quests.bugs || (G.quests.bugs = { state: 'none', n: 0 });
   for (const k of ['offer', 'progress']) R[k] = R[k].replace(/\{mon\}/g, monName('brush'));

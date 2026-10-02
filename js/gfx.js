@@ -232,6 +232,9 @@ const GFX = (() => {
                 wall: '#eeeae2', fence: '#d8b040', fence2: '#a07f20', door: '#c83838', door2: '#7a1c1c' },
   };
   for (const [k, v] of Object.entries(TOWN_THEMES)) THEMES[k] = Object.assign({}, THEMES.school, v);
+  /* 我的房間：暖色木地板、米色壁紙（序幕的房間不是教室，不能是磨石子） */
+  THEMES.t_home = Object.assign({}, THEMES.t_dawn, { floorStyle: 'wood', floor: '#c49a66', floor2: '#a07a4a',
+    iwall: '#efe4cc', iwall2: '#b89a72', blanket: '#5a7ac8' });
   /* 位置雜訊用的亂數。回傳的是 uint32，取位元時**一定要用 >>>**：
      `v >> 5` 是帶符號位移，v 超過 2^31 就變負數，`% n` 會得到負的餘數，
      畫出來的雜點會跑到指定範圍的上面去（在 16×16 的磚上只是被裁掉看不見，
@@ -755,6 +758,38 @@ const GFX = (() => {
       case 'b': g.drawImage(tile(theme, '_'), 0, 0); R(1, 0, 14, 16, '#7a5230'); R(2, 1, 12, 14, '#f4f4f0'); R(2, 1, 12, 4, '#ffffff'); R(3, 2, 10, 2, '#dcdcdc'); R(2, 6, 12, 9, T.blanket); R(2, 6, 12, 1, adj(T.blanket, .25)); break;
       case 't': g.drawImage(tile(theme, '_'), 0, 0); R(0, 2, 16, 11, '#6a4424'); R(0, 2, 16, 7, '#b07a44'); R(0, 2, 16, 1, '#d09a60'); R(1, 13, 2, 3, '#4a2e18'); R(13, 13, 2, 3, '#4a2e18'); break;
       case 'k': R(0, 0, 16, 16, '#5a3a20'); for (const y of [1, 6, 11]) { R(1, y, 14, 4, '#3a2410'); [['#c83838', 1], ['#3a68b8', 3], ['#e0b040', 5], ['#3e9830', 8], ['#8a5ac8', 10], ['#e87a30', 12]].forEach(([c, x]) => R(1 + x, y + (x % 3 === 0 ? 1 : 0), 2, 4 - (x % 3 === 0 ? 1 : 0), c)); R(0, y + 4, 16, 1, '#7a5230'); } break;
+      /* ---- 我的房間 ---- */
+      case '[': g.drawImage(tile(theme, '_'), 0, 0);              // 書桌：攤開的課本＋檯燈
+        R(0, 4, 16, 9, '#7a4c28'); R(0, 4, 16, 6, '#b07a44'); R(0, 4, 16, 1, '#d09a60'); R(0, 10, 16, 1, '#5a3418');
+        R(1, 13, 2, 3, '#4a2e18'); R(13, 13, 2, 3, '#4a2e18');
+        R(1, 5, 9, 4, '#f4f0e0'); R(5, 5, 1, 4, '#c8bea4');       // 課本
+        for (const y of [6, 7]) { R(2, y, 2, 1, '#9a9488'); R(7, y, 2, 1, '#9a9488'); }
+        R(12, 1, 1, 6, '#4a4a52'); R(10, 7, 5, 1, '#4a4a52');      // 檯燈
+        R(10, 0, 5, 2, '#e8c040'); R(11, 2, 3, 1, '#fff2a8');
+        break;
+      case ']': g.drawImage(tile(theme, '_'), 0, 0);              // 床頭櫃＋鬧鐘
+        R(1, 9, 14, 7, '#7a5230'); R(1, 9, 14, 2, '#a0703c'); R(3, 12, 10, 3, '#6a4424'); R(7, 13, 2, 1, '#e0c070');
+        R(4, 0, 2, 2, '#e0c040'); R(10, 0, 2, 2, '#e0c040');       // 鈴鐺
+        R(5, 1, 6, 8, '#c83838'); R(4, 2, 8, 6, '#c83838'); R(5, 8, 1, 1, '#5a1818'); R(10, 8, 1, 1, '#5a1818');
+        R(5, 2, 6, 6, '#f8f6ee'); R(6, 2, 4, 1, '#ffffff');
+        R(8, 3, 1, 2, '#2a2a30'); R(8, 5, 2, 1, '#2a2a30');        // 指針（玩家轉過之後由 clockHands 重畫）
+        break;
+      case '(': g.drawImage(tile(theme, '_'), 0, 0);              // 書包（准考證露出一角）
+        R(4, 2, 1, 4, '#1a2a5a'); R(11, 2, 1, 4, '#1a2a5a');
+        R(10, 3, 3, 3, '#f4f0e0'); R(10, 3, 3, 1, '#e8b0a0');
+        R(3, 5, 10, 10, '#2a4a8a'); R(3, 5, 10, 5, '#3a5aa8'); R(3, 5, 10, 1, '#5a7ac8'); R(3, 14, 10, 1, '#1a2a5a');
+        R(7, 8, 2, 2, '#e0c070');
+        break;
+      case ')': R(0, 0, 16, 16, '#6a4424');                         // 衣櫃
+        R(1, 1, 7, 15, '#a0703c'); R(8, 1, 7, 15, '#a0703c'); R(1, 1, 14, 1, '#c08a50'); R(8, 1, 1, 15, '#6a4424');
+        R(6, 7, 1, 3, '#e0c070'); R(9, 7, 1, 3, '#e0c070');
+        break;
+      case '/': g.drawImage(tile(theme, 'w', 1), 0, 0);           // 夜裡的窗（牆上）
+        R(3, 1, 10, 9, '#5a4a3a'); R(4, 2, 8, 7, '#1a2448'); R(4, 2, 8, 2, '#24305a');
+        R(9, 3, 2, 2, '#f0e8b0'); R(5, 5, 1, 1, '#c8d0f0'); R(7, 3, 1, 1, '#a8b0d8');
+        R(8, 2, 1, 7, '#5a4a3a'); R(4, 5, 8, 1, '#5a4a3a');
+        R(2, 1, 2, 10, '#c86a6a'); R(12, 1, 2, 10, '#c86a6a'); R(2, 1, 2, 1, '#e88a8a'); R(12, 1, 2, 1, '#e88a8a');
+        break;
       case 'p': g.drawImage(tile(theme, '_'), 0, 0); R(5, 10, 6, 5, '#b8603a'); R(4, 9, 8, 2, '#d07a4a'); R(3, 2, 10, 8, '#3e9830'); R(5, 1, 6, 2, '#5ab84a'); R(4, 4, 3, 2, '#7ad86a'); break;
       default: base();
     }
@@ -1527,5 +1562,23 @@ const GFX = (() => {
     cache.set(key, cv); return cv;
   }
 
-  return { person, tile, setIndoor, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
+  /* 時鐘指針：玩家在房間轉的時間，夢裡每一個鐘都停在這裡。
+     kind '7' 是走廊／禮堂的掛鐘，']' 是床頭的鬧鐘。min ＝ 一天中的第幾分鐘。 */
+  function clockHands(g, x, y, kind, min) {
+    const big = kind === '7';
+    const cx = x + 8, cy = y + (big ? 8 : 5), face = '#f8f6ee';
+    if (big) { g.fillStyle = face; g.fillRect(x + 4, y + 4, 8, 8);
+      g.fillStyle = '#6a6a74'; for (const [a, b] of [[8, 4], [8, 11], [4, 8], [11, 8]]) g.fillRect(x + a, y + b, 1, 1); }
+    else { g.fillStyle = face; g.fillRect(x + 5, y + 3, 6, 5); }
+    const line = (ang, len, col) => {
+      g.fillStyle = col;
+      for (let i = 0; i <= len * 2; i++) { const t = i / 2;
+        g.fillRect(Math.round(cx + Math.sin(ang) * t - .5), Math.round(cy - Math.cos(ang) * t - .5), 1, 1); }
+    };
+    const h = (min / 60) % 12, m = min % 60;
+    line(m / 60 * Math.PI * 2, big ? 4 : 2.5, big ? '#c83838' : '#2a2a30');
+    line(h / 12 * Math.PI * 2, big ? 2.5 : 1.5, '#2a2a30');
+    g.fillStyle = '#2a2a30'; g.fillRect(cx - 1, cy - 1, 2, 2);
+  }
+  return { person, tile, setIndoor, clockHands, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
 })();

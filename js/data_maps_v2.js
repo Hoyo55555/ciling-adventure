@@ -112,6 +112,12 @@ const TILES = {
   '%': { walk: 0, name: '停在路邊的機車' },
   ':': { walk: 0, name: '公車站牌' },
   ';': { walk: 1, name: '車道分向線（鋪在柏油路上）' },
+  /* 我的房間（序幕） */
+  '[': { walk: 0, name: '書桌（攤開的課本、檯燈）' },
+  ']': { walk: 0, name: '床頭櫃＋鬧鐘（指針會畫成玩家轉的時間）' },
+  '(': { walk: 0, name: '書包（准考證在裡面）' },
+  ')': { walk: 0, name: '衣櫃' },
+  '/': { walk: 0, name: '室內的窗（夜裡）' },
 };
 for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
 

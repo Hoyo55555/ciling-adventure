@@ -50,7 +50,7 @@ CAMPUS_MAPS.s1 = {
     '4,6':  { to: 'store_h', tx: 5, ty: 5, dir: 'up', ret: { x: 4,  y: 7 } },
     '4,12': { to: 'store_h', tx: 5, ty: 5, dir: 'up', ret: { x: 4,  y: 13 } },   // 早餐店
     '15,7': { to: 'home',    tx: 5, ty: 5, dir: 'up', ret: { x: 15, y: 8 } },
-    '15,14':{ to: 'home',    tx: 5, ty: 5, dir: 'up', ret: { x: 15, y: 15 } },   // 自己家
+    '15,14':{ to: 'room',    tx: 4, ty: 6, dir: 'up', ret: { x: 15, y: 15 } },   // 自己家（我的房間）
   },
   warps: [
     { x: 9,  y: 0, to: 's2', tx: 9,  ty: 20, dir: 'up' },
@@ -396,6 +396,29 @@ CAMPUS_MAPS.field = {
   signs: {},
 };
 
+/* ---- 我的房間 10×8（室內・序幕）----
+   凌晨在這裡驚醒：先轉床頭的鬧鐘（]），再確認書包（(）裡的准考證。
+   序幕結束前房間是暗的（night），門口被擋住（gates: prologue）。 */
+CAMPUS_MAPS.room = {
+  music: 'town', theme: 't_home', chapter: 0, indoor: 1, night: .45,
+  rows: [
+    'www/wwww/w',
+    'wb]__k[[_w',
+    'wb____(__w',
+    'w_______)w',
+    'w__rr___)w',
+    'wp_rr____w',
+    'w________w',
+    'wwww__wwww',
+  ],
+  warps: [{ x: 4, y: 7, to: '@ret' }, { x: 5, y: 7, to: '@ret' }],
+  gates: { '4,7': 'prologue', '5,7': 'prologue' },
+  acts: { '2,1': 'alarmClock', '6,2': 'schoolbag' },
+  signs: { '3,0': 'rm_window', '8,0': 'rm_window', '7,1': 'rm_desk', '5,1': 'rm_shelf',
+           '8,3': 'rm_closet', '8,4': 'rm_closet', '1,2': 'rm_bed' },
+  npcs: [],
+};
+
 /* ============================================================
    人物配置（從舊的 30 張地圖搬進校園）
    ------------------------------------------------------------
@@ -510,13 +533,25 @@ function CAMPUS_PATCH(S) {
       clue: '「去那個水面黑得像墨的地方——中庭的水池邊。」' },
   };
   S.roamMaps = ['s1', 's2', 's3', 'front', 'yard2', 'field', 'audyard'];
+  /* 起點：自己的房間（床邊，面向床頭鬧鐘）。出門落在巷口自己家門前 */
+  S.start = { map: 'room', x: 2, y: 2, dir: 'up', ret: { map: 's1', x: 15, y: 15 } };
+  /* 回城點：前庭的保健室門口（通學路是單向的，回不了家） */
+  S.homeTown = { map: 'front', x: 4, y: 8 };
+  S.gates = Object.assign({}, S.gates, { prologue: '（……還沒準備好。先確認時間和准考證吧。）' });
+  S.signs = Object.assign({}, S.signs, {
+    rm_window: '（窗外還是黑的。路燈下一個人也沒有。）',
+    rm_desk: '（書桌上攤著國文課本，旁邊壓著一疊寫到一半的模擬考卷。）',
+    rm_shelf: '（書架上排滿了參考書。每一本的書背都被翻得起毛了。）',
+    rm_closet: '（衣櫃裡掛著燙好的制服。）',
+    rm_bed: '（被子還是溫的。可是你已經睡不著了。）',
+  });
   S.postNpcs = Object.assign({}, S.postNpcs, {
     front: [{ role: 'postRival', x: 12, y: 13, dir: 'down' }],
   });
   Object.assign(S.mapNames, {
     s1: '巷口', s2: '大馬路口', s3: '校門前', front: '校門與前庭', hall: '穿堂',
     corridor1: '走廊 1F', stair1: '樓梯間', corridor2: '走廊 2F', yard2: '中庭',
-    field: '操場與跑道', audyard: '禮堂前廣場',
+    field: '操場與跑道', audyard: '禮堂前廣場', room: '我的房間',
   });
 }
 

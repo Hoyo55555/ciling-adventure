@@ -365,3 +365,15 @@ body{ background:#16120e radial-gradient(ellipse at top,#3a3026 0%,#16120e 70%);
 .affix{ color:#b8322a; font-weight:700; }
 .affix.bad{ color:#6a6a78; }
 .tchip{ display:inline-block; padding:0 calc(var(--u)*3); border-radius:calc(var(--u)*5); background:#2e261e; color:#f0e6cc; font-size:calc(var(--u)*6); font-weight:700; margin-right:calc(var(--u)*2); }
+
+/* 序幕：轉鬧鐘的小面板 */
+.clockp{ left:50%; top:50%; transform:translate(-50%,-50%); padding:calc(var(--u)*4) calc(var(--u)*8); text-align:center; }
+.clockp .ct{ font-weight:700; font-size:calc(var(--u)*8.5); }
+.clockp canvas{ width:calc(var(--u)*40); height:calc(var(--u)*40); image-rendering:auto; display:block; margin:calc(var(--u)*2) auto; }
+.clockp .cd{ display:flex; justify-content:center; align-items:center; gap:calc(var(--u)*2); font-size:calc(var(--u)*13); font-weight:700; }
+.clockp .cd i{ font-style:normal; }
+.clockp .cf{ display:flex; flex-direction:column; align-items:center; padding:0 calc(var(--u)*2); border-radius:calc(var(--u)*2); }
+.clockp .cf.sel{ background:#e8e0c0; }
+.clockp .cf b{ font-size:calc(var(--u)*6); color:#6a6a74; cursor:pointer; line-height:1.1; padding:0 calc(var(--u)*3); }
+.clockp .ch{ font-size:calc(var(--u)*6.5); color:#6a6a74; margin-top:calc(var(--u)*1); }
+.clockp .ok{ display:inline-block; margin-top:calc(var(--u)*2); padding:0 calc(var(--u)*8); border-radius:calc(var(--u)*2); background:#3a4c78; color:#fff; text-shadow:none; cursor:pointer; font-size:calc(var(--u)*8); }
