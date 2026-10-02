@@ -174,6 +174,7 @@ const OW = {
     if (this.shake > 0) { cx += Math.round((Math.random() - .5) * this.shake * 2); cy += Math.round((Math.random() - .5) * this.shake * 2); }
     const now = performance.now(), wf = Math.floor(now / 500) % 2;
     const x0 = Math.floor(cx / 16) - 1, y0 = Math.floor(cy / 16) - 1;
+    GFX.setIndoor(!!L.indoor);                          // 設施磚塊的底要跟著室內／室外換
     if (L.art) ArtMap.draw(g, L.art, cx, cy);            // 美術地圖：直接畫草圖
     else for (let ty = y0; ty < y0 + 12; ty++) for (let tx = x0; tx < x0 + 17; tx++) {
       const c = this.tile(tx, ty);

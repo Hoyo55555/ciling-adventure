@@ -388,7 +388,10 @@ const WORLD_ORDER = ['school', 'literati', 'wuxia'];
     sign_beilin: '碑林關\n↑ 考鐘坡　↓ 古碑小徑',
     sign_moquan: '墨泉鄉\n（休息站：湯屋可回復氣血）',
     sign_zhongta: '鐘塔台\n會考的鐘聲從這裡敲響',
-    sign_zhongta2: '（禮堂入口．集滿四片碎片者，方可應考）' });
+    sign_zhongta2: '（禮堂入口．集滿四片碎片者，方可應考）',
+    /* 校園改版：二樓兩間的門牌 */
+    sg_lib: '圖書館\n考：成語・六書',
+    sg_hist: '校史室\n考：文言・國學常識' });
   S.gates = Object.assign({}, S.gates, {
     need1: '道館守門人：「典籍港的道館只收有『第一片碎片』的人——先去注音坡的道館吧。」',
     need2: '道館守門人：「花南街的道館要兩片碎片才進得去。」',

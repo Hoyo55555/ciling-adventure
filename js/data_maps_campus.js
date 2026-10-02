@@ -325,23 +325,30 @@ CAMPUS_MAPS.stair1 = {
 };
 
 /* ---- 走廊 2F 32×6（室內）----
-   和 1F 的排列刻意不一樣：沒有真的門，改成公佈欄 */
+   二樓有兩間：圖書館（道館②）與校史室（道館④）。
+   和 1F 一樣，不放假的門 —— 其餘全是窗與置物櫃。 */
 CAMPUS_MAPS.corridor2 = {
-  music: 'town', theme: 't_campus', chapter: 1, indoor: 1,
+  music: 'town', theme: 't_campus', chapter: 2, indoor: 1,
   rows: [
     'wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww',
-    'wzzwWWWwWWWwzzw22wWWWwWWWwzzwwww',
+    'wzzwWDWwWWWwzzw22wWDWwWWWwzzwwww',
     '________________________________',
     '________________________________',
     '________________________________',
     '11111111111111111111111111111111',
   ],
+  doorWarps: {
+    '5,1':  { to: 'lib',  tx: 7, ty: 10, dir: 'up', ret: { x: 5,  y: 2 },
+              need: 1, gate: 'need1' },                       // 圖書館＝道館②
+    '20,1': { to: 'hist', tx: 6, ty: 10, dir: 'up', ret: { x: 20, y: 2 },
+              need: 3, gate: 'need3' },                       // 校史室＝道館④
+  },
   warps: [
     { x: 0, y: 2, to: 'stair1', tx: 4, ty: 3, dir: 'left' },
     { x: 0, y: 3, to: 'stair1', tx: 4, ty: 3, dir: 'left' },
     { x: 0, y: 4, to: 'stair1', tx: 4, ty: 3, dir: 'left' },
   ],
-  signs: {},
+  signs: { '6,1': 'sg_lib', '21,1': 'sg_hist' },
 };
 
 /* ---- 操場與跑道 32×24（室外・全校最大的一張）----

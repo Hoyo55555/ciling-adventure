@@ -255,8 +255,15 @@ const GFX = (() => {
   const BLUE = { roof: '#3a68b8', roof2: adj('#3a68b8', -.28) };
   const GOLD = { roof: '#b8861a', roof2: adj('#b8861a', -.28) };
 
+  /* 室內／室外：告示牌、公佈欄、飲水機這類「擺在地上的設施」，
+     底下要鋪的是室內地板還是室外地面，不一樣。
+     由 OW.draw() 在畫每張地圖之前設好（GFX.setIndoor），
+     快取的 key 也要帶著，不然兩種會互相覆蓋。 */
+  let INDOOR = false;
+  function setIndoor(v) { INDOOR = !!v; }
+
   function tile(theme, code, fr = 0) {
-    const key = 't:' + theme + code + fr; if (cache.has(key)) return cache.get(key);
+    const key = 't:' + theme + code + fr + (INDOOR ? 'i' : ''); if (cache.has(key)) return cache.get(key);
     const T = THEMES[theme] ? Object.assign({}, THEMES.school, THEMES[theme]) : THEMES.school;   // 城鎮主題缺的鍵沿用 school
     const cv = document.createElement('canvas'); cv.width = 16; cv.height = 16; const g = cv.getContext('2d');
     const R = (x, y, w, hh, c) => { g.fillStyle = c; g.fillRect(x, y, w, hh); };
@@ -273,6 +280,9 @@ const GFX = (() => {
       const TUFT = [[[2, 11], [12, 4]], [[6, 3], [13, 12]], [[4, 13], [9, 7]], [[11, 2], [3, 8]]][v & 3];
       for (const [x, y] of TUFT) { R(x, y, 1, 2, drk2); R(x + 1, y + 1, 1, 1, drk2); R(x - 1, y + 1, 1, 1, drk); }
     };
+    /* 設施磚塊的底：室內鋪地板、室外鋪地面 */
+    const base = () => { if (INDOOR) g.drawImage(tile(theme, '_'), 0, 0); else ground(); };
+    const pave = () => { if (INDOOR) g.drawImage(tile(theme, '_'), 0, 0); else g.drawImage(tile(theme, ','), 0, 0); };
     switch (code) {
       case '.': ground(fr); break;
       case ',': {
@@ -334,7 +344,7 @@ const GFX = (() => {
       case 'T':
         if (T.grassBed) { R(0, 0, 16, 16, T.grassBed);
           for (let i = 0; i < 7; i++) { const v = hash(i + 11, 19); R(v % 16, (v >>> 4) % 16, 2, 1, adj(T.grassBed, -.10)); } }
-        else ground();
+        else base();
         if (T.treeStyle === 'bamboo') {
           R(0, 0, 16, 16, '#2e4a22');
           for (const [x, o] of [[1, 0], [6, 5], [11, 2]]) { R(x, 0, 3, 16, '#8ab858'); R(x, 0, 1, 16, '#b8dc80'); R(x + 2, 0, 1, 16, '#5a8a38'); R(x, (4 + o) % 16, 3, 1, '#3e6a2a'); R(x, (11 + o) % 16, 3, 1, '#3e6a2a'); }
@@ -417,15 +427,15 @@ const GFX = (() => {
         }
         break;
       case 'R': roofTile(R, T, fr); break;
-      case '=': ground(); R(0, 5, 16, 2, T.fence); R(0, 10, 16, 2, T.fence); R(1, 3, 3, 11, T.fence); R(12, 3, 3, 11, T.fence); R(1, 13, 3, 1, T.fence2); R(12, 13, 3, 1, T.fence2); R(0, 7, 16, 1, T.fence2); R(0, 12, 16, 1, T.fence2); break;
-      case 'S': ground(); R(7, 9, 2, 6, '#7a5230'); R(2, 2, 12, 8, '#7a5230'); R(3, 3, 10, 6, '#c89858'); R(4, 5, 8, 1, '#7a5230'); R(4, 7, 6, 1, '#7a5230'); break;
-      case 'F': ground(); { const cs = T.flower; [[4, 4, 0], [11, 6, 1], [6, 11, 2], [12, 12, 0]].forEach(([x, y, i]) => { R(x - 1, y, 3, 1, cs[i]); R(x, y - 1, 1, 3, cs[i]); R(x, y, 1, 1, '#f8c830'); R(x, y + 2, 1, 2, '#3a8a3a'); }); } break;
-      case 'L': ground(); R(7, 6, 2, 9, '#40404a'); R(5, 14, 6, 2, '#40404a');
+      case '=': base(); R(0, 5, 16, 2, T.fence); R(0, 10, 16, 2, T.fence); R(1, 3, 3, 11, T.fence); R(12, 3, 3, 11, T.fence); R(1, 13, 3, 1, T.fence2); R(12, 13, 3, 1, T.fence2); R(0, 7, 16, 1, T.fence2); R(0, 12, 16, 1, T.fence2); break;
+      case 'S': base(); R(7, 9, 2, 6, '#7a5230'); R(2, 2, 12, 8, '#7a5230'); R(3, 3, 10, 6, '#c89858'); R(4, 5, 8, 1, '#7a5230'); R(4, 7, 6, 1, '#7a5230'); break;
+      case 'F': base(); { const cs = T.flower; [[4, 4, 0], [11, 6, 1], [6, 11, 2], [12, 12, 0]].forEach(([x, y, i]) => { R(x - 1, y, 3, 1, cs[i]); R(x, y - 1, 1, 3, cs[i]); R(x, y, 1, 1, '#f8c830'); R(x, y + 2, 1, 2, '#3a8a3a'); }); } break;
+      case 'L': base(); R(7, 6, 2, 9, '#40404a'); R(5, 14, 6, 2, '#40404a');
         if (theme === 'school') { R(4, 1, 8, 5, '#40404a'); R(5, 2, 6, 3, T.lamp); }
         else { R(4, 1, 8, 7, T.lamp); R(4, 1, 8, 1, '#40302a'); R(4, 7, 8, 1, '#40302a'); R(6, 3, 4, 3, '#f8d060'); }
         break;
-      case '^': ground(); R(2, 5, 12, 10, T.rock); R(4, 3, 8, 3, T.rock); R(4, 4, 4, 2, adj(T.rock, .3)); R(2, 13, 12, 2, adj(T.rock, -.3)); break;
-      case 'q': ground(); R(1, 3, 14, 12, '#4a4658'); R(1, 3, 14, 2, '#6a6480');   // 巨硯
+      case '^': base(); R(2, 5, 12, 10, T.rock); R(4, 3, 8, 3, T.rock); R(4, 4, 4, 2, adj(T.rock, .3)); R(2, 13, 12, 2, adj(T.rock, -.3)); break;
+      case 'q': base(); R(1, 3, 14, 12, '#4a4658'); R(1, 3, 14, 2, '#6a6480');   // 巨硯
         R(2, 5, 12, 9, '#332f42'); R(3, 6, 10, 7, '#1a1426');
         R(4, 7, 8, 5, '#0e0a18'); R(5, 8, 3, 1, '#6a58a0'); R(9, 10, 2, 1, '#8a78c0');
         R(1, 14, 14, 1, '#242030'); break;
@@ -459,7 +469,7 @@ const GFX = (() => {
         if (fr & 8) R(1, 0, 1, 16, LW);
         break;
       }
-      case 'a': ground();                         // 籃球架
+      case 'a': base();                         // 籃球架
         R(7, 9, 2, 7, '#8a8a92'); R(7, 9, 1, 7, '#b4b4bc');
         R(4, 15, 8, 1, '#56565e');
         R(3, 1, 10, 8, '#d8d4c6'); R(3, 1, 10, 1, '#ffffff'); R(3, 8, 10, 1, '#a8a498');
@@ -467,7 +477,7 @@ const GFX = (() => {
         R(5, 9, 6, 1, '#e87a30'); R(5, 9, 1, 2, '#e87a30'); R(10, 9, 1, 2, '#e87a30');
         R(6, 11, 4, 2, '#f6f6f2'); R(7, 13, 2, 1, '#e0e0da');
         break;
-      case 'v': ground();                         // 排球網
+      case 'v': base();                         // 排球網
         R(1, 1, 2, 14, '#8a8a92'); R(13, 1, 2, 14, '#8a8a92');
         R(1, 1, 1, 14, '#b4b4bc'); R(13, 1, 1, 14, '#b4b4bc');
         R(0, 2, 16, 2, '#f6f6f2'); R(0, 2, 16, 1, '#ffffff');
@@ -476,7 +486,7 @@ const GFX = (() => {
         R(1, 15, 2, 1, '#4a4a52'); R(13, 15, 2, 1, '#4a4a52');
         break;
       case 'd': {                                 // 司令台：fr＝哪幾邊不是司令台（上右下左）
-        ground();
+        base();
         const L0 = fr & 8, R0 = fr & 2;             // 左／右是不是邊緣
         R(0, 2, 16, 13, '#c4bdae'); R(0, 2, 16, 2, '#ddd7c8');   // 台面
         R(0, 8, 16, 1, '#a49d8e');                                // 台面與立面的分界
@@ -490,7 +500,7 @@ const GFX = (() => {
         R(4, 5, 8, 2, '#c8a878'); R(4, 5, 8, 1, '#dcc094');
         R(7, 0, 1, 4, '#5a5a62'); R(6, 0, 3, 1, '#2a2a30');       // 麥克風
         break;
-      case 'j': ground();                         // 單槓／爬竿
+      case 'j': base();                         // 單槓／爬竿
         R(2, 3, 2, 12, '#8a8a92'); R(12, 3, 2, 12, '#8a8a92');
         R(2, 3, 1, 12, '#b4b4bc'); R(12, 3, 1, 12, '#b4b4bc');
         R(1, 2, 14, 2, '#c4c4cc'); R(1, 2, 14, 1, '#e4e4ec');
@@ -505,7 +515,7 @@ const GFX = (() => {
         }
         for (let i = 0; i < 4; i++) { const v = hash(i + (fr & 3) * 5, 13); R(v % 15, (v >>> 4) % 15, 2, 1, '#a79e90'); }
         break;
-      case 'o': ground();                         // 停好的腳踏車（正面看的一排車頭）
+      case 'o': base();                         // 停好的腳踏車（正面看的一排車頭）
         R(0, 13, 16, 2, '#9a968c');                                   // 停車格的地面標線
         for (const [x0, col] of [[1, '#3a68b8'], [9, '#c83838']]) {
           R(x0, 2, 6, 1, '#70707a'); R(x0, 2, 1, 3, '#70707a'); R(x0 + 5, 2, 1, 3, '#70707a');   // 龍頭
@@ -516,13 +526,13 @@ const GFX = (() => {
           R(x0 + 1, 15, 4, 1, 'rgba(0,0,0,.3)');
         }
         break;
-      case 'f': g.drawImage(tile(theme, ','), 0, 0);   // 飲水機
+      case 'f': pave();   // 飲水機
         R(3, 3, 10, 12, '#b6bac2'); R(3, 3, 10, 2, '#d8dce4'); R(3, 14, 10, 1, '#70767e');
         R(4, 6, 8, 4, '#888e96'); R(5, 7, 6, 2, '#666c74');
         R(7, 10, 2, 2, '#e0e4ec'); R(6, 12, 4, 1, '#888e96');
         R(11, 5, 1, 1, '#6aa8e0');
         break;
-      case 'z': g.drawImage(tile(theme, ','), 0, 0);   // 置物櫃／掃具櫃
+      case 'z': pave();   // 置物櫃／掃具櫃
         R(0, 0, 16, 15, '#4a6a8a');
         for (const x0 of [0, 8]) {
           R(x0 + 1, 1, 6, 13, '#6288a8'); R(x0 + 1, 1, 6, 1, '#82a8c8');
@@ -531,13 +541,13 @@ const GFX = (() => {
         }
         R(0, 14, 16, 2, '#32516e');
         break;
-      case '1': g.drawImage(tile(theme, ','), 0, 0);   // 陽台欄杆
+      case '1': pave();   // 陽台欄杆
         R(0, 2, 16, 2, '#d6d2c6'); R(0, 2, 16, 1, '#efebdf');
         R(0, 8, 16, 1, '#bebaae');
         for (let x = 1; x < 16; x += 3) R(x, 4, 1, 9, '#c6c2b6');
         R(0, 13, 16, 3, '#a6a298'); R(0, 13, 16, 1, '#bebaae');
         break;
-      case '2': ground();                         // 公佈欄／獎盃櫃
+      case '2': base();                         // 公佈欄／獎盃櫃
         R(6, 12, 1, 4, '#6a4a2a'); R(9, 12, 1, 4, '#6a4a2a');
         R(0, 1, 16, 12, '#7a5230'); R(1, 2, 14, 10, '#c8a878');
         for (const [x, y, w2, h2] of [[2, 3, 4, 4], [7, 3, 5, 3], [2, 8, 5, 3], [8, 7, 6, 4]]) { R(x, y, w2, h2, '#f8f4e8'); R(x, y, w2, 1, '#d6cebe'); R(x + 1, y + 1, w2 - 2, 1, '#b0a898'); }
@@ -548,13 +558,13 @@ const GFX = (() => {
         for (const x of [1, 6, 10, 14]) { R(x, 0, 1, 16, '#3a6a38'); R(x + 1, 3, 1, 11, '#4c8a46'); }
         for (const [x, y] of [[2, 4], [7, 8], [11, 2], [14, 10], [4, 12], [12, 6], [8, 14]]) { R(x, y, 2, 2, '#5aa04c'); R(x, y, 1, 1, '#7cc266'); }
         break;
-      case '4': ground();                         // 施工圍籬（黃黑斜紋）
+      case '4': base();                         // 施工圍籬（黃黑斜紋）
         R(0, 2, 16, 12, '#e8b830');
         for (let i = -16; i < 16; i += 6) for (let y = 2; y < 14; y++) { const x = i + (y - 2); if (x >= 0 && x < 16) R(x, y, 3, 1, '#2a2a30'); }
         R(0, 2, 16, 1, '#f8d860'); R(0, 13, 16, 1, '#a88420');
         R(1, 14, 2, 2, '#56565e'); R(13, 14, 2, 2, '#56565e');
         break;
-      case '5': ground();                         // 水塔
+      case '5': base();                         // 水塔
         R(3, 1, 10, 9, '#8ac0d8'); R(3, 1, 10, 2, '#b2dcee'); R(3, 9, 10, 1, '#5a90a8');
         for (let y = 4; y < 9; y += 2) R(3, y, 10, 1, '#78b0c8');
         R(6, 0, 4, 1, '#5a90a8');
@@ -563,7 +573,7 @@ const GFX = (() => {
         R(3, 15, 10, 1, '#56565e');
         break;
       case '6': {                                 // 資源回收桶（三色）
-        g.drawImage(tile(theme, ','), 0, 0);
+        pave();
         const BIN = ['#3e9830', '#e0b040', '#3a68b8'];
         BIN.forEach((c, i) => { const x = i * 5 + 1;
           R(x, 6, 4, 9, c); R(x, 6, 4, 1, adj(c, .3)); R(x, 14, 4, 1, adj(c, -.35));
@@ -577,7 +587,7 @@ const GFX = (() => {
         R(8, 8, 4, 1, '#c83838');                 // 分針
         R(7, 7, 2, 2, '#2a2a30');
         break;
-      case '8': ground();                         // 溫室（玻璃屋）
+      case '8': base();                         // 溫室（玻璃屋）
         R(0, 1, 16, 14, '#cfe4ea');
         for (let x = 0; x < 16; x += 5) R(x, 1, 1, 14, '#8aa8b0');
         for (let y = 1; y < 15; y += 5) R(0, y, 16, 1, '#8aa8b0');
@@ -590,14 +600,14 @@ const GFX = (() => {
         for (let i = 0; i < 10; i++) { const v = hash(i + (fr & 3) * 5, 23); R(v % 16, (v >>> 4) % 16, 1, 1, adj(T.path, -.07)); }
         for (let x = 1; x < 16; x += 5) { R(x, 0, 3, 16, '#eceadf'); R(x, 0, 1, 16, '#ffffff'); }
         break;
-      case '!': ground();                          // 電線桿
+      case '!': base();                          // 電線桿
         R(6, 0, 4, 16, '#9a8f7e'); R(6, 0, 1, 16, '#b8ad9a'); R(9, 0, 1, 16, '#7d7262');
         for (let y = 3; y < 16; y += 5) R(6, y, 4, 1, '#8a7f6e');
         R(1, 2, 14, 1, '#4a4a52'); R(2, 5, 12, 1, '#4a4a52');          // 橫擔
         R(3, 1, 1, 2, '#6a6a74'); R(12, 1, 1, 2, '#6a6a74');
         R(4, 7, 8, 4, '#6a6a74'); R(4, 7, 8, 1, '#8a8a94');            // 變壓器
         break;
-      case '%': ground();                          // 停在路邊的機車
+      case '%': base();                          // 停在路邊的機車
         R(0, 13, 16, 2, adj(T.ground, -.12));
         for (const [x0, col] of [[1, '#c83838'], [9, '#3a68b8']]) {
           R(x0 + 1, 3, 4, 2, '#2a2a30'); R(x0, 4, 6, 1, '#4a4a52');     // 龍頭
@@ -615,7 +625,7 @@ const GFX = (() => {
         else { for (let x = 1; x < 16; x += 6) R(x, 7, 4, 2, '#e8d46a'); }
         break;
       }
-      case ':': ground();                          // 公車站牌
+      case ':': base();                          // 公車站牌
         R(7, 4, 2, 12, '#8a8a92'); R(7, 4, 1, 12, '#b0b0b8');
         R(5, 15, 6, 1, '#5a5a62');
         R(2, 0, 12, 6, '#2a68a8'); R(2, 0, 12, 1, '#4a8ac8'); R(2, 5, 12, 1, '#1c4a7c');
@@ -664,7 +674,7 @@ const GFX = (() => {
         R(0, 0, 16, 2, '#7a7a90'); R(2, 3, 12, 11, '#8a8a9c');
         { g.fillStyle = '#f4ecd8'; g.beginPath(); g.arc(8, 8, 4.5, 0, Math.PI * 2); g.fill(); }
         R(7, 4, 1, 5, '#2a2a34'); R(8, 8, 4, 1, '#2a2a34'); break;
-      case 'I': ground(); R(1, 2, 14, 3, '#a8463c'); R(0, 1, 16, 2, '#c85a4a');    // 牌坊／拱門
+      case 'I': base(); R(1, 2, 14, 3, '#a8463c'); R(0, 1, 16, 2, '#c85a4a');    // 牌坊／拱門
         R(2, 5, 3, 11, '#8a5a2a'); R(11, 5, 3, 11, '#8a5a2a');
         R(2, 8, 12, 1, '#a8463c'); break;
       /* ---- 三大公共建築（每個城鎮都一樣）---- */
@@ -691,25 +701,25 @@ const GFX = (() => {
         R(1, 4, 14, 2, '#b07a44'); R(2, 12, 2, 4, '#6a4424'); R(12, 12, 2, 4, '#6a4424');
         R(5, 2, 6, 2, '#f4ecd8'); break;
       /* ---- 特別建築的屋頂與門牌 ---- */
-      case 'N': ground(); R(7, 8, 2, 7, '#6a4a32');                                                   // 門牌
+      case 'N': base(); R(7, 8, 2, 7, '#6a4a32');                                                   // 門牌
         R(2, 3, 12, 6, '#e8dcc0'); R(2, 3, 12, 1, '#b8a888'); R(2, 8, 12, 1, '#b8a888');
         R(4, 5, 8, 1, '#6a5a44'); R(4, 7, 5, 1, '#6a5a44'); break;
       /* ---- 城鎮景物（地圖改版）---- */
-      case 'Y': ground();                                   // 竹叢
+      case 'Y': base();                                   // 竹叢
         for (const [x, h0] of [[3, 2], [7, 0], [11, 3]]) { R(x, h0, 2, 16 - h0, '#5a9a4a'); R(x, h0, 1, 16 - h0, '#86c86a'); for (let y = h0 + 3; y < 16; y += 4) R(x - 1, y, 4, 1, '#3a7a34'); }
         break;
       case 'Z': R(0, 0, 16, 16, '#7ac8d8'); R(0, 0, 16, 16, 'rgba(255,255,255,.10)');   // 湯池
         { const o = fr * 3; R((2 + o) % 16, 5, 6, 1, '#d8f4ff'); R((9 + o) % 16, 11, 5, 1, '#d8f4ff'); }
         R(0, 0, 16, 2, '#b8a890'); R(0, 14, 16, 2, '#b8a890'); break;
-      case 'O': ground(); R(4, 2, 8, 12, '#9a968c'); R(5, 3, 6, 10, '#b4b0a4');          // 石碑
+      case 'O': base(); R(4, 2, 8, 12, '#9a968c'); R(5, 3, 6, 10, '#b4b0a4');          // 石碑
         R(6, 5, 4, 1, '#6a6a64'); R(6, 7, 4, 1, '#6a6a64'); R(6, 9, 3, 1, '#6a6a64'); R(3, 13, 10, 2, '#7a766e'); break;
-      case 'm': ground(); R(1, 6, 14, 2, '#b8322a'); R(1, 5, 14, 1, '#d84a3a');          // 書攤／市集攤位
+      case 'm': base(); R(1, 6, 14, 2, '#b8322a'); R(1, 5, 14, 1, '#d84a3a');          // 書攤／市集攤位
         R(2, 8, 12, 6, '#8a5a2a'); R(3, 9, 4, 4, '#e8dcc0'); R(8, 9, 4, 4, '#c8d8f0'); R(2, 13, 12, 1, '#6a4424'); break;
-      case 'n': ground(); R(7, 1, 2, 14, '#6a4a32');                                      // 布招／旗幟
+      case 'n': base(); R(7, 1, 2, 14, '#6a4a32');                                      // 布招／旗幟
         R(2, 2, 5, 8, '#c83838'); R(3, 3, 3, 1, '#f8f0e0'); R(3, 5, 3, 1, '#f8f0e0'); R(9, 2, 5, 8, '#3a68b8'); R(10, 4, 3, 1, '#f8f0e0'); break;
-      case 'A': ground(); R(1, 3, 14, 2, '#8a4a3a'); R(2, 1, 12, 2, '#a85a48');          // 涼亭／朗讀亭
+      case 'A': base(); R(1, 3, 14, 2, '#8a4a3a'); R(2, 1, 12, 2, '#a85a48');          // 涼亭／朗讀亭
         R(2, 5, 2, 10, '#8a6a4a'); R(12, 5, 2, 10, '#8a6a4a'); R(4, 12, 8, 2, '#c8b898'); break;
-      case 'Q': ground(); R(2, 4, 12, 10, '#a8763c'); R(3, 5, 10, 8, '#c8964c');         // 木箱堆
+      case 'Q': base(); R(2, 4, 12, 10, '#a8763c'); R(3, 5, 10, 8, '#c8964c');         // 木箱堆
         R(3, 8, 10, 1, '#8a5a2a'); R(7, 5, 2, 8, '#8a5a2a'); R(2, 13, 12, 1, '#6a4424'); break;
       case 'M': g.drawImage(tile(theme, '_'), 0, 0); R(3, 1, 10, 13, '#8a8a92'); R(4, 2, 8, 11, '#a8a8b0'); R(5, 4, 6, 1, '#6a6a74'); R(5, 6, 6, 1, '#6a6a74'); R(5, 8, 4, 1, '#6a6a74'); R(2, 14, 12, 2, '#6a6a74'); break;
       case 'V': g.drawImage(tile(theme, '_'), 0, 0); R(3, 4, 10, 9, '#4a5a70'); R(4, 5, 8, 5, '#8ad0f0'); R(5, 6, 3, 1, '#f8f8f8'); R(4, 11, 8, 1, '#2a3648'); R(5, 13, 6, 2, '#2a3648'); break;
@@ -746,7 +756,7 @@ const GFX = (() => {
       case 't': g.drawImage(tile(theme, '_'), 0, 0); R(0, 2, 16, 11, '#6a4424'); R(0, 2, 16, 7, '#b07a44'); R(0, 2, 16, 1, '#d09a60'); R(1, 13, 2, 3, '#4a2e18'); R(13, 13, 2, 3, '#4a2e18'); break;
       case 'k': R(0, 0, 16, 16, '#5a3a20'); for (const y of [1, 6, 11]) { R(1, y, 14, 4, '#3a2410'); [['#c83838', 1], ['#3a68b8', 3], ['#e0b040', 5], ['#3e9830', 8], ['#8a5ac8', 10], ['#e87a30', 12]].forEach(([c, x]) => R(1 + x, y + (x % 3 === 0 ? 1 : 0), 2, 4 - (x % 3 === 0 ? 1 : 0), c)); R(0, y + 4, 16, 1, '#7a5230'); } break;
       case 'p': g.drawImage(tile(theme, '_'), 0, 0); R(5, 10, 6, 5, '#b8603a'); R(4, 9, 8, 2, '#d07a4a'); R(3, 2, 10, 8, '#3e9830'); R(5, 1, 6, 2, '#5ab84a'); R(4, 4, 3, 2, '#7ad86a'); break;
-      default: ground();
+      default: base();
     }
     cache.set(key, cv); return cv;
   }
@@ -1517,5 +1527,5 @@ const GFX = (() => {
     cache.set(key, cv); return cv;
   }
 
-  return { person, tile, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
+  return { person, tile, setIndoor, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
 })();
