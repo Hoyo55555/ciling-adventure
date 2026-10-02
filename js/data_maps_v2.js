@@ -286,6 +286,9 @@ MAPS.zhuyin = {
   chests: [{ x: 21, y: 15, id: 'zy1', items: { heal: 2 } }],
 };
 
+/* 道館內部的出口一律用 @ret（回到進來的那扇門前）。
+   以前寫死成舊城鎮的名字，地圖換成校園之後，從新校園進去、出來會跑到舊的城鎮。
+   門的 doorWarp 一定會設好 G.ret，所以 @ret 在新舊地圖都正確。 */
 /* ============================================================
    室內：出口一律在最下面那一排牆的缺口，踩上去就出去（to: '@ret'）
    ------------------------------------------------------------
@@ -392,8 +395,8 @@ MAPS.c1a = {
     'wwwww__wwwww',
   ],
   warps: [
-    { x: 5, y: 8, to: 'zhuyin', tx: 6, ty: 6, dir: 'down' },
-    { x: 6, y: 8, to: 'zhuyin', tx: 6, ty: 6, dir: 'down' },
+    { x: 5, y: 8, to: '@ret' },
+    { x: 6, y: 8, to: '@ret' },
   ],
   npcs: [
     { role: 'boss1',  x: 5, y: 2, dir: 'down' },
@@ -673,8 +676,8 @@ MAPS.lib = {
     'wwwwwww__wwwwwww',
   ],
   warps: [
-    { x: 7, y: 11, to: 'dianji', tx: 19, ty: 5, dir: 'down' },
-    { x: 8, y: 11, to: 'dianji', tx: 19, ty: 5, dir: 'down' },
+    { x: 7, y: 11, to: '@ret' },
+    { x: 8, y: 11, to: '@ret' },
   ],
   npcs: [{ role: 'boss2', x: 8, y: 1, dir: 'down' }],
   chests: [{ x: 1, y: 10, id: 'lib1', items: { hint: 2, dodgeup: 1 }, frags: { tome: 2 } }],
@@ -904,8 +907,8 @@ MAPS.yard = {
     'wwwwwww__wwwwwww',
   ],
   warps: [
-    { x: 7, y: 11, to: 'huanan', tx: 17, ty: 5, dir: 'down' },
-    { x: 8, y: 11, to: 'huanan', tx: 17, ty: 5, dir: 'down' },
+    { x: 7, y: 11, to: '@ret' },
+    { x: 8, y: 11, to: '@ret' },
   ],
   npcs: [{ role: 'boss3', x: 7, y: 1, dir: 'down' }],
   chests: [{ x: 14, y: 10, id: 'yard1', items: { heal2: 1, cure: 1 } }],
@@ -1062,8 +1065,8 @@ MAPS.hist = {
     'wwwwww__wwwwww',
   ],
   warps: [
-    { x: 6, y: 11, to: 'beilin', tx: 17, ty: 5, dir: 'down' },
-    { x: 7, y: 11, to: 'beilin', tx: 17, ty: 5, dir: 'down' },
+    { x: 6, y: 11, to: '@ret' },
+    { x: 7, y: 11, to: '@ret' },
   ],
   npcs: [{ role: 'boss4', x: 7, y: 1, dir: 'down' }],
   chests: [{ x: 1, y: 10, id: 'hist1', items: { heal2: 2, atkup: 1 }, frags: { classic: 2 } }],
@@ -1317,8 +1320,8 @@ MAPS.aud = {
     'wwwwwww__wwwwwww',
   ],
   warps: [
-    { x: 7, y: 13, to: 'zhongta', tx: 14, ty: 6, dir: 'down' },
-    { x: 8, y: 13, to: 'zhongta', tx: 14, ty: 6, dir: 'down' },
+    { x: 7, y: 13, to: '@ret' },
+    { x: 8, y: 13, to: '@ret' },
   ],
   npcs: [
     { role: 'e1',      x: 1,  y: 10, dir: 'right', sight: 14 },
