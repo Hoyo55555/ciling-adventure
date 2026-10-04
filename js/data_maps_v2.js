@@ -1238,8 +1238,8 @@ MAPS.inkpool = {
     'wwwwwww__wwwwwww',
   ],
   warps: [
-    { x: 7, y: 11, to: 'moquan', tx: 10, ty: 14, dir: 'down' },
-    { x: 8, y: 11, to: 'moquan', tx: 10, ty: 14, dir: 'down' },
+    { x: 7, y: 11, to: '@ret' },     // @ret：舊地圖回墨泉鄉，校園版回中庭的舊牆角
+    { x: 8, y: 11, to: '@ret' },
   ],
   npcs: [],
   chests: [{ x: 1, y: 1, id: 'ink1', items: { heal2: 3, ward: 2, cure: 2 } }],

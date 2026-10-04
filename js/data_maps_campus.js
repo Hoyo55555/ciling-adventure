@@ -1,10 +1,10 @@
 'use strict';
 /* ============================================================
-   校園改版的新地圖（施工中）
+   校園地圖（國中生涯的正式地圖）
    ------------------------------------------------------------
-   這個檔案**還沒接進正式遊戲**（index.html 沒有載入它）。
-   等整套校園地圖做完，再一次換掉現在的 30 張。
-   測試頁 test/game.html 會載入它，所以可以邊做邊看。
+   index.html 在 data_maps_v2.js 之後載入它。舊的 30 張仍然留著：
+   道館、保健室、商店這些室內沿用舊檔，另外兩個世界（書院、武俠）也還用舊地圖。
+   國中生涯的起點、章節、劇情條件由檔尾的 CAMPUS_PATCH() 換成校園版。
 
    規則和 data_maps_v2.js 完全一樣：一個字元就是一格，
    看到什麼就是什麼。差別只有多了 props（整棟建築）：
@@ -238,7 +238,7 @@ CAMPUS_MAPS.corridor1 = {
 CAMPUS_MAPS.yard2 = {
   music: 'town', theme: 't_campus', chapter: 3,
   rows: [
-    'TT....................TT',
+    'TT................3333TT',   // 18–21：爬滿藤蔓的舊牆角（二週目：硯海墨池的入口）
     'TT....................TT',
     'TT....................TT',
     'TT....................TT',
@@ -261,6 +261,8 @@ CAMPUS_MAPS.yard2 = {
   doorWarps: {
     '11,6': { to: 'yard', tx: 7, ty: 10, dir: 'up', ret: { x: 11, y: 7 },
               need: 2, gate: 'need2' },                       // 文藝教室＝道館③（要兩片碎片）
+    /* 舊牆角的墨漬：二週目、三隻器靈都帶在身上才打得開（跟舊版墨泉鄉的泉眼同一套） */
+    '19,0': { to: 'inkpool', tx: 7, ty: 10, dir: 'up', ret: { x: 19, y: 1 }, need: 'stone' },
   },
   warps: [
     { x: 11, y: 17, to: 'hall', tx: 11, ty: 1, dir: 'down' },
@@ -554,14 +556,85 @@ function CAMPUS_PATCH(S) {
     rm_closet: '（衣櫃裡掛著燙好的制服。）',
     rm_bed: '（被子還是溫的。可是你已經睡不著了。）',
   });
+  S.campus = true;
   S.postNpcs = Object.assign({}, S.postNpcs, {
     front: [{ role: 'postRival', x: 12, y: 13, dir: 'down' }],
+    yard2: [{ role: 'tipInk', x: 17, y: 1, dir: 'right' }],      // 通關後：指點舊牆角（硯海墨池）
   });
+  /* 章節名稱與目標（劇情選單、換章時的橫幅會顯示） */
+  const ST = [
+    ['第一道館．一年甲班', '到教學樓走廊 1F 的「一年甲班」，挑戰字音字形小老師。'],
+    ['第二道館．圖書館', '在走廊 2F 找到周以恆，再進圖書館挑戰成語圖書股長。'],
+    ['第三道館．文藝教室', '到中庭幫報告組長叫醒三位組員，再挑戰文藝教室的現代文青助教。'],
+    ['第四道館．校史室', '在樓梯間再次面對周以恆，然後到走廊 2F 的校史室。'],
+    ['第五道館．大禮堂', '到禮堂前廣場——小墨在那裡等你。'],
+  ];
+  ST.forEach(([name, text], i) => Object.assign(S.stages[i], { name, text, tiles: [] }));
+  /* 選單「地圖」：校園版的清單（區域地圖重做〔待辦 5〕之前的過渡版） */
+  S.mapChain = [
+    { id: 's1', kind: 'path', tag: '家門口' }, { id: 's2', kind: 'path' }, { id: 's3', kind: 'path', tag: '進校門就回不去了' },
+    { id: 'front', kind: 'rest', tag: '保健室・練功草叢' }, { id: 'hall', kind: 'area' },
+    { id: 'corridor1', kind: 'area', tag: '福利社・工藝教室・自己的教室' }, { id: 'c1a', kind: 'gym', gym: 1 },
+    { id: 'stair1', kind: 'area' }, { id: 'corridor2', kind: 'area' }, { id: 'lib', kind: 'gym', gym: 2 },
+    { id: 'yard2', kind: 'area', side: 'sideA' }, { id: 'yard', kind: 'gym', gym: 3 },
+    { id: 'hist', kind: 'gym', gym: 4 }, { id: 'field', kind: 'area', side: 'sideB', tag: '練功草叢' },
+    { id: 'audyard', kind: 'area' }, { id: 'aud', kind: 'gym', gym: 5 },
+  ];
+  S.mapLegend = '🟡 道館　🔵 保健室　🟢 通學路　🟠 校園';
+  /* 教師版「直達」的分類 */
+  S.travelGroups = [
+    ['通學路', ['room', 's1', 's2', 's3']],
+    ['校園', ['front', 'hall', 'corridor1', 'stair1', 'corridor2', 'yard2', 'field', 'audyard']],
+    ['道館', ['c1a', 'lib', 'yard', 'hist', 'aud']],
+    ['教室．其他', ['c8', 'clinic_h', 'store_c', 'forge', 'inkpool']],
+  ];
   Object.assign(S.mapNames, {
     s1: '巷口', s2: '大馬路口', s3: '校門前', front: '校門與前庭', hall: '穿堂',
     corridor1: '走廊 1F', stair1: '樓梯間', corridor2: '走廊 2F', yard2: '中庭',
     field: '操場與跑道', audyard: '禮堂前廣場', room: '我的房間', c8: '自己的教室',
+    c1a: '一年甲班', lib: '圖書館', yard: '文藝教室', hist: '校史室', aud: '大禮堂',
+    clinic_h: '保健室', store_h: '商店', store_c: '福利社', forge: '工藝教室', home: '鄰居家',
   });
+}
+
+/* ============================================================
+   舊存檔搬進校園（main.js 讀檔時呼叫，每個存檔只搬一次）
+   ------------------------------------------------------------
+   · 站在舊地圖 → 移到回城點（前庭保健室門口）
+   · 在道館室內 → 出口改回校園那扇門的門口
+   · 打倒過的人、送過的禮物、看過的過場：舊地名換成那個人在校園的新位置
+     （例：dianji:rival1 → corridor2:rival1，不然道館②的股長永遠不肯打）
+   回傳 true 代表有搬動，main.js 會跟玩家說一聲。
+   ============================================================ */
+function migrateToCampus(G) {
+  if (!G || G.campusV) return false;
+  G.campusV = 1;
+  const camp = id => !!CAMPUS_MAPS[id];
+  const doorTo = {};                                  // 室內 → 校園的哪扇門
+  for (const [id, L] of Object.entries(CAMPUS_MAPS))
+    for (const d of Object.values(L.doorWarps || {})) if (!doorTo[d.to]) doorTo[d.to] = { map: id, x: d.ret.x, y: d.ret.y };
+  const home = {};                                    // 人物 → 校園的新家（同一個人放兩處就不搬）
+  for (const [id, list] of Object.entries(CAMPUS_NPCS)) for (const sp of list) home[sp.role] = home[sp.role] === undefined ? id : null;
+  const old = id => !camp(id) && !doorTo[id];
+  const rekey = (map, role) => (old(map) && home[role]) ? home[role] + ':' + role : null;
+  let moved = false;
+  for (const k of Object.keys(G.defeated || {})) {
+    const [m, r] = k.split(':'); const nk = rekey(m, r);
+    if (nk) { G.defeated[nk] = G.defeated[k]; delete G.defeated[k]; moved = true; }
+  }
+  for (const k of Object.keys(G.flags || {})) {
+    const p = k.split(':'); if (p.length !== 3) continue;
+    let nk = null;
+    if (['gift', 'quiz', 'gone'].includes(p[0])) { const r = rekey(p[1], p[2]); if (r) nk = p[0] + ':' + r; }
+    if (p[0] === 'cut' && p[2] === 'moIntro' && old(p[1])) nk = 'cut:audyard:moIntro';
+    if (nk) { G.flags[nk] = G.flags[k]; delete G.flags[k]; moved = true; }
+  }
+  const H = W.homeTown;
+  if (old(G.map)) { G.map = H.map; G.x = H.x; G.y = H.y; moved = true; }
+  if (!G.ret || old(G.ret.map)) G.ret = Object.assign({}, doorTo[G.map] || H);
+  if (!G.lastHeal || old(G.lastHeal.map)) G.lastHeal = Object.assign({}, H);
+  if (G.roamAt && !(W.roamMaps || []).includes(G.roamAt)) G.roamAt = null;
+  return moved;
 }
 
 if (typeof LAYOUTS !== 'undefined') {

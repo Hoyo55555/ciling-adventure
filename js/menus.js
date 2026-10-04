@@ -150,6 +150,9 @@ const TeacherTravel = {
     return best;
   },
   list() {
+    /* 校園版：照世界給的分類，舊地圖不列出來 */
+    if (W.travelGroups) return W.travelGroups.map(([t, ids]) =>
+      [t, ids.filter(id => LAYOUTS[id]).map(id => ({ id, name: (W.mapNames && W.mapNames[id]) || id }))]);
     const G1 = [], G2 = [], G3 = [];
     for (const id of Object.keys(LAYOUTS)) {
       const L = LAYOUTS[id]; if (!L || !L.rows) continue;
@@ -390,14 +393,16 @@ const WORLD_CHAIN = [
   { id: 'r6', kind: 'road', side: 'sideB' }, { id: 'moquan', kind: 'rest' },
   { id: 'zhongta', kind: 'gym', gym: 5 },
 ];
-const MAP_KIND = { town: ['#c8a040', '村鎮'], gym: ['#d8a020', '道館'], rest: ['#4aa0f0', '休息站'], road: ['#8a9a6a', '道路'] };
+const MAP_KIND = { town: ['#c8a040', '村鎮'], gym: ['#d8a020', '道館'], rest: ['#4aa0f0', '休息站'], road: ['#8a9a6a', '道路'],
+  path: ['#8a9a6a', '通學路'], area: ['#e08a40', '校園'] };
 const WorldMap = {
   open() {
     return UI.panel(ctl => {
       const here = OW.id, cur = LAYOUTS[here] || {};
-      const inside = !WORLD_CHAIN.some(n => n.id === here);
+      const CHAIN = W.mapChain || WORLD_CHAIN;          // 校園版有自己的清單
+      const inside = !CHAIN.some(n => n.id === here);
       const parent = inside ? (G.ret && G.ret.map) : here;
-      const rows = WORLD_CHAIN.map(n => {
+      const rows = CHAIN.map(n => {
         const name = W.mapNames[n.id] || n.id;
         const isHere = n.id === here || (inside && n.id === parent);
         const [col, kindName] = MAP_KIND[n.kind];
@@ -410,7 +415,7 @@ const WorldMap = {
           <span class="small ${cleared ? 'good' : 'muted'}">${n.gym ? (cleared ? '✔ 已取得碎片' : open ? '可挑戰' : '尚未開放') : kindName}${n.side && !sideOpen ? '（支線未完成）' : ''}${n.tag ? '．' + n.tag : ''}</span></div>`;
       }).join('<div class="small muted" style="text-align:center;line-height:1">│</div>');
       ctl.box.innerHTML = `<h2>🗺 地圖　<span class="small muted">目前位置：${esc(W.mapNames[here] || here)}${inside ? '（室內）' : ''}．碎片 ${G.badges.length} / 5</span></h2>
-        <div class="scroll">${rows}<div class="small muted" style="margin-top:${U(3)}">🟡 道館城鎮　🔵 休息站　🟢 道路　｜ 城鎮的公車站可以直接前往去過的城鎮。${G.ng ? '<br>二週目：器靈目前在「' + esc(W.mapNames[G.roamAt] || '？') + '」附近出沒。' : ''}</div></div>` + footKeys('↑↓ 捲動　B 返回');
+        <div class="scroll">${rows}<div class="small muted" style="margin-top:${U(3)}">${W.mapLegend || '🟡 道館城鎮　🔵 休息站　🟢 道路　｜ 城鎮的公車站可以直接前往去過的城鎮。'}${G.ng ? '<br>二週目：器靈目前在「' + esc(W.mapNames[G.roamAt] || '？') + '」附近出沒。' : ''}</div></div>` + footKeys('↑↓ 捲動　B 返回');
       const sc = $('.scroll', ctl.box);
       const me = $('.row.sel', ctl.box); if (me && me.scrollIntoView) me.scrollIntoView({ block: 'center' });
       ctl.update = () => { const d = Input.dir(); if (d === 'down') sc.scrollTop += 40; if (d === 'up') sc.scrollTop -= 40; if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } };

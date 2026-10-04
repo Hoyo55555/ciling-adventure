@@ -775,6 +775,6 @@ const WORLD_ORDER = ['school', 'literati', 'wuxia'];
     aud: [{ role: 'postMo', x: 6, y: 2, dir: 'down' }, { role: 'postBoss', x: 9, y: 2, dir: 'down' }],
     campus: [{ role: 'postRival', x: 12, y: 13, dir: 'down' }, { role: 'tipInk', x: 16, y: 5, dir: 'left' }],
   };
-  /* 施工中的校園地圖（只有測試頁載入）：把劇情條件換成校園的位置 */
+  /* 校園地圖（data_maps_campus.js）：把劇情條件、起點、章節文字換成校園的版本 */
   if (typeof CAMPUS_PATCH === 'function') CAMPUS_PATCH(S);
 })();
