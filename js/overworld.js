@@ -371,11 +371,12 @@ async function talkTo(n) {
   const R = n.role; n.dir = OPP[OW.p.dir];
   switch (R.kind) {
     case 'mentor': return mentorTalk(n);
-    case 'guardian': return guardianSpirit(n);
+    /* 同一個 kind 兩種人：有 gq 的是器靈本體（要打一場），沒有的是小墨（守在禮堂）。
+       以前這裡寫了兩個 case 'guardian'，第二個永遠跑不到，小墨被當成器靈 → 丟例外，大魔王永遠解不開。 */
+    case 'guardian': return n.role.gq ? guardianSpirit(n) : guardianTalk(n);
     case 'trainer': case 'rival': case 'gym': return trainerTalk(n);
     case 'quest': return questTalk(n);
     case 'rematch': return rematchTalk(n);
-    case 'guardian': return guardianTalk(n);
     case 'spirit': return spiritTalk(n);
     case 'bus': return busTalk(n);
     case 'quest2': return sideQuestTalk(n);
@@ -634,6 +635,16 @@ async function guardianSpirit(n) {
 /* 決戰前：對話選擇後，文房四寶中的一隻現身 */
 async function guardianTalk(n) {
   const R = n.role, M = R.name;
+  /* 禮堂裡、三位菁英都倒下之後：小墨最後的叮嚀，聽完大魔王才會現身 */
+  if (G.defeated[n.key]) { await say(R.after, M); return; }
+  if (R.needDefeated && R.needDefeated.every(k => G.defeated[k])) {
+    for (const t of R.lines) await say(fmt(t), M);
+    const k = await UI.ask(R.choice.q, R.choice.opts, { name: M, cancel: false });
+    await say(R.choice.replies[k === 1 ? 1 : 0], M);
+    const a = G.flags.guardianQuest;
+    await say(a && ownsArch(a) ? R.afterGive : '別怕。你已經自己做過一次決定了。', M);
+    G.defeated[n.key] = true; autosave(); return;
+  }
   const arch = G.flags.guardianQuest;
   if (!arch) { await say('小墨：「先到門口看看吧，我有話要跟你說。」', M); return; }
   const C = GQ_CLUE[arch];
