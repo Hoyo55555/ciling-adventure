@@ -139,12 +139,12 @@ CAMPUS_MAPS.front = {
   music: 'town', theme: 't_campus', chapter: 1,
   rows: [
     'TTTTTTTTTTTTTTTTTTTTTTTTTT',
-    'TT......................TT',
-    'TT......................TT',
-    'TT......................TT',
-    'TT......................TT',
-    'TT......................TT',
-    'TT......................TT',
+    'TT...................gggTT',
+    'TT...................gggTT',
+    'TT...................gggTT',
+    'TT...................gggTT',
+    'TT...................gggTT',
+    'TT...................gggTT',
     'TT......................TT',
     'TT,,,,,,,,,,,,,,,,,,,,,,TT',
     'TT2,,,n,,,,,,,,,,,,,,,,,TT',
@@ -161,6 +161,9 @@ CAMPUS_MAPS.front = {
   ],
   /* 保健室、教學樓、警衛室、校門 */
   props: [['clinic', 2, 4], ['block', 9, 1], ['guard', 3, 15], ['gate', 10, 17]],
+  /* 教學樓旁的雜草叢：校內可以練功的地方。等級跟著碎片數長（0 片 Lv2–5 … 4 片 Lv18–21），
+     對齊舊版六條步道的曲線 —— 校園一開學就全部走得到，不能用「哪張地圖」決定強弱。 */
+  foes: { lv: [2, 5], scale: 4, auto: 1, rate: .16, safe: 2 },
   doorWarps: {
     '4,7':  { to: 'clinic_h', tx: 5, ty: 5, dir: 'up', ret: { x: 4,  y: 8 } },
     '14,7': { to: 'hall',     tx: 11, ty: 10, dir: 'up', ret: { x: 14, y: 8 } },   // 教學樓大門→穿堂
@@ -380,15 +383,17 @@ CAMPUS_MAPS.field = {
     'TTuu........................uuTT',
     'TTuu........................uuTT',
     'TTuu.......dddd9dddd........uuTT',   // 司令台＋講桌
-    'TTuu.ssss.jj................uuTT',   // 跳遠沙坑＋單槓
-    'TTuu.ssss...................uuTT',
-    'TTuu........................uuTT',
+    'TTuu.ssss.jj.........gggggg.uuTT',   // 跳遠沙坑＋單槓
+    'TTuu.ssss............gggggg.uuTT',
+    'TTuu.................gggggg.uuTT',
     'TTuuuuuuuuuuuuuuuuuuuuuuuuuuuuTT',
     'TTuuuuuuuuuuuuuuuuuuuuuuuuuuuuTT',
     'TT,,,,,,,,,,,,,,,,,,,,,,,,,,,,TT',
     'TTTTTTTTTTTTTTT,,TTTTTTTTTTTTTTT',
   ],
   props: [],
+  /* 操場角落的雜草叢（跟前庭同一套：等級跟著碎片數長，稍微強一點） */
+  foes: { lv: [3, 6], scale: 4, auto: 1, rate: .16, safe: 2 },
   warps: [
     { x: 15, y: 23, to: 'yard2', tx: 4, ty: 1, dir: 'down' },
     { x: 16, y: 23, to: 'yard2', tx: 5, ty: 1, dir: 'down' },
@@ -527,6 +532,8 @@ function CAMPUS_PATCH(S) {
   R.boss4.needDefeated = ['stair1:rival2'];
   /* 器靈的地點：神器據點重做（待辦 1）之前先放在中庭 */
   S.gqClue = {
+    g_pen:   { where: 'c8', place: '自己的教室',
+      clue: '「去你第一次把心裡的話寫下來的地方——你自己的教室。」' },
     g_paper: { where: 'yard2', place: '中庭的涼亭',
       clue: '「去那個可以躲雨、把心事攤開來晾乾的地方——中庭的涼亭。」' },
     g_ink:   { where: 'yard2', place: '中庭的水池',
@@ -537,6 +544,8 @@ function CAMPUS_PATCH(S) {
   S.start = { map: 'room', x: 2, y: 2, dir: 'up', ret: { map: 's1', x: 15, y: 15 } };
   /* 回城點：前庭的保健室門口（通學路是單向的，回不了家） */
   S.homeTown = { map: 'front', x: 4, y: 8 };
+  /* 二週目：同一個夢又做了一次，在同一個房間醒來 */
+  S.ngStart = { map: 'room', x: 2, y: 2, dir: 'up', ret: { map: 's1', x: 15, y: 15 } };
   S.gates = Object.assign({}, S.gates, { prologue: '（……還沒準備好。先確認時間和准考證吧。）' });
   S.signs = Object.assign({}, S.signs, {
     rm_window: '（窗外還是黑的。路燈下一個人也沒有。）',
@@ -551,7 +560,7 @@ function CAMPUS_PATCH(S) {
   Object.assign(S.mapNames, {
     s1: '巷口', s2: '大馬路口', s3: '校門前', front: '校門與前庭', hall: '穿堂',
     corridor1: '走廊 1F', stair1: '樓梯間', corridor2: '走廊 2F', yard2: '中庭',
-    field: '操場與跑道', audyard: '禮堂前廣場', room: '我的房間',
+    field: '操場與跑道', audyard: '禮堂前廣場', room: '我的房間', c8: '自己的教室',
   });
 }
 

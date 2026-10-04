@@ -319,12 +319,15 @@ const Flow = {
     G.ng = ng;
     G.badges = []; G.defeated = {}; G.opened = {}; G.devTry = {}; G.route = null; G.chapter = 1;
     const keep = { prologue: true, tut: 'skip', cleared: true };
+    if (G.flags.dreamClock != null) keep.dreamClock = G.flags.dreamClock;   // 同一個夢又做一次：鬧鐘還停在那個時間
     G.flags = keep;
     G.hp = G.maxhp; G.wenqi = 0;
-    const S0 = { map: 'chendu', x: 11, y: 7 };
-    G.lastHeal = { map: S0.map, x: S0.x, y: S0.y }; G.ret = Object.assign({}, S0);
+    /* 二週目從哪裡開始由世界決定（校園版：同一個房間醒來），沒設定就回晨讀村 */
+    const S0 = W.ngStart || { map: 'chendu', x: 11, y: 7 };
+    const H = W.homeTown || S0;
+    G.lastHeal = { map: H.map, x: H.x, y: H.y }; G.ret = Object.assign({}, S0.ret || S0);
     autosave();
-    await fade(1, 0.4); UI.clear(); Game.scene = 'overworld'; OW.load(S0.map, S0.x, S0.y, 'down'); await fade(0, 0.4);
+    await fade(1, 0.4); UI.clear(); Game.scene = 'overworld'; OW.load(S0.map, S0.x, S0.y, S0.dir || 'down'); await fade(0, 0.4);
     showBanner(`二週目．難度提升（×${ng}）`);
     await say('（回到校園。墨塵又聚集起來了——這一次，牠們更強了。）');
     autosave();
