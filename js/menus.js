@@ -813,6 +813,8 @@ const Guardian = {
     await say(`（文房四寶之一——「${weaponName(a)}」現身了！）`);
     await say(ARCH[a].gdesc || '');
     await say('（牠沒有要直接跟你走的意思——牠在等你證明自己。）');
+    /* 剛打完周以恆就接著打器靈，血還沒回，三次實走輸兩次（2026-10-05）→ 開打前先回滿 */
+    if (G.hp < G.maxhp) { G.hp = G.maxhp; Sound.sfx('heal'); await say('（一道溫暖的光包住你，體力恢復了。）'); }
     const role = { kind: 'gym', name: weaponName(a), look: { sprite: a }, reward: 800,
       win: `（${weaponName(a)}收起光芒，輕輕落在你手上。）`,
       foe: { lv: clamp(G.lv, 16, 28), hpMul: 1.5, el: 'none', race: ARCH[a].race, cats: ALL_CATS,
