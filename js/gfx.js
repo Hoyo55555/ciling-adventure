@@ -24,7 +24,8 @@ const GFX = (() => {
     /* ---- 室外自然：Kenney Roguelike / RPG Pack（沒有黑外框、比較柔和）---- */
     { themes: GREEN, code: '.', pick: [RPG(62), RPG(62), RPG(5), RPG(62)] },
     /* 樹：連在一起的用松樹（像官方範例那樣排成一片），單獨一棵用圓樹 */
-    { themes: GREEN, code: 'T', custom: 'trees', pick: [RPG(586), RPG(640), RPG(643), RPG(528)] },
+    /* 樹：素材是兩格高的。pick：0 松樹上半、1 松樹下半、2 圓樹上半、3 圓樹下半、4 單格小松、5 單格圓樹 */
+    { themes: GREEN, code: 'T', custom: 'trees', pick: [RPG(586), RPG(643), RPG(583), RPG(640), RPG(529), RPG(526)] },
     /* 水池：3×3 岸邊拼塊；fr 的第 2–5 位是鄰格遮罩 */
     { themes: '*', code: '~', custom: 'set9', shift: 2, pick: SET9([2, 3, 4, 59, 60, 61, 116, 117, 118]) },
     /* 校園的石板路：3×3 拼塊 */
@@ -362,8 +363,12 @@ const GFX = (() => {
       const ok = sk.pick.every(p => p.im.complete && p.im.naturalWidth);
       if (ok) {
         let p;
-        if (sk.custom === 'trees') {                                   // 樹：四邊都不是樹＝單獨一棵（圓樹），否則松樹成片
-          const m = fr & 15; p = m === 15 ? sk.pick[1] : sk.pick[0];
+        if (sk.custom === 'trees') {                                   // 樹：上下兩格湊成一棵高樹；湊不成的用單格的樹
+          const m = fr & 15, lower = (fr >> 4) & 1, below = (fr >> 5) & 1, round = (fr >> 6) & 1;
+          if (m === 15) p = sk.pick[5];                                // 四邊都沒有樹：單獨一棵圓樹
+          else if (lower) p = sk.pick[round ? 3 : 1];                  // 高樹的下半（樹幹）
+          else if (below) p = sk.pick[round ? 2 : 0];                  // 高樹的上半（樹冠）
+          else p = sk.pick[4];                                         // 落單的一格：單格小松
           g.drawImage(tile(theme, '.', 0), 0, 0);
         } else {                                                       // 3×3 拼塊（邊緣那幾塊是半透明的，底下先鋪地面）
           if (sk.under) g.drawImage(tile(theme, sk.under, 0), 0, 0);
