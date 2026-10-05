@@ -4,6 +4,46 @@ const GFX = (() => {
   const OUT = '#181820';
   const NOSHADE = new Set([OUT, '#ffffff']);
   const cache = new Map();
+  /* ============================================================
+     外部圖磚（skin）：Kenney／OGA 的 CC0 素材（assets/kenney/，來源見 README）
+     ------------------------------------------------------------
+     某個主題的某個字元有登錄 skin，就畫素材圖；沒有的照舊用程式畫。
+     under：先在底下鋪哪一種磚（物件圖是去背的）—— '.' 地面、',' 路面、'_' 室內地板、'base' 依室內外自動。
+     pick：依 fr（座標雜訊 0–3）選第幾張，讓大片草地不要每格一樣。
+     圖還沒載入完之前先畫原本的（不快取），全部載入後清快取，下一格畫面就換上。
+     ============================================================ */
+  const ASSET = ((typeof document !== 'undefined' && document.currentScript && document.currentScript.src) || '').replace(/js\/gfx\.js.*$/, '') + 'assets/kenney/';
+  const IMG = {}, img = f => IMG[f] || (IMG[f] = Object.assign(new Image(), { src: ASSET + f }));
+  const sheet = (f, n, cols, step) => ({ im: img(f), sx: (n % cols) * step, sy: Math.floor(n / cols) * step });
+  const one = f => ({ im: img(f), sx: 0, sy: 0 });
+  const IND = n => sheet('indoor_sheet.png', n, 27, 17), OGA = n => sheet('oga_town_sheet.png', n, 22, 16);
+  const GREEN = ['t_campus', 't_dawn', 'school', 't_slope', 't_port', 't_rain', 't_flower', 't_stele', 't_spring', 't_tower', 't_oldwing'];
+  const SKINS = [
+    { themes: GREEN, code: '.', pick: [one('town_0000.png'), one('town_0001.png'), one('town_0001.png'), one('town_0000.png')] },
+    { themes: ['t_street'], code: '.', pick: [one('urban_0013.png'), one('urban_0036.png'), one('urban_0013.png'), one('urban_0013.png')] },
+    { themes: '*', code: 'g', pick: [OGA(153), OGA(175), OGA(153), OGA(175)] },                // 草叢：OGA 的高草最像寶可夢
+    { themes: GREEN, code: 'T', under: '.', pick: [one('town_0016.png')] },                    // 校園的樹
+    { themes: ['t_street'], code: 'T', under: '.', pick: [one('urban_0286.png')] },             // 行道樹（花台）
+    { themes: '*', code: 'L', under: 'base', pick: [one('urban_0168.png')] },                  // 路燈
+    { themes: '*', code: ':', under: '.', pick: [one('urban_0167.png')] },                     // 站牌
+    { themes: '*', code: '4', under: ',', pick: [one('urban_0221.png')] },                     // 施工路障
+    { themes: '*', code: '6', under: 'base', pick: [one('urban_0252.png')] },                  // 回收桶
+    { themes: '*', code: '!', under: '.', pick: [one('urban_0216.png')], post: 'wires' },      // 電線桿：細桿＋自己畫橫擔與電線
+    { themes: '*', code: 'p', under: 'base', pick: [IND(16)] },                                // 盆栽
+    { themes: '*', code: 'k', under: '_', pick: [IND(478)] },                                  // 書櫃
+  ];
+  const SKIN_IDX = {};
+  for (const s of SKINS) for (const t of (s.themes === '*' ? ['*'] : s.themes)) SKIN_IDX[t + s.code] = s;
+  const skinFor = (theme, code) => SKIN_IDX[theme + code] || SKIN_IDX['*' + code];
+  const allImgs = () => Object.values(IMG);
+  /* 全部載入完 → 清快取，畫面自動換成素材版 */
+  const skinsReady = (typeof document === 'undefined') ? Promise.resolve() :
+    new Promise(res => setTimeout(() => {
+      /* 同一張圖會出現好幾次（例如整張 sheet），要用 addEventListener，用 onload= 會互相蓋掉、永遠等不到 */
+      Promise.all([...new Set(SKINS.flatMap(s => s.pick.map(p => p.im)))].map(im => im.complete ? 0 :
+        new Promise(r => { im.addEventListener('load', r, { once: true }); im.addEventListener('error', r, { once: true }); })))
+        .then(() => { cache.clear(); res(); });
+    }, 0));
 
   const hex2rgb = hx => { hx = hx.replace('#', ''); return [parseInt(hx.slice(0, 2), 16), parseInt(hx.slice(2, 4), 16), parseInt(hx.slice(4, 6), 16)]; };
   const rgb2hex = (r, g, b) => '#' + [r, g, b].map(v => clamp(Math.round(v), 0, 255).toString(16).padStart(2, '0')).join('');
@@ -286,6 +326,22 @@ const GFX = (() => {
     /* 設施磚塊的底：室內鋪地板、室外鋪地面 */
     const base = () => { if (INDOOR) g.drawImage(tile(theme, '_'), 0, 0); else ground(); };
     const pave = () => { if (INDOOR) g.drawImage(tile(theme, '_'), 0, 0); else g.drawImage(tile(theme, ','), 0, 0); };
+    const sk = skinFor(theme, code);
+    if (sk) {
+      const p = sk.pick[fr % sk.pick.length];
+      if (p.im.complete && p.im.naturalWidth) {
+        if (sk.under === 'base') base(); else if (sk.under === '_') g.drawImage(tile(theme, '_'), 0, 0);
+        else if (sk.under) g.drawImage(tile(theme, sk.under, fr & 3), 0, 0);
+        g.imageSmoothingEnabled = false; g.drawImage(p.im, p.sx, p.sy, 16, 16, 0, 0, 16, 16);
+        if (sk.post === 'wires') {                                   // 電線桿：橫擔、礙子、兩條電線
+          R(1, 2, 14, 2, '#6a6a74'); R(1, 2, 14, 1, '#9a9aa4');
+          for (const x of [2, 5, 10, 13]) { R(x, 1, 1, 1, '#f4f4fa'); }
+          R(0, 1, 16, 1, 'rgba(40,40,48,.85)'); R(0, 5, 16, 1, 'rgba(40,40,48,.6)');
+        }
+        cache.set(key, cv); return cv;
+      }
+      var skinPending = true;                                        // 圖還沒載入：先畫原本的，不快取
+    }
     switch (code) {
       case '.': ground(fr); break;
       case ',': {
@@ -811,7 +867,7 @@ const GFX = (() => {
       case 'p': g.drawImage(tile(theme, '_'), 0, 0); R(5, 10, 6, 5, '#b8603a'); R(4, 9, 8, 2, '#d07a4a'); R(3, 2, 10, 8, '#3e9830'); R(5, 1, 6, 2, '#5ab84a'); R(4, 4, 3, 2, '#7ad86a'); break;
       default: base();
     }
-    cache.set(key, cv); return cv;
+    if (!skinPending) cache.set(key, cv); return cv;
   }
   function tileDraw(g, what, T, theme) { g.drawImage(tile(theme, '#'), 0, 0); }
 
@@ -1699,5 +1755,5 @@ const GFX = (() => {
     g.fillStyle = 'rgba(255,248,220,.9)'; g.fill(); g.lineWidth = 1.2; g.strokeStyle = 'rgba(60,40,20,.75)'; g.stroke();
     cache.set(key, cv); return cv;
   }
-  return { person, tile, setIndoor, clockHands, doormat, exitArrow, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
+  return { person, tile, setIndoor, clockHands, doormat, exitArrow, skinsReady, SKINS, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
 })();
