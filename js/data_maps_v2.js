@@ -118,6 +118,7 @@ const TILES = {
   '(': { walk: 0, name: '書包（准考證在裡面）' },
   ')': { walk: 0, name: '衣櫃' },
   '/': { walk: 0, name: '室內的窗（夜裡）' },
+  '<': { walk: 1, name: '室內木樓梯（家裡上下樓）' },
 };
 for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
 
@@ -1375,6 +1376,9 @@ function stampProps(L) {
       const gx = bx + x, gy = by + y;
       if (!rows[gy] || gx < 0 || gx >= rows[gy].length) continue;
       rows[gy][gx] = (y === C.h - 1) ? '#' : 'R';    // 最下面一列當牆，其餘當屋頂
+    }
+    for (const [wx, wy] of C.walk || []) {           // walk：建築裡走得過去的格子（開著的校門中間）
+      if (rows[by + wy] && rows[by + wy][bx + wx] !== undefined) rows[by + wy][bx + wx] = ',';
     }
     if (!C.door) continue;                           // door: null ＝ 進不去的建築，不蓋門
     const [dx, dy] = C.door;

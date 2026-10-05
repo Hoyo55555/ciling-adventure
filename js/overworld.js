@@ -210,6 +210,22 @@ const OW = {
       const im = C ? GFX.campus(kind) : GFX.building(kind, theme);
       g.drawImage(im, bx * 16 - cx, (by - ((C && C.over) || 0)) * 16 - cy);   // over：圖往上超出 footprint 幾格
     }
+    /* 看得出「從哪裡進去、從哪裡出去」（2026-10-05 試玩回饋）：
+       進得去的門前面鋪地墊；走到地圖邊緣的出口畫一個會輕輕晃的箭頭 */
+    for (const [k, d] of Object.entries(L.doorWarps || {})) {
+      if (d.hidden) continue;                                          // 秘密入口（硯海墨池）不提示
+      const [x, y] = k.split(',').map(Number);
+      if (!SOLID.has(this.tile(x, y + 1))) g.drawImage(GFX.doormat(), x * 16 - cx, (y + 1) * 16 - cy);
+    }
+    {
+      const H2 = L.rows.length, W2 = L.rows[0].length, bob = Math.round(Math.sin(now / 260) * 1.5);
+      for (const w of L.warps || []) {
+        const dir = exitDir(L, w);
+        if (!dir) continue;
+        const [ax, ay] = DIRS[dir];
+        g.drawImage(GFX.exitArrow(dir), w.x * 16 - cx + ax * bob, w.y * 16 - cy + ay * bob);
+      }
+    }
     for (const c of L.chests || []) g.drawImage(GFX.chest(!!G.chests[c.id]), c.x * 16 - cx, c.y * 16 - cy);
     const actors = this.npcs.map(n => ({ y: n.y * 16 + n.oy, draw: () => {
       if (n.look.sprite) { const sp = GFX.special(n.look.sprite), sz = sp.width; const bob = Math.round(Math.sin(now / 300) * 1.5);
@@ -269,6 +285,18 @@ function drawMark(g, x, y, type, now, dir) {
 }
 const wenqiDots = () => `<span class="wq">${Array.from({ length: ULT_COST }, (_, i) => `<i class="${i < G.wenqi ? 'on' : ''}"></i>`).join('')}</span>`;
 /* 支線Ａ要點醒的三個人：以任務人物的資料為準，換地圖時只要改一個地方 */
+/* 出口箭頭的方向：在地圖邊緣就朝外；不在邊緣的（開著的校門、樓梯）朝「擋住的那一邊」 */
+function exitDir(L, w) {
+  const H = L.rows.length, Wd = L.rows[0].length;
+  if (w.y === 0) return 'up'; if (w.y === H - 1) return 'down'; if (w.x === 0) return 'left'; if (w.x === Wd - 1) return 'right';
+  const at = (x, y) => (L.rows[y] || '')[x];
+  const blocked = (x, y) => { const c = at(x, y); return c === undefined || SOLID.has(c); };
+  for (const d of ['down', 'up', 'left', 'right']) {
+    const [dx, dy] = DIRS[d];
+    if (blocked(w.x + dx, w.y + dy) && !blocked(w.x - dx, w.y - dy)) return d;
+  }
+  return null;
+}
 function sideANeed() { const R = W.roles.sideAGiver; return (R && R.need) || ['r4:m1', 'r4:m2', 'r4:m3']; }
 function gateOpen(gate) {
   if (gate === 'needWeapon') return G.equip.length > 0;

@@ -780,6 +780,10 @@ const GFX = (() => {
         R(3, 5, 10, 10, '#2a4a8a'); R(3, 5, 10, 5, '#3a5aa8'); R(3, 5, 10, 1, '#5a7ac8'); R(3, 14, 10, 1, '#1a2a5a');
         R(7, 8, 2, 2, '#e0c070');
         break;
+      case '<': g.drawImage(tile(theme, '_'), 0, 0);              // 室內木樓梯（一階一階往下）
+        for (let i = 0; i < 4; i++) { const y = i * 4; R(0, y, 16, 4, adj('#b07a44', -i * .12)); R(0, y, 16, 1, adj('#d09a60', -i * .12)); R(0, y + 3, 16, 1, adj('#6a4424', -i * .1)); }
+        R(0, 0, 2, 16, '#6a4424'); R(14, 0, 2, 16, '#6a4424');      // 兩側扶手
+        break;
       case ')': R(0, 0, 16, 16, '#6a4424');                         // 衣櫃
         R(1, 1, 7, 15, '#a0703c'); R(8, 1, 7, 15, '#a0703c'); R(1, 1, 14, 1, '#c08a50'); R(8, 1, 1, 15, '#6a4424');
         R(6, 7, 1, 3, '#e0c070'); R(9, 7, 1, 3, '#e0c070');
@@ -1133,10 +1137,32 @@ const GFX = (() => {
     flat:    { style: 'shopfront', w: 5, h: 5, over: 1, door: [2, 4], name: '公寓',
       awn: '#8a8a92', awn2: '#62626a', sign: null, floors: 2, shutter: 1 },
     gate:    { style: 'gate',  w: 6, h: 2, door: null, name: '校門' },
+    /* 開著的校門：中間兩格走得過去（walk），通學路和校園靠它雙向相連 */
+    gateopen:{ style: 'gate',  w: 6, h: 2, door: null, name: '校門（開著）', open: 1, walk: [[2, 0], [3, 0], [2, 1], [3, 1]] },
+    /* 進不去的公寓：沒有門，一樓是鐵捲門 */
+    flatx:   { style: 'shopfront', w: 5, h: 5, over: 1, door: null, name: '公寓',
+      awn: '#8a8a92', awn2: '#62626a', sign: null, floors: 2, shutter: 1 },
+    /* 自己家：兩層樓的透天厝，木門＋小雨遮，一眼看得出是「家」 */
+    house:   { style: 'house', w: 5, h: 5, over: 1, door: [2, 4], name: '我家' },
   };
   /* 教學樓／舊校舍：平屋頂、兩層、外走廊。
      重點是「長」但不能「重複」—— 兩端有樓梯間、正中央有大門與校名，
      中間的教室跨才是重複的，而且每一跨的窗戶開合不一樣。 */
+  /* 進得去的門一律長這樣：深色門洞、一片拉開的玻璃門、亮色門楣、台階。
+     以前的門是淺藍玻璃，跟窗戶長得一樣，玩家看不出哪裡能進去（2026-10-05 回饋）。 */
+  function entrance(R, dx, dy, dw, bottom, wood) {
+    const FR = wood ? '#4a2e18' : '#3a434e', LEAF = wood ? '#9a6a3e' : '#8fb8d0';
+    R(dx - 3, dy - 4, dw + 6, bottom - dy + 4, FR);                    // 門框
+    R(dx - 3, dy - 4, dw + 6, 3, wood ? '#c8a040' : '#e8c048');        // 門楣（亮色）
+    R(dx, dy, dw, bottom - dy, '#221c2a');                              // 門洞（深）
+    R(dx, bottom - 6, dw, 6, '#3c3038');                                // 門內地板透出一點光
+    R(dx + 2, bottom - 4, dw - 4, 2, '#5a4a46');
+    const lw = Math.round(dw * 0.38);                                   // 拉開到一邊的門片
+    R(dx, dy, lw, bottom - dy, LEAF); R(dx, dy, lw, 3, adj(LEAF, .3));
+    R(dx + lw - 1, dy, 1, bottom - dy, FR);
+    R(dx + lw - 4, dy + Math.round((bottom - dy) * 0.45), 2, 5, wood ? '#e0b860' : '#2e3640');   // 門把
+    R(dx - 6, bottom, dw + 12, 3, '#b8b0a0'); R(dx - 6, bottom, dw + 12, 1, '#e0d8c8');          // 台階
+  }
   function campusBlock(C) {
     const W = C.w * 16, H = C.h * 16, SH = 8;
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H + SH;
@@ -1227,10 +1253,7 @@ const GFX = (() => {
       R(dx - 6, SLAB + 5, dw + 12, 1, CON3);
       R(dx - 4, F1 + 2, 3, BASE - F1 - 2, CON);                            // 門廊柱
       R(dx + dw + 1, F1 + 2, 3, BASE - F1 - 2, CON);
-      R(dx - 2, dy - 2, dw + 4, BASE - dy + 2, '#5a6a78');
-      R(dx, dy, dw, BASE - dy - 2, '#a8d4ee'); R(dx, dy, dw, 5, '#d6efff');
-      R(dx + dw / 2 - 1, dy, 2, BASE - dy - 2, '#5a6a78');
-      R(dx + dw / 2 - 6, dy + 16, 2, 5, '#42505c'); R(dx + dw / 2 + 4, dy + 16, 2, 5, '#42505c');
+      entrance(R, dx, dy, dw, BASE - 1, false);
       /* 校名牌：掛在雨遮上方 */
       const sw = 34, sx2 = dx + dw / 2 - sw / 2;
       R(sx2 - 1, SLAB - 13, sw + 2, 11, CON3);
@@ -1278,13 +1301,21 @@ const GFX = (() => {
     R(3, H - 2, W - 6, SH, 'rgba(0,0,0,.22)');
     const PW = 18;
     /* footprint 內一定要塗滿，柱頂與燈都收進來，不能超出去 */
-    /* 中間的拉門：直立鐵欄 */
-    R(PW, 0, W - PW * 2, H, '#6e7682');
-    R(PW, 0, W - PW * 2, 4, '#4e555f');                        // 門楣
-    R(PW, 4, W - PW * 2, 2, '#98a0ac');
-    for (let x = PW + 3; x < W - PW - 2; x += 5) R(x, 7, 2, H - 12, '#8a929e');
-    R(PW, H - 5, W - PW * 2, 3, '#4e555f');
-    R(PW, H - 2, W - PW * 2, 2, '#3a4048');
+    /* 中間的拉門：直立鐵欄。open 的校門只在兩側各留一段（拉開了），中間兩格是空的、走得過去 */
+    const spans = C.open ? [[PW, 14], [W - PW - 14, 14]] : [[PW, W - PW * 2]];
+    for (const [sx, sw] of spans) {
+      R(sx, 0, sw, H, '#6e7682');
+      R(sx, 0, sw, 4, '#4e555f');                                // 門楣
+      R(sx, 4, sw, 2, '#98a0ac');
+      for (let x = sx + 3; x < sx + sw - 2; x += 5) R(x, 7, 2, H - 12, '#8a929e');
+      R(sx, H - 5, sw, 3, '#4e555f');
+      R(sx, H - 2, sw, 2, '#3a4048');
+    }
+    if (C.open) {                                               // 門上的拱形校名牌橫跨過去
+      R(PW - 2, 0, W - PW * 2 + 4, 5, '#3a4048'); R(PW - 2, 0, W - PW * 2 + 4, 1, '#6e7682');
+      const sw = 30, sx = W / 2 - sw / 2;
+      R(sx, 0, sw, 6, '#f2eee2'); for (let i = 0; i < 4; i++) R(sx + 4 + i * 6, 1, 4, 4, '#2e4a7a');
+    }
     /* 兩根門柱 */
     for (const px of [0, W - PW]) {
       R(px, 0, PW, H, '#c9c2b0');
@@ -1302,6 +1333,46 @@ const GFX = (() => {
     return cv;
   }
 
+  /* 自己家（透天厝）：米色磁磚、鐵窗、一樓木門有小雨遮、門牌、兩盆花 */
+  function houseFront(C) {
+    const W = C.w * 16, OV = C.over || 0, H = (C.h + OV) * 16, SH = 8;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H + SH;
+    const g = cv.getContext('2d');
+    const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+    R(4, H - 2, W - 8, SH, 'rgba(0,0,0,.22)');
+    /* 屋頂：鐵皮加蓋的斜屋頂（台灣透天的頂樓） */
+    R(0, 0, W, 14, '#4a7a9a'); for (let x = 0; x < W; x += 4) R(x, 0, 2, 14, '#5a8aaa');
+    R(0, 0, W, 2, '#7aa8c8'); R(0, 12, W, 3, '#2e5068');
+    /* 牆：暖米色磁磚 */
+    const WALL = '#eadcc0', WALL2 = '#d2c2a2';
+    R(0, 15, W, H - 15, WALL);
+    for (let y = 19; y < H - 4; y += 5) R(0, y, W, 1, WALL2);
+    R(0, 15, W, 2, 'rgba(0,0,0,.16)');
+    R(0, 15, 3, H - 15, WALL2); R(W - 3, 15, 3, H - 15, WALL2);
+    /* 二樓、三樓的窗＋鐵窗 */
+    for (const wy of [22, 46]) for (const wx of [8, W - 30]) {
+      R(wx - 2, wy - 2, 26, 18, '#8a7a62');
+      R(wx, wy, 22, 14, '#7fb4d8'); R(wx, wy, 22, 6, '#bfe0f2');
+      for (let x = wx + 1; x < wx + 22; x += 4) R(x, wy - 1, 1, 16, '#4e555f');   // 鐵窗
+      R(wx - 1, wy - 1, 24, 1, '#4e555f'); R(wx - 1, wy + 14, 24, 1, '#4e555f');
+      R(wx - 3, wy + 16, 28, 2, WALL2);
+    }
+    /* 一樓：木門＋小雨遮 */
+    const dw = 20, dx = C.door[0] * 16 + 8 - dw / 2, dy = H - 30;
+    R(dx - 7, dy - 9, dw + 14, 5, '#c8443c'); R(dx - 7, dy - 9, dw + 14, 1, '#e0685c'); R(dx - 7, dy - 5, dw + 14, 2, '#8e2a26');   // 雨遮
+    entrance(R, dx, dy, dw, H - 4, true);
+    R(dx + dw + 6, dy + 2, 8, 5, '#3a68b8'); R(dx + dw + 7, dy + 3, 6, 1, '#eaf2ff');            // 門牌
+    /* 門邊兩盆花 */
+    for (const px of [dx - 14, dx + dw + 6]) {
+      R(px + 1, H - 11, 8, 7, '#b8603a'); R(px, H - 12, 10, 2, '#d07a4a');
+      R(px, H - 20, 10, 8, '#3e9830'); R(px + 2, H - 22, 6, 3, '#5ab84a'); R(px + 3, H - 19, 2, 2, '#f06a92');
+    }
+    /* 右邊：機車停在一樓的鐵窗前 */
+    R(W - 22, H - 26, 16, 14, '#8a7a62'); R(W - 21, H - 25, 14, 12, '#7fb4d8');
+    for (let x = W - 20; x < W - 7; x += 3) R(x, H - 26, 1, 14, '#4e555f');
+    R(0, H - 2, W, 2, '#a8a296');
+    return cv;
+  }
   /* 騎樓店面／公寓：台灣街屋的樣子 —— 上面是住家，下面是店面，中間一道遮雨棚。
      footprint 內一定塗滿；屋頂的女兒牆往上超出一格（over: 1）。 */
   function shopFront(C) {
@@ -1351,7 +1422,7 @@ const GFX = (() => {
     R(0, SY, W, 1, adj(CON, .20));
     R(0, SY, 4, H - SY, CON2); R(W - 4, SY, 4, H - SY, CON2);          // 騎樓柱
     R(3, SY, 1, H - SY, CON3); R(W - 4, SY, 1, H - SY, adj(CON, .2));
-    const dw = 22, dx = C.door[0] * 16 + 8 - dw / 2;
+    const dw = 22, dx = C.door ? C.door[0] * 16 + 8 - dw / 2 : 0;
     if (C.shutter) {                                    // 公寓：拉下來的鐵捲門
       R(5, SY + 3, W - 10, H - SY - 7, '#9aa0a8');
       for (let y = SY + 4; y < H - 5; y += 3) R(5, y, W - 10, 1, '#7e848c');
@@ -1363,10 +1434,7 @@ const GFX = (() => {
       R(6, SY + 4, W - 12, Math.round((H - SY - 9) * 0.4), GLASS);
       for (let x = 6 + 13; x < W - 7; x += 13) R(x, SY + 4, 1, H - SY - 9, FRAME);
       if (C.glassy) { R(8, SY + 6, 7, 3, '#eaf7ff'); R(W - 18, SY + 10, 6, 3, '#dff1fb'); }
-      R(dx - 2, SY + 2, dw + 4, H - SY - 4, '#5a6a78');
-      R(dx, SY + 4, dw, H - SY - 7, '#a8d4ee'); R(dx, SY + 4, dw, 4, '#d6efff');
-      R(dx + dw / 2 - 1, SY + 4, 2, H - SY - 7, '#5a6a78');
-      R(dx + dw / 2 - 5, SY + 16, 2, 5, '#42505c'); R(dx + dw / 2 + 3, SY + 16, 2, 5, '#42505c');
+      if (C.door) entrance(R, dx, SY + 5, dw, H - 4, false);
     }
     R(0, H - 3, W, 3, CON2); R(0, H - 1, W, 1, CON3);
     return cv;
@@ -1463,6 +1531,7 @@ const GFX = (() => {
     if (C.style === 'guard') { const cv0 = campusGuard(C); cache.set(key, cv0); return cv0; }
     if (C.style === 'gate')  { const cv0 = campusGate(C);  cache.set(key, cv0); return cv0; }
     if (C.style === 'shopfront') { const cv0 = shopFront(C); cache.set(key, cv0); return cv0; }
+    if (C.style === 'house') { const cv0 = houseFront(C); cache.set(key, cv0); return cv0; }
     if (C.style === 'audi') { const cv0 = campusAudi(C); cache.set(key, cv0); return cv0; }
     const W = C.w * 16, H = (C.h + (C.over || 0)) * 16, SH = 8;   // H 是圖的高度，含往上超出的部分
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H + SH;
@@ -1545,15 +1614,7 @@ const GFX = (() => {
     /* ---- 門：正中央的雙開玻璃門 ---- */
     {
       const dw = 22, dx = Math.round((W - dw) / 2), dy = WALL_Y + 6;
-      R(dx - 2, dy - 2, dw + 4, H - dy + 2, '#5a6a78');
-      R(dx, dy, dw, H - dy - 4, '#a8d4ee');
-      R(dx, dy, dw, 4, '#d6efff');
-      R(dx + dw / 2 - 1, dy, 2, H - dy - 4, '#5a6a78');       // 中縫
-      R(dx + dw / 2 - 5, dy + 14, 2, 5, '#42505c');           // 門把
-      R(dx + dw / 2 + 3, dy + 14, 2, 5, '#42505c');
-      R(dx - 5, H - 4, dw + 10, 4, '#cdc7b8');                // 台階
-      R(dx - 5, H - 4, dw + 10, 1, '#e4dfd2');
-      R(dx - 8, H - 1, dw + 16, 1, '#ada798');
+      entrance(R, dx, dy, dw, H - 4, false);
     }
 
     /* ---- 牆基 ---- */
@@ -1580,5 +1641,24 @@ const GFX = (() => {
     line(h / 12 * Math.PI * 2, big ? 2.5 : 1.5, '#2a2a30');
     g.fillStyle = '#2a2a30'; g.fillRect(cx - 1, cy - 1, 2, 2);
   }
-  return { person, tile, setIndoor, clockHands, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
+  /* 門前的地墊：進得去的門前面一律鋪一塊，告訴玩家「從這裡進去」 */
+  function doormat() {
+    const key = 'doormat'; if (cache.has(key)) return cache.get(key);
+    const cv = document.createElement('canvas'); cv.width = 16; cv.height = 16; const g = cv.getContext('2d');
+    g.fillStyle = '#7a2a26'; g.fillRect(2, 0, 12, 7); g.fillStyle = '#a8443a'; g.fillRect(3, 1, 10, 5);
+    g.fillStyle = '#d8a050'; for (let x = 4; x < 12; x += 2) g.fillRect(x, 2, 1, 3);
+    cache.set(key, cv); return cv;
+  }
+  /* 地圖出口的箭頭：指向要走出去的方向 */
+  function exitArrow(dir) {
+    const key = 'arrow:' + dir; if (cache.has(key)) return cache.get(key);
+    const cv = document.createElement('canvas'); cv.width = 16; cv.height = 16; const g = cv.getContext('2d');
+    const pts = [[8, 3], [13, 9], [10, 9], [10, 13], [6, 13], [6, 9], [3, 9]];       // 朝上的箭頭
+    const rot = { up: 0, right: 1, down: 2, left: 3 }[dir];
+    const T = ([x, y]) => { for (let i = 0; i < rot; i++) [x, y] = [16 - y, x]; return [x, y]; };
+    g.beginPath(); pts.map(T).forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath();
+    g.fillStyle = 'rgba(255,248,220,.9)'; g.fill(); g.lineWidth = 1.2; g.strokeStyle = 'rgba(60,40,20,.75)'; g.stroke();
+    cache.set(key, cv); return cv;
+  }
+  return { person, tile, setIndoor, clockHands, doormat, exitArrow, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
 })();
