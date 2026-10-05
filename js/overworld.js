@@ -23,11 +23,13 @@ const OW = {
          用擁有判斷的話老師永遠看不到這段。 */
       if (s.gq && (G.flags.guardianQuest !== s.gq || G.flags.guardianDone)) return null;
       if (s.needFlag && !G.flags[s.needFlag]) return null;
+      /* retry：周以恆②之後現身的器靈，輸了會留在這裡等你再挑戰 */
+      if (s.retry && G.flags.guardianRetry !== role.gq) return null;
       if (s.hideFlag && G.flags[s.hideFlag]) return null;
       /* 校園版所有地方一開始就走得到，所以用「拿到幾片碎片」決定人物什麼時候登場、什麼時候離開 */
       if (s.minBadges != null && G.badges.length < s.minBadges) return null;
       if (s.maxBadges != null && G.badges.length > s.maxBadges) return null;
-      return { key: id + ':' + s.role, role, x: s.x, y: s.y, dir: s.dir, home: s.dir, sight: s.sight || 0, wander: s.wander, ox: 0, oy: 0, fr: 0, look: role.look };
+      return { key: id + ':' + s.role + (s.retry ? ':retry' : ''), retry: !!s.retry, role, x: s.x, y: s.y, dir: s.dir, home: s.dir, sight: s.sight || 0, wander: s.wander, ox: 0, oy: 0, fr: 0, look: role.look };
     }).filter(Boolean);
     this.resetEncounter();
     if (id === 'inkpool') this.spawnSpirit();
@@ -428,7 +430,7 @@ async function talkTo(n) {
     case 'mentor': return mentorTalk(n);
     /* 同一個 kind 兩種人：有 gq 的是器靈本體（要打一場），沒有的是小墨（守在禮堂）。
        以前這裡寫了兩個 case 'guardian'，第二個永遠跑不到，小墨被當成器靈 → 丟例外，大魔王永遠解不開。 */
-    case 'guardian': return n.role.gq ? guardianSpirit(n) : guardianTalk(n);
+    case 'guardian': return n.retry ? guardianRetry(n) : n.role.gq ? guardianSpirit(n) : guardianTalk(n);
     case 'trainer': case 'rival': case 'gym': return trainerTalk(n);
     case 'quest': return questTalk(n);
     case 'rematch': return rematchTalk(n);
@@ -691,6 +693,12 @@ async function guardianSpirit(n) {
   await say('（可以回鐘塔台了。小墨在那裡等你。）');
   autosave();
 }
+/* 周以恆②之後現身、但上次打輸的器靈：再挑戰一次 */
+async function guardianRetry(n) {
+  await say(`（「${weaponName(n.role.gq)}」還在這裡，靜靜地等著你。）`);
+  const r = await Guardian.firstMeet();
+  if (r !== 'lose') OW.npcs = OW.npcs.filter(x => x !== n);
+}
 /* 決戰前：對話選擇後，文房四寶中的一隻現身 */
 async function guardianTalk(n) {
   const R = n.role, M = R.name;
@@ -814,15 +822,18 @@ async function trainerTalk(n) {
   const res = await Battle.start({ kind: R.kind, foe: makePersonFoe(R), role: R, cats: R.foe.cats });
   if (res !== 'win') return;
   G.defeated[n.key] = true;
+  let grant = false;
   if (R.choice && !G.route) {   // 劇情分支：兩個回答，走向不同
     const k = await UI.ask(R.choice.q, R.choice.opts, { name: R.name, cancel: false });
     G.route = k === 1 ? 'b' : 'a'; Sound.sfx('ok');
     await say(R.choice.replies[k === 1 ? 1 : 0], R.name);
-    if (W.story) await Guardian.grant(true);
+    grant = !!W.story;
     await say(G.route === 'a' ? R.afterA : R.afterB, R.name);
     if (!W.story) { await say(`（你選擇了「${W.routeNames[G.route]}」，之後的劇情會跟著改變。）`); G.flags.rivalGone = true; await Anim.run(0.4, k2 => n.oy = -6 * k2); OW.npcs = OW.npcs.filter(x => x !== n); }
   }
   if (R.afterWin && R.afterWin.length) for (const t of R.afterWin) await say(t, t.startsWith('（') ? undefined : R.name);
+  /* 器靈現身放在對方把話說完之後：輸了會被送回休息處，對方的台詞不能在那邊才講 */
+  if (grant) await Guardian.grant(true);
   if (((R.kind === 'rival' && !R.choice) || R.leaves) && W.story) { G.flags['gone:' + n.key] = true; await Anim.run(0.4, k2 => n.oy = -8 * k2); OW.npcs = OW.npcs.filter(x => x !== n); }
   if (R.kind === 'trainer') await bossEntrance();      // 菁英全滅 → 大魔王登場
   if (R.kind === 'gym') {

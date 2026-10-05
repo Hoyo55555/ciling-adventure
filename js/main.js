@@ -327,7 +327,7 @@ const Flow = {
     G.hp = G.maxhp; G.wenqi = 0;
     /* 二週目從哪裡開始由世界決定（校園版：同一個房間醒來），沒設定就回晨讀村 */
     const S0 = W.ngStart || { map: 'chendu', x: 11, y: 7 };
-    const H = W.homeTown || S0;
+    const H = W.startHeal || W.homeTown || S0;           // 二週目也是從家裡出發
     G.lastHeal = { map: H.map, x: H.x, y: H.y }; G.ret = Object.assign({}, S0.ret || S0);
     autosave();
     await fade(1, 0.4); UI.clear(); Game.scene = 'overworld'; OW.load(S0.map, S0.x, S0.y, S0.dir || 'down'); await fade(0, 0.4);
@@ -358,7 +358,8 @@ const Flow = {
     teacherKit();                                   // 教師版：直接給滿，並跳過序幕
     const S0 = W.story ? (G.flags.prologue ? Object.assign({ dir: 'down' }, W.homeTown) : W.start)
                        : { map: 'chendu', x: 11, y: 7, dir: 'down' };
-    G.map = S0.map; G.lastHeal = W.story ? Object.assign({}, W.homeTown) : G.lastHeal;
+    /* 新遊戲的休息處：校園版是家裡（還沒去過學校，不能在保健室醒來） */
+    G.map = S0.map; G.lastHeal = W.story ? Object.assign({}, W.startHeal || W.homeTown) : G.lastHeal;
     G.ret = G.ret || Object.assign({}, W.homeTown || { map: 'chendu', x: 11, y: 7 });   // 防呆：室內用 '@ret' 出來時要有落點
     if (S0.ret) G.ret = Object.assign({}, S0.ret);  // 起點在室內（教室）：出門要回到那棟建築的門口
     await fade(1, 0.4); UI.clear(); Game.scene = 'overworld'; OW.load(S0.map, S0.x, S0.y, S0.dir); autosave(); await fade(0, 0.4);

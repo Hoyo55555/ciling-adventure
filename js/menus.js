@@ -817,7 +817,12 @@ const Guardian = {
       foe: { lv: clamp(G.lv, 16, 28), hpMul: 1.5, el: 'none', race: ARCH[a].race, cats: ALL_CATS,
         moves: [['器靈之威', ALL_CATS, 54], ['文心一擊', ALL_CATS, 58]] }, potions: 1 };
     const res = await Battle.start({ kind: 'gym', foe: makePersonFoe(role), role, cats: ALL_CATS });
-    if (res !== 'win') { await say('（器靈的光暗了下來……牠還會再給你機會。）'); return 'lose'; }
+    if (res !== 'win') {
+      /* 輸了：牠留在剛才現身的地方等你（retry），準備好了回去找牠就能再打一次 */
+      G.flags.guardianRetry = a; autosave();
+      await say('（器靈的光暗了下來……牠還會留在原地等你，準備好了再回去找牠。）'); return 'lose';
+    }
+    delete G.flags.guardianRetry;
     await Guardian.give(a);
     return 'win';
   },

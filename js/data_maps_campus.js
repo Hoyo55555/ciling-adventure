@@ -493,6 +493,10 @@ const CAMPUS_NPCS = {
   stair1: [
     { role: 't_r2b',  x: 2, y: 5, dir: 'right', sight: 3 },
     { role: 'rival2', x: 2, y: 3, dir: 'right', sight: 3, minBadges: 3, maxBadges: 3 },
+    /* 周以恆②之後現身的器靈：打輸了會留在樓梯間等你（哪一隻是隨機的，三隻都放，只會出現那一隻） */
+    { role: 'gd_pen',   x: 6, y: 5, dir: 'down', retry: 1 },
+    { role: 'gd_paper', x: 6, y: 5, dir: 'down', retry: 1 },
+    { role: 'gd_ink',   x: 6, y: 5, dir: 'down', retry: 1 },
   ],
   corridor2: [
     { role: 'rival1',  x: 4,  y: 4, dir: 'up', sight: 2, minBadges: 1, maxBadges: 1 },
@@ -568,6 +572,8 @@ function CAMPUS_PATCH(S) {
   S.start = { map: 'room', x: 2, y: 2, dir: 'up', ret: { map: 's1', x: 15, y: 14 } };
   /* 回城點：前庭的保健室門口（通學路是單向的，回不了家） */
   S.homeTown = { map: 'front', x: 4, y: 8 };
+  /* 新遊戲（和二週目）的休息處：家裡一樓、媽媽旁邊。去過保健室或跟媽媽說過話就會更新 */
+  S.startHeal = { map: 'house1f', x: 2, y: 3 };
   /* 二週目：同一個夢又做了一次，在同一個房間醒來 */
   S.ngStart = { map: 'room', x: 2, y: 2, dir: 'up', ret: { map: 's1', x: 15, y: 14 } };
   S.gates = Object.assign({}, S.gates, { prologue: '（……還沒準備好。先確認時間和准考證吧。）' });
