@@ -16,23 +16,31 @@ const GFX = (() => {
   const IMG = {}, img = f => IMG[f] || (IMG[f] = Object.assign(new Image(), { src: ASSET + f }));
   const sheet = (f, n, cols, step) => ({ im: img(f), sx: (n % cols) * step, sy: Math.floor(n / cols) * step });
   const one = f => ({ im: img(f), sx: 0, sy: 0 });
-  const IND = n => sheet('indoor_sheet.png', n, 27, 17), OGA = n => sheet('oga_town_sheet.png', n, 22, 16);
+  const IND = n => sheet('indoor_sheet.png', n, 27, 17), RPG = n => sheet('rpg_sheet.png', n, 57, 17);
+  /* 3×3 一組的邊界拼塊（左上、上、右上、左、中、右、左下、下、右下），用鄰格遮罩選 */
+  const SET9 = arr => arr.map(RPG);
   const GREEN = ['t_campus', 't_dawn', 'school', 't_slope', 't_port', 't_rain', 't_flower', 't_stele', 't_spring', 't_tower', 't_oldwing'];
   const SKINS = [
-    { themes: GREEN, code: '.', pick: [one('town_0000.png'), one('town_0001.png'), one('town_0001.png'), one('town_0000.png')] },
-    { themes: ['t_street'], code: '.', pick: [one('urban_0013.png'), one('urban_0036.png'), one('urban_0013.png'), one('urban_0013.png')] },
-    /* 草叢：用 Kenney 的配色與深色描邊自己畫一叢一叢的高草（OGA 的高草風格不合、格線明顯，2026-10-06 回饋） */
+    /* ---- 室外自然：Kenney Roguelike / RPG Pack（沒有黑外框、比較柔和）---- */
+    { themes: GREEN, code: '.', pick: [RPG(62), RPG(62), RPG(5), RPG(62)] },
+    /* 樹：連在一起的用松樹（像官方範例那樣排成一片），單獨一棵用圓樹 */
+    { themes: GREEN, code: 'T', custom: 'trees', pick: [RPG(586), RPG(640), RPG(643), RPG(528)] },
+    /* 水池：3×3 岸邊拼塊；fr 的第 2–5 位是鄰格遮罩 */
+    { themes: '*', code: '~', custom: 'set9', shift: 2, pick: SET9([2, 3, 4, 59, 60, 61, 116, 117, 118]) },
+    /* 校園的石板路：3×3 拼塊 */
+    { themes: ['t_campus', 't_oldwing'], code: ',', custom: 'set9', shift: 2, under: '.', pick: SET9([862, 863, 864, 919, 920, 921, 976, 977, 978]) },
+    /* 草叢：RPG Pack 的配色自己畫（這套沒有現成的高草） */
     { themes: '*', code: 'g', custom: 'kgrass', pick: [{ im: { complete: true, naturalWidth: 1 } }] },
-    /* 樹：fr 是鄰格遮罩（上1 右2 下4 左8＝那一邊不是樹）。連在一起的樹用 Kenney 的森林拼塊，
-       整片接成一團樹冠；單獨一棵才用單棵的樹 */
-    { themes: GREEN, code: 'T', custom: 'forest', pick: [one('town_0019.png'), one('town_0016.png'), one('town_0006.png'), one('town_0007.png'), one('town_0008.png'),
-      one('town_0018.png'), one('town_0020.png'), one('town_0030.png'), one('town_0031.png'), one('town_0032.png')] },
+    { themes: GREEN, code: 'F', under: '.', pick: [RPG(542), RPG(541), RPG(542), RPG(541)] },       // 花圃
+    /* ---- 街道：Kenney RPG Urban ---- */
+    { themes: ['t_street'], code: '.', pick: [one('urban_0013.png'), one('urban_0036.png'), one('urban_0013.png'), one('urban_0013.png')] },
     { themes: ['t_street'], code: 'T', under: '.', pick: [one('urban_0286.png')] },             // 行道樹（花台）
     { themes: '*', code: 'L', under: 'base', pick: [one('urban_0168.png')] },                  // 路燈
     { themes: '*', code: ':', under: '.', pick: [one('urban_0167.png')] },                     // 站牌
     { themes: '*', code: '4', under: ',', pick: [one('urban_0221.png')] },                     // 施工路障
     { themes: '*', code: '6', under: 'base', pick: [one('urban_0252.png')] },                  // 回收桶
-    { themes: '*', code: '!', under: '.', pick: [one('urban_0216.png')], post: 'wires' },      // 電線桿：細桿＋自己畫橫擔與電線
+    { themes: '*', code: '!', under: '.', pick: [one('urban_0216.png')], post: 'wires' },      // 電線桿
+    /* ---- 室內：Kenney Roguelike Indoors ---- */
     { themes: '*', code: 'p', under: 'base', pick: [IND(16)] },                                // 盆栽
     { themes: '*', code: 'k', under: '_', pick: [IND(478)] },                                  // 書櫃
   ];
@@ -334,8 +342,8 @@ const GFX = (() => {
     if (sk && sk.custom === 'kgrass') {                              // Kenney 風的高草：兩排草叢交錯，左右可以無縫接
       /* 寶可夢式高草：比草地深一階的草床，上面一叢一叢長葉（深綠＋亮綠葉尖＋Kenney 的深色描邊），
          每格依 fr 換排列，整片看起來才不像壁紙 */
-      R(0, 0, 16, 16, '#5ea456');
-      const v = fr & 3, OL = '#3f2631', DG = '#479f4a', MG = '#5aa84c', TIP = '#a8e07a';
+      R(0, 0, 16, 16, '#76a82a');                                    // RPG Pack 的配色：草床比草地深一階
+      const v = fr & 3, OL = '#4f7426', DG = '#648c32', MG = '#7bad2c', TIP = '#a8d848';
       const blade = (x, y, h, lean) => {                             // 一片葉：由下往上，頂端亮
         for (let i = 0; i < h; i++) { const xx = x + (i > h * .6 ? lean : 0), yy = y - i; if (xx < 0 || xx > 15 || yy < 0) continue;
           R(xx, yy, 1, 1, i === h - 1 ? TIP : i > h / 2 ? MG : DG); }
@@ -350,7 +358,24 @@ const GFX = (() => {
       for (const [cx, by] of LAY) clump(cx, by);
       cache.set(key, cv); return cv;
     }
-    if (sk && sk.custom === 'forest') {                              // 森林拼塊：依鄰格決定用哪一塊
+    if (sk && (sk.custom === 'trees' || sk.custom === 'set9')) {
+      const ok = sk.pick.every(p => p.im.complete && p.im.naturalWidth);
+      if (ok) {
+        let p;
+        if (sk.custom === 'trees') {                                   // 樹：四邊都不是樹＝單獨一棵（圓樹），否則松樹成片
+          const m = fr & 15; p = m === 15 ? sk.pick[1] : sk.pick[0];
+          g.drawImage(tile(theme, '.', 0), 0, 0);
+        } else {                                                       // 3×3 拼塊（邊緣那幾塊是半透明的，底下先鋪地面）
+          if (sk.under) g.drawImage(tile(theme, sk.under, 0), 0, 0);
+          const m = (fr >> sk.shift) & 15, top = m & 1, right = m & 2, bot = m & 4, left = m & 8;
+          const row = top && !bot ? 0 : bot && !top ? 2 : 1, col = left && !right ? 0 : right && !left ? 2 : 1;
+          p = sk.pick[row * 3 + col];
+        }
+        g.imageSmoothingEnabled = false; g.drawImage(p.im, p.sx, p.sy, 16, 16, 0, 0, 16, 16);
+        cache.set(key, cv); return cv;
+      }
+      var skinPending = true;
+    } else if (sk && sk.custom === 'forest') {                       // 森林拼塊：依鄰格決定用哪一塊
       const ok = sk.pick.every(p => p.im.complete && p.im.naturalWidth);
       if (ok) {
         const m = fr & 15, top = m & 1, right = m & 2, bot = m & 4, left = m & 8;

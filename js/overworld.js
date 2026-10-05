@@ -89,8 +89,10 @@ const OW = {
   },
   /* 上／右／下／左 四個位元：哪幾邊不是同一種磚。水面的岸線與球場的邊線都靠它畫 */
   edgeMask(x, y, c) {
-    return (this.tile(x, y - 1) !== c ? 1 : 0) | (this.tile(x + 1, y) !== c ? 2 : 0)
-         | (this.tile(x, y + 1) !== c ? 4 : 0) | (this.tile(x - 1, y) !== c ? 8 : 0);
+    /* 地圖外面當成同一種磚：路、水走到地圖邊緣是「繼續延伸出去」，不是在邊上收邊 */
+    const r = this.L.rows, out = (a, b) => b < 0 || b >= r.length || a < 0 || a >= r[0].length;
+    const diff = (a, b) => !out(a, b) && this.tile(a, b) !== c;
+    return (diff(x, y - 1) ? 1 : 0) | (diff(x + 1, y) ? 2 : 0) | (diff(x, y + 1) ? 4 : 0) | (diff(x - 1, y) ? 8 : 0);
   },
   tile(x, y) { const r = this.L.rows; if (y < 0 || y >= r.length || x < 0 || x >= r[0].length) return this.L.indoor ? 'X' : 'T'; const o = G && G.opened && G.opened[this.id + ':' + x + ',' + y]; return o || r[y][x]; },
   npcAt(x, y) { return this.npcs.find(n => n.x === x && n.y === y); },
