@@ -21,8 +21,12 @@ const GFX = (() => {
   const SKINS = [
     { themes: GREEN, code: '.', pick: [one('town_0000.png'), one('town_0001.png'), one('town_0001.png'), one('town_0000.png')] },
     { themes: ['t_street'], code: '.', pick: [one('urban_0013.png'), one('urban_0036.png'), one('urban_0013.png'), one('urban_0013.png')] },
-    { themes: '*', code: 'g', pick: [OGA(153), OGA(175), OGA(153), OGA(175)] },                // 草叢：OGA 的高草最像寶可夢
-    { themes: GREEN, code: 'T', under: '.', pick: [one('town_0016.png')] },                    // 校園的樹
+    /* 草叢：用 Kenney 的配色與深色描邊自己畫一叢一叢的高草（OGA 的高草風格不合、格線明顯，2026-10-06 回饋） */
+    { themes: '*', code: 'g', custom: 'kgrass', pick: [{ im: { complete: true, naturalWidth: 1 } }] },
+    /* 樹：fr 是鄰格遮罩（上1 右2 下4 左8＝那一邊不是樹）。連在一起的樹用 Kenney 的森林拼塊，
+       整片接成一團樹冠；單獨一棵才用單棵的樹 */
+    { themes: GREEN, code: 'T', custom: 'forest', pick: [one('town_0019.png'), one('town_0016.png'), one('town_0006.png'), one('town_0007.png'), one('town_0008.png'),
+      one('town_0018.png'), one('town_0020.png'), one('town_0030.png'), one('town_0031.png'), one('town_0032.png')] },
     { themes: ['t_street'], code: 'T', under: '.', pick: [one('urban_0286.png')] },             // 行道樹（花台）
     { themes: '*', code: 'L', under: 'base', pick: [one('urban_0168.png')] },                  // 路燈
     { themes: '*', code: ':', under: '.', pick: [one('urban_0167.png')] },                     // 站牌
@@ -327,7 +331,41 @@ const GFX = (() => {
     const base = () => { if (INDOOR) g.drawImage(tile(theme, '_'), 0, 0); else ground(); };
     const pave = () => { if (INDOOR) g.drawImage(tile(theme, '_'), 0, 0); else g.drawImage(tile(theme, ','), 0, 0); };
     const sk = skinFor(theme, code);
-    if (sk) {
+    if (sk && sk.custom === 'kgrass') {                              // Kenney 風的高草：兩排草叢交錯，左右可以無縫接
+      /* 寶可夢式高草：比草地深一階的草床，上面一叢一叢長葉（深綠＋亮綠葉尖＋Kenney 的深色描邊），
+         每格依 fr 換排列，整片看起來才不像壁紙 */
+      R(0, 0, 16, 16, '#5ea456');
+      const v = fr & 3, OL = '#3f2631', DG = '#479f4a', MG = '#5aa84c', TIP = '#a8e07a';
+      const blade = (x, y, h, lean) => {                             // 一片葉：由下往上，頂端亮
+        for (let i = 0; i < h; i++) { const xx = x + (i > h * .6 ? lean : 0), yy = y - i; if (xx < 0 || xx > 15 || yy < 0) continue;
+          R(xx, yy, 1, 1, i === h - 1 ? TIP : i > h / 2 ? MG : DG); }
+      };
+      const clump = (cx, by) => {                                    // 一叢：五片葉，底下描一條深色
+        [[-2, 5, -1], [-1, 7, 0], [0, 8, 0], [1, 7, 1], [2, 5, 1]].forEach(([dx, h, l]) => blade(cx + dx, by, h, l));
+        for (let dx = -3; dx <= 3; dx++) { const x = cx + dx; if (x >= 0 && x < 16) R(x, by + 1, 1, 1, OL); }
+        if (cx - 3 >= 0) R(cx - 3, by, 1, 1, OL); if (cx + 3 < 16) R(cx + 3, by, 1, 1, OL);
+      };
+      const LAY = [[[4, 7], [12, 6], [8, 14], [0, 15], [16, 15]], [[3, 6], [11, 7], [7, 14], [15, 13]],
+                   [[5, 7], [13, 7], [1, 14], [9, 15]], [[2, 6], [10, 6], [6, 14], [14, 15]]][v];
+      for (const [cx, by] of LAY) clump(cx, by);
+      cache.set(key, cv); return cv;
+    }
+    if (sk && sk.custom === 'forest') {                              // 森林拼塊：依鄰格決定用哪一塊
+      const ok = sk.pick.every(p => p.im.complete && p.im.naturalWidth);
+      if (ok) {
+        const m = fr & 15, top = m & 1, right = m & 2, bot = m & 4, left = m & 8;
+        let p;
+        if (m === 15) p = sk.pick[1];                                 // 四邊都不是樹：單獨一棵（圓樹，有陰影）
+        else {
+          const row = top && !bot ? 0 : bot && !top ? 2 : 1, col = left && !right ? 0 : right && !left ? 2 : 1;
+          p = [[sk.pick[2], sk.pick[3], sk.pick[4]], [sk.pick[5], sk.pick[0], sk.pick[6]], [sk.pick[7], sk.pick[8], sk.pick[9]]][row][col];
+        }
+        g.drawImage(tile(theme, '.', 0), 0, 0);
+        g.imageSmoothingEnabled = false; g.drawImage(p.im, 0, 0);
+        cache.set(key, cv); return cv;
+      }
+      var skinPending = true;
+    } else if (sk) {
       const p = sk.pick[fr % sk.pick.length];
       if (p.im.complete && p.im.naturalWidth) {
         if (sk.under === 'base') base(); else if (sk.under === '_') g.drawImage(tile(theme, '_'), 0, 0);
