@@ -10,3 +10,5 @@ rpg_sheet      Kenney「Roguelike / RPG Pack」      https://kenney.nl/assets/ro
 caves_sheet    Kenney「Roguelike Caves & Dungeons」 https://kenney.nl/assets/roguelike-caves-dungeons（16×16、間距 1px）
 （2026-10-06 改用：室外自然＝RPG Pack；街道＝RPG Urban／Modern City；室內＝Indoors；洞窟＝Caves。Tiny Town、OGA 不再使用）
 city_sheet     Kenney「Roguelike Modern City」（tilemap_packed：16×16、無間距、37 欄）https://kenney.nl/assets/roguelike-modern-city
+urban_sheet    Kenney「RPG Urban Pack」（Tilemap/tilemap_packed：16×16、無間距、27 欄）—— 建築外牆、門窗、屋頂
+               建築怎麼拼：js/gfx.js 的 KITS（一棟一個函式，由上往下一列一列寫）

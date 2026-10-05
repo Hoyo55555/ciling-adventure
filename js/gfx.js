@@ -20,6 +20,8 @@ const GFX = (() => {
   /* 3×3 一組的邊界拼塊（左上、上、右上、左、中、右、左下、下、右下），用鄰格遮罩選 */
   const SET9 = arr => arr.map(RPG);
   const CITY = n => sheet('city_sheet.png', n, 37, 16);
+  /* RPG Urban Pack（建築外牆、門窗、屋頂）；MC＝Modern City 用（欄, 列）取 */
+  const URB = (c, r) => sheet('urban_sheet.png', r * 27 + c, 27, 16), MC = (c, r) => CITY(r * 37 + c);
   const HOME = ['t_home', 't_dawn'], SCHOOL_IN = ['t_campus', 't_oldwing'];
   const GREEN = ['t_campus', 't_dawn', 'school', 't_slope', 't_port', 't_rain', 't_flower', 't_stele', 't_spring', 't_tower', 't_oldwing'];
   const SKINS = [
@@ -37,7 +39,13 @@ const GFX = (() => {
     { themes: GREEN, code: 'F', under: '.', pick: [RPG(542), RPG(541), RPG(542), RPG(541)] },       // 花圃
     /* ---- 街道：Kenney Roguelike Modern City（路面）＋ RPG Urban（街道擺設）---- */
     { themes: ['t_street'], code: '.', pick: [CITY(703), CITY(704), CITY(705), CITY(703)] },      // 人行道石板
-    { themes: ['t_street'], code: ',', pick: [CITY(714)] },                                     // 柏油路
+    { themes: ['t_street'], code: ',', pick: [CITY(714)] },
+    /* 柵欄：Urban Pack 的鐵網圍籬，左右自動接（fr＝鄰格遮罩） */
+    { themes: '*', code: '=', custom: 'row', under: 'base', pick: [URB(4, 13), URB(5, 13), URB(6, 13), URB(5, 13)] },
+    /* 教室門（走廊牆上）：RPG Pack 有小窗的木門 */
+    { themes: SCHOOL_IN, code: 'D', indoor: 1, under: 'w', pick: [RPG(210)] },
+    /* 街道兩側的邊界：畫成隔壁大樓的屋頂（以前是米色條紋牆，看起來跟地圖外一樣） */
+    { themes: ['t_street'], code: '#', custom: 'set9', shift: 0, pick: [URB(8, 3), URB(9, 3), URB(10, 3), URB(8, 4), URB(9, 4), URB(10, 4), URB(8, 5), URB(9, 5), URB(10, 5)] },                                     // 柏油路
     { themes: ['t_street'], code: ';', pick: [CITY(716)] },                                     // 雙黃線
     { themes: ['t_street'], code: '0', pick: [CITY(826)] },                                     // 斑馬線
     /* ---- 室內：Kenney Roguelike / RPG Pack（跟室外同一包，風格才一致）---- */
@@ -50,6 +58,8 @@ const GFX = (() => {
     { themes: HOME, code: 't', under: '_', pick: [RPG(28), RPG(29), RPG(28), RPG(29)] },        // 廚房流理臺／櫃子
     { themes: '*', code: 'q', indoor: 1, custom: 'row', under: '_', pick: [IND(0), IND(1), IND(2), IND(5)] },   // 餐桌：左端、中段、右端、單張
     { themes: '*', code: '$', indoor: 1, under: '_', pick: [IND(54)] },                                     // 椅子
+    /* 室外的紅地毯（禮堂前的星光大道）：RPG Pack 的橘紅色 3×3 */
+    { themes: GREEN, code: 'r', outdoor: 1, custom: 'set9', shift: 0, under: ',', pick: SET9([1093, 1094, 1095, 1150, 1151, 1152, 1207, 1208, 1209]) },
     { themes: '*', code: 'r', indoor: 1, custom: 'set9', shift: 0, under: '_', pick: SET9([922, 923, 924, 979, 980, 981, 1036, 1037, 1038]) },   // 地毯（3×3）
     { themes: ['t_street'], code: 'T', under: '.', pick: [one('urban_0286.png')] },             // 行道樹（花台）
     { themes: '*', code: 'L', under: 'base', pick: [one('urban_0168.png')] },                  // 路燈
@@ -63,13 +73,17 @@ const GFX = (() => {
   ];
   const SKIN_IDX = {};
   for (const s of SKINS) for (const t of (s.themes === '*' ? ['*'] : s.themes)) SKIN_IDX[t + s.code] = s;
-  const skinFor = (theme, code) => { const s = SKIN_IDX[theme + code] || SKIN_IDX['*' + code]; return s && s.indoor && !INDOOR ? null : s; };
+  /* indoor：只在室內用；outdoor：只在室外用（同一個字元室內外可以是兩種素材，例如地毯） */
+  const skinFor = (theme, code) => {
+    for (const s of [SKIN_IDX[theme + code], SKIN_IDX['*' + code]]) if (s && !(s.indoor && !INDOOR) && !(s.outdoor && INDOOR)) return s;
+    return null;
+  };
   const allImgs = () => Object.values(IMG);
   /* 全部載入完 → 清快取，畫面自動換成素材版 */
   const skinsReady = (typeof document === 'undefined') ? Promise.resolve() :
     new Promise(res => setTimeout(() => {
       /* 同一張圖會出現好幾次（例如整張 sheet），要用 addEventListener，用 onload= 會互相蓋掉、永遠等不到 */
-      Promise.all([...new Set(SKINS.flatMap(s => s.pick.map(p => p.im)))].map(im => im.complete ? 0 :
+      Promise.all(allImgs().map(im => im.complete ? 0 :
         new Promise(r => { im.addEventListener('load', r, { once: true }); im.addEventListener('error', r, { once: true }); })))
         .then(() => { cache.clear(); res(); });
     }, 0));
@@ -377,7 +391,7 @@ const GFX = (() => {
     }
     if (sk && sk.custom === 'row') {                                 // 一排接起來的家具：fr 是鄰格遮罩（右2、左8＝那一邊不是同一種）
       const p = sk.pick[(fr & 8) && (fr & 2) ? 3 : (fr & 8) ? 0 : (fr & 2) ? 2 : 1];
-      if (p.im.complete && p.im.naturalWidth) { g.drawImage(tile(theme, '_', 0), 0, 0); g.imageSmoothingEnabled = false; g.drawImage(p.im, p.sx, p.sy, 16, 16, 0, 0, 16, 16); cache.set(key, cv); return cv; }
+      if (p.im.complete && p.im.naturalWidth) { if (sk.under === 'base') base(); else g.drawImage(tile(theme, sk.under || '_', 0), 0, 0); g.imageSmoothingEnabled = false; g.drawImage(p.im, p.sx, p.sy, 16, 16, 0, 0, 16, 16); cache.set(key, cv); return cv; }
       var skinPending = true;
     } else if (sk && sk.custom === 'wall') {                                // 室內牆：fr 第 0 位＝下面是房間 → 有踢腳板的那一塊
       const p = sk.pick[(fr & 1) ? 1 : 0];
@@ -423,7 +437,7 @@ const GFX = (() => {
       const p = sk.pick[fr % sk.pick.length];
       if (p.im.complete && p.im.naturalWidth) {
         if (sk.under === 'base') base(); else if (sk.under === '_') g.drawImage(tile(theme, '_'), 0, 0);
-        else if (sk.under) g.drawImage(tile(theme, sk.under, fr & 3), 0, 0);
+        else if (sk.under) g.drawImage(tile(theme, sk.under, sk.under === 'w' ? 0 : fr & 3), 0, 0);   // 牆的 fr 是護牆板旗標，不是雜訊
         g.imageSmoothingEnabled = false; g.drawImage(p.im, p.sx, p.sy, 16, 16, 0, 0, 16, 16);
         if (sk.post === 'wires') {                                   // 電線桿：橫擔、礙子、兩條電線
           R(1, 2, 14, 2, '#6a6a74'); R(1, 2, 14, 1, '#9a9aa4');
@@ -1290,7 +1304,7 @@ const GFX = (() => {
     /* 大禮堂（活動中心）：第五章的舞台。正面有門廊柱、大鐘與布條 */
     audi:    { style: 'audi', w: 12, h: 8, over: 1, door: [5, 7], name: '大禮堂' },
     /* 文藝教室（道館③）：中庭旁的小棟 */
-    artroom: { style: 'block', w: 8, h: 6, door: [3, 5], name: '文藝教室', band: '#d8629a' },
+    artroom: { style: 'block', w: 8, h: 6, door: [3, 5], name: '文藝教室', band: '#d8629a', kground: 't_campus' },
     /* ---- 通學路（校外）的店面與住宅。style 'shopfront' ＝ 騎樓店面 ---- */
     bfast:   { style: 'shopfront', w: 5, h: 4, over: 1, door: [2, 3], name: '早餐店',
       awn: '#e8a030', awn2: '#b87818', sign: '#f4f0e4', signInk: '#8a4a20' },
@@ -1303,6 +1317,8 @@ const GFX = (() => {
     gateopen:{ style: 'gate',  w: 6, h: 2, door: null, name: '校門（開著）', open: 1, walk: [[2, 0], [3, 0], [2, 1], [3, 1]] },
     /* 進不去的公寓：沒有門，一樓是鐵捲門 */
     flatx:   { style: 'shopfront', w: 5, h: 5, over: 1, door: null, name: '公寓',
+      awn: '#8a8a92', awn2: '#62626a', sign: null, floors: 2, ground: 'home' },
+    flaty:   { style: 'shopfront', w: 5, h: 5, over: 1, door: null, name: '公寓',
       awn: '#8a8a92', awn2: '#62626a', sign: null, floors: 2, ground: 'home' },
     /* 打烊的小店（進不去）：讓街景不要每棟都長一樣 */
     shopx:   { style: 'shopfront', w: 5, h: 5, over: 1, door: null, name: '小店（打烊）',
@@ -1711,9 +1727,118 @@ const GFX = (() => {
     return cv;
   }
 
+  /* ============================================================
+     建築外觀：Kenney RPG Urban Pack 拼出來（2026-10-05「繼續道路建築跟室內」）
+     ------------------------------------------------------------
+     KITS[kind](C) 回傳一個「由上往下、一列一列」的格子表，
+     每格是一張素材或好幾張疊在一起（後面的疊在上面）。
+     列數 ＝ h + over，寬 ＝ w；門一定要在 C.door 那一格（護欄會檢查 footprint 塗滿）。
+     圖還沒載入完 → 先用原本程式畫的版本，不快取。
+     ============================================================ */
+  /* 屋頂九宮格（左上角在素材表的哪一格） */
+  const K_ROOF = { beige: [URB, 0, 3], gray: [URB, 8, 0], grayb: [URB, 8, 3], lawn: [URB, 0, 0] };
+  function kRoof(name, w, h) {
+    if (name === 'red') {        // 紅色平屋頂（Modern City）：0,1 列是四個角，2/3 欄是上下左右邊
+      return Array.from({ length: h }, (_, y) => Array.from({ length: w }, (_, x) => {
+        const t = y === 0, b = y === h - 1, l = x === 0, r = x === w - 1;
+        const [c, rr] = t && l ? [0, 0] : t && r ? [1, 0] : b && l ? [0, 1] : b && r ? [1, 1] : t ? [2, 0] : b ? [2, 1] : l ? [3, 0] : r ? [3, 1] : [6, 0];
+        return [MC(c, rr)];
+      }));
+    }
+    const [S, c0, r0] = K_ROOF[name];
+    return Array.from({ length: h }, (_, y) => Array.from({ length: w }, (_, x) =>
+      [S(c0 + (x === 0 ? 0 : x === w - 1 ? 2 : 1), r0 + (y === 0 ? 0 : y === h - 1 ? 2 : 1))]));
+  }
+  /* 外牆：f ＝ 素材的第幾列（0 頂、1 樓層腰帶、2 素面、3 牆基），左右兩端有轉角磚 */
+  function kWall(name, w, fs) {
+    const r0 = { red: 0, orange: 4 }[name];
+    return fs.map(f => Array.from({ length: w }, (_, x) => [URB(x === 0 ? 17 : x === w - 1 ? 19 : 18, r0 + f)]));
+  }
+  const kPut = (G, x, y, ...ps) => { for (const p of ps) G[y][x].push(p); return G; };
+  const KP = {
+    win: URB(12, 13), winBig: URB(13, 13), winWide: URB(13, 14), winArch: URB(12, 12), winGray: URB(13, 16),
+    doorWood: URB(13, 10), doorWhite2: URB(15, 10), doorGray2: URB(15, 12), doorGlass: URB(14, 9),
+    shop: [URB(8, 13), URB(9, 13), URB(10, 13)], shopG: [URB(8, 14), URB(9, 14), URB(10, 14)],
+    awnG: [MC(24, 13), MC(25, 13), MC(26, 13)], awnO: [MC(27, 13), MC(28, 13), MC(29, 13)],
+    signG: [MC(32, 4), MC(33, 4)],
+    plant: MC(34, 12), bush: MC(31, 13),
+    vent: MC(25, 14), vent2: MC(27, 14), ac: MC(28, 14),
+  };
+  /* 一整排：左端、中間（重複）、右端 */
+  const kRun = (G, x0, x1, y, [l, m, r]) => { for (let x = x0; x <= x1; x++) G[y][x].push(x === x0 ? l : x === x1 ? r : m); return G; };
+  const KITS = {
+    /* 我家：米色屋頂、橘磚兩層樓、木門 */
+    house: C => { const G = [...kRoof('beige', C.w, 2), ...kWall('orange', C.w, [0, 1, 2, 3])];
+      kPut(G, 1, 2, KP.win); kPut(G, 3, 2, KP.win); kPut(G, 1, 4, KP.winBig); kPut(G, 3, 4, KP.winBig);
+      kPut(G, 0, 5, KP.bush); kPut(G, C.w - 1, 5, KP.bush);
+      kPut(G, C.door[0], 5, KP.doorWood); return G; },
+    /* 公寓（進不去）：紅磚、窗戶排整齊，一樓也只有窗 —— 沒有門，就不會讓人以為進得去 */
+    flatx: C => { const G = [...kRoof('grayb', C.w, 2), ...kWall('red', C.w, [0, 1, 2, 3])];
+      for (const x of [1, 3]) { kPut(G, x, 2, KP.win); kPut(G, x, 4, KP.win); kPut(G, x, 5, KP.winWide); } return G; },
+    flaty: C => { const G = [...kRoof('beige', C.w, 2), ...kWall('orange', C.w, [0, 1, 2, 3])];
+      for (const x of [1, 2, 3]) { kPut(G, x, 2, KP.winArch); kPut(G, x, 4, KP.winGray); } kPut(G, 2, 5, KP.winWide); return G; },
+    /* 打烊的小店：橘色遮雨棚＋暗掉的櫥窗 */
+    shopx: C => { const G = [...kRoof('gray', C.w, 2), ...kWall('orange', C.w, [0, 1, 2, 3])];
+      kPut(G, 1, 2, KP.win); kPut(G, 3, 2, KP.win); kRun(G, 0, C.w - 1, 4, KP.awnO); kRun(G, 1, 3, 5, KP.shop); return G; },
+    /* 便利商店：綠招牌＋綠白遮雨棚＋整面玻璃，門在 door */
+    cvs: C => { const G = [...kRoof('grayb', C.w, 2), ...kWall('red', C.w, [0, 2, 3])];
+      kPut(G, 1, 2, KP.signG[0]); kPut(G, 2, 2, KP.signG[1]); kPut(G, 4, 2, KP.win);
+      kPut(G, 1, 1, KP.ac); kPut(G, 4, 0, KP.vent);
+      kRun(G, 0, C.w - 1, 3, KP.awnG);
+      kRun(G, 0, C.w - 1, 4, KP.shopG); kPut(G, C.door[0], 4, KP.doorWhite2); return G; },
+    /* 保健室／藥局：紅屋頂、白色雙開門、紅十字招牌（招牌在 post 畫） */
+    clinic: C => { const G = [...kRoof('red', C.w, 2), ...kWall('red', C.w, [0, 2, 3])];
+      kPut(G, 1, 3, KP.win); kPut(G, C.w - 2, 3, KP.win); kPut(G, C.w - 2, 4, KP.winBig);
+      kPut(G, C.door[0], 4, KP.doorWhite2); return G; },
+    /* 教學樓：灰屋頂、紅磚、一整排教室窗，大門是灰色雙開門 */
+    block: C => { const G = [...kRoof('grayb', C.w, 3), ...kWall('red', C.w, [0, 1, 2, 3])];
+      for (let x = 1; x < C.w - 1; x++) { kPut(G, x, 3, KP.winBig); kPut(G, x, 5, KP.winBig); if (x !== C.door[0]) kPut(G, x, 6, KP.win); }
+      kPut(G, 2, 1, KP.ac); kPut(G, 7, 1, KP.vent); kPut(G, 9, 0, KP.vent2);
+      kPut(G, C.door[0], 6, KP.doorGray2); return G; },
+    /* 文藝教室：屋頂是一片草皮花園，拱形窗 */
+    artroom: C => { const G = [...kRoof('lawn', C.w, 2), ...kWall('orange', C.w, [0, 1, 2, 3])];
+      for (const x of [1, 2, 5, 6]) { kPut(G, x, 2, KP.winArch); kPut(G, x, 4, KP.winBig); }
+      kPut(G, 1, 5, KP.plant); kPut(G, 6, 5, KP.plant);
+      kPut(G, C.door[0], 5, KP.doorWood); return G; },
+    /* 大禮堂：大片灰屋頂、紅磚、高窗、灰色大門 */
+    audi: C => { const G = [...kRoof('gray', C.w, 4), ...kWall('red', C.w, [0, 1, 2, 2, 3])];
+      for (let x = 1; x < C.w - 1; x++) if (Math.abs(x - C.door[0] - 0.5) > 1) { kPut(G, x, 4, KP.winArch); kPut(G, x, 6, KP.winBig); kPut(G, x, 7, KP.winBig); }
+      kPut(G, C.door[0] - 1, 8, KP.plant); kPut(G, C.door[0] + 1, 8, KP.plant);
+      kPut(G, 2, 1, KP.ac); kPut(G, 3, 1, KP.ac); kPut(G, 8, 2, KP.vent); kPut(G, 9, 1, KP.vent2);
+      kPut(G, C.door[0], 8, KP.doorGray2); return G; },
+  };
+  /* 素材拼不出來的小東西：招牌上的字樣、十字 */
+  const KPOST = {
+    clinic: (R, C) => { R(0, 0, C.w * 16, 1, '#5a3a3a'); R(0, 0, 1, 32, '#5a3a3a'); R(C.w * 16 - 1, 0, 1, 32, '#5a3a3a');   // 屋頂描邊，跟其他建築的外框一致
+      const sx = C.door[0] * 16 - 4, sy = 2 * 16 + 2;   // 門的正上方：白底紅十字
+      R(sx, sy, 24, 12, '#5a4a5a'); R(sx + 1, sy + 1, 22, 10, '#f8f6f0'); R(sx + 10, sy + 2, 4, 8, '#d83a34'); R(sx + 7, sy + 4, 10, 4, '#d83a34'); },
+    block: (R, C) => { const sx = C.door[0] * 16 - 8, sy = 4 * 16 + 4;    // 大門上方的校名牌
+      R(sx, sy, 32, 8, '#5a4a5a'); R(sx + 1, sy + 1, 30, 6, '#f4ecd0'); for (let i = 0; i < 4; i++) R(sx + 4 + i * 7, sy + 2, 4, 4, '#8a3a2a'); },
+    audi: (R, C) => { const sx = C.door[0] * 16 - 12, sy = 5 * 16 + 3;   // 大門上方的布條
+      R(sx, sy, 40, 9, '#a8322a'); R(sx, sy, 40, 1, '#d84a3a'); for (let i = 0; i < 5; i++) R(sx + 4 + i * 7, sy + 3, 4, 3, '#f8e8b0'); },
+  };
+  function kitBuild(kind, C) {
+    const G = KITS[kind](C), W = C.w * 16, H = G.length * 16, SH = 8;
+    if (G.some(row => row.some(ps => ps.some(p => !(p.im.complete && p.im.naturalWidth))))) return null;   // 還沒載入
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H + SH;
+    const g = cv.getContext('2d');
+    const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+    R(4, H - 2, W - 8, SH, 'rgba(0,0,0,.22)');                      // 落地陰影
+    /* 圓角屋頂（草皮）四個角會透空：先鋪一層地面，看起來就是屋頂後面的草地 */
+    if (C.kground) for (const [x, y] of [[0, 0], [C.w - 1, 0], [0, 1], [C.w - 1, 1]]) g.drawImage(tile(C.kground, '.', 0), x * 16, y * 16);
+    G.forEach((row, y) => row.forEach((ps, x) => ps.forEach(p => g.drawImage(p.im, p.sx, p.sy, 16, 16, x * 16, y * 16, 16, 16))));
+    if (KPOST[kind]) KPOST[kind](R, C);
+    return cv;
+  }
+
   function campus(kind) {
     const key = 'camp:' + kind; if (cache.has(key)) return cache.get(key);
     const C = CAMPUS[kind] || CAMPUS.clinic;
+    if (KITS[kind]) { const cv0 = kitBuild(kind, C); if (cv0) { cache.set(key, cv0); return cv0; } return campusOld(kind, C); }
+    const cv1 = campusOld(kind, C); cache.set(key, cv1); return cv1;
+  }
+  function campusOld(kind, C) {
+    const key = 'camp:' + kind;
     if (C.style === 'block') { const cv0 = campusBlock(C); cache.set(key, cv0); return cv0; }
     if (C.style === 'guard') { const cv0 = campusGuard(C); cache.set(key, cv0); return cv0; }
     if (C.style === 'gate')  { const cv0 = campusGate(C);  cache.set(key, cv0); return cv0; }

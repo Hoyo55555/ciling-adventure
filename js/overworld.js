@@ -194,6 +194,8 @@ const OW = {
                 : c === 'K' ? this.edgeMask(tx, ty, 'K')
                 : c === 'r' ? this.edgeMask(tx, ty, 'r')                  // 地毯：3×3 拼塊
                 : c === 'q' ? this.edgeMask(tx, ty, 'q')                  // 餐桌：左右接起來
+                : c === '=' ? this.edgeMask(tx, ty, '=')                  // 柵欄：左右接起來
+                : c === '#' && theme === 't_street' ? this.edgeMask(tx, ty, '#')   // 街邊大樓屋頂：3×3 拼塊
                 /* 樹：鄰格遮罩＋「在這一串直的樹裡是上半還是下半」——素材的樹是兩格高（上半樹冠＋下半樹幹） */
                 : c === 'T' ? treeFr(this, tx, ty)
                 /* 跑道：低四位是白邊線、高位是雜訊變化 */
