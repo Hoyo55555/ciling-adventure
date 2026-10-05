@@ -1377,6 +1377,11 @@ function stampProps(L) {
       if (!rows[gy] || gx < 0 || gx >= rows[gy].length) continue;
       rows[gy][gx] = (y === C.h - 1) ? '#' : 'R';    // 最下面一列當牆，其餘當屋頂
     }
+    /* 屋簷（over）：圖往上超出 footprint 的那幾格，畫面上是屋頂，所以也不能走（看到什麼就是什麼）。
+       不改字元（底下的地面要照常畫，弧形屋頂的透明轉角才不會露出方塊），另外記在 L.eaves。 */
+    for (let y = by - (C.over || 0); y < by; y++) for (let x = bx; x < bx + C.w; x++) {
+      if (rows[y] && x >= 0 && x < rows[y].length) (L.eaves = L.eaves || []).push(x + ',' + y);
+    }
     for (const [wx, wy] of C.walk || []) {           // walk：建築裡走得過去的格子（開著的校門中間）
       if (rows[by + wy] && rows[by + wy][bx + wx] !== undefined) rows[by + wy][bx + wx] = ',';
     }

@@ -1141,7 +1141,10 @@ const GFX = (() => {
     gateopen:{ style: 'gate',  w: 6, h: 2, door: null, name: '校門（開著）', open: 1, walk: [[2, 0], [3, 0], [2, 1], [3, 1]] },
     /* 進不去的公寓：沒有門，一樓是鐵捲門 */
     flatx:   { style: 'shopfront', w: 5, h: 5, over: 1, door: null, name: '公寓',
-      awn: '#8a8a92', awn2: '#62626a', sign: null, floors: 2, shutter: 1 },
+      awn: '#8a8a92', awn2: '#62626a', sign: null, floors: 2, ground: 'home' },
+    /* 打烊的小店（進不去）：讓街景不要每棟都長一樣 */
+    shopx:   { style: 'shopfront', w: 5, h: 5, over: 1, door: null, name: '小店（打烊）',
+      awn: '#d85a4a', awn2: '#a03a2e', sign: '#f4f0e4', signInk: '#a03a2e', floors: 2, ground: 'closed' },
     /* 自己家：兩層樓的透天厝，木門＋小雨遮，一眼看得出是「家」 */
     house:   { style: 'house', w: 5, h: 5, over: 1, door: [2, 4], name: '我家' },
   };
@@ -1404,11 +1407,16 @@ const GFX = (() => {
         R(x - 2, fy + 11, 16, 2, CON2);                 // 窗台
       }
     }
-    /* 遮雨棚：街屋最明顯的特徵 */
-    R(0, AWN, W, 7, C.awn2);
-    for (let x = 0; x < W; x += 6) R(x, AWN, 3, 7, C.awn);
-    R(0, AWN, W, 1, adj(C.awn, .28));
-    R(0, AWN + 7, W, 2, adj(C.awn2, -.55));            // 不透明；半透明的線底下沒東西會變成空洞
+    /* 遮雨棚：街屋最明顯的特徵。住家（ground: 'home'）沒有遮雨棚，只有一道水泥窗簷 */
+    if (C.ground === 'home') {
+      R(0, AWN, W, 9, TILEC); for (let y = AWN + 2; y < AWN + 9; y += 6) R(0, y, W, 1, TILE2);
+      R(0, AWN + 5, W, 3, CON); R(0, AWN + 5, W, 1, adj(CON, .2)); R(0, AWN + 8, W, 1, CON3);
+    } else {
+      R(0, AWN, W, 7, C.awn2);
+      for (let x = 0; x < W; x += 6) R(x, AWN, 3, 7, C.awn);
+      R(0, AWN, W, 1, adj(C.awn, .28));
+      R(0, AWN + 7, W, 2, adj(C.awn2, -.55));          // 不透明；半透明的線底下沒東西會變成空洞
+    }
     /* 招牌：掛在遮雨棚上面 */
     if (C.sign) {
       const sw = Math.min(W - 12, 46), sx = Math.round((W - sw) / 2), sy = AWN - 13;
@@ -1423,11 +1431,28 @@ const GFX = (() => {
     R(0, SY, 4, H - SY, CON2); R(W - 4, SY, 4, H - SY, CON2);          // 騎樓柱
     R(3, SY, 1, H - SY, CON3); R(W - 4, SY, 1, H - SY, adj(CON, .2));
     const dw = 22, dx = C.door ? C.door[0] * 16 + 8 - dw / 2 : 0;
-    if (C.shutter) {                                    // 公寓：拉下來的鐵捲門
-      R(5, SY + 3, W - 10, H - SY - 7, '#9aa0a8');
-      for (let y = SY + 4; y < H - 5; y += 3) R(5, y, W - 10, 1, '#7e848c');
-      R(5, SY + 3, W - 10, 2, '#b8bec6');
-      R(5, H - 5, W - 10, 2, '#6a7078');
+    if (C.ground === 'home') {                          // 一樓也是住家：拉上窗簾的窗、窗台花箱（進不去，所以不畫門）
+      R(4, SY, W - 8, H - SY - 3, TILEC);
+      for (let y = SY + 3; y < H - 4; y += 6) R(4, y, W - 8, 1, TILE2);
+      const ww = Math.floor((W - 20) / 2);
+      for (const wx of [8, W - 8 - ww]) {
+        R(wx - 1, SY + 3, ww + 2, 15, FRAME);
+        R(wx, SY + 4, ww, 13, GLASS2); R(wx, SY + 4, ww, 5, GLASS);
+        R(wx, SY + 4, Math.floor(ww / 2) - 1, 13, '#e8d8a8'); R(wx + Math.ceil(ww / 2) + 1, SY + 4, Math.floor(ww / 2) - 1, 13, '#e8d8a8');   // 窗簾
+        R(wx + Math.floor(ww / 2) - 1, SY + 4, 2, 13, FRAME);
+        R(wx - 2, SY + 18, ww + 4, 4, '#8a5a34'); R(wx - 2, SY + 18, ww + 4, 1, '#a8763f');               // 花箱
+        for (let x = wx; x < wx + ww; x += 4) { R(x, SY + 15, 3, 3, '#3e9830'); R(x + 1, SY + 14, 1, 1, ['#f06a92', '#ffd54a', '#ffffff'][(x >> 2) % 3]); }
+      }
+    } else if (C.ground === 'closed') {                 // 打烊的小店：玻璃櫥窗看得到貨架，掛著「休息中」，沒有門
+      R(5, SY + 3, W - 10, H - SY - 7, FRAME);
+      R(6, SY + 4, W - 12, H - SY - 9, '#5a6a78');
+      for (let y = SY + 8; y < H - 6; y += 6) { R(7, y, W - 14, 1, '#8a7a62');
+        for (let x = 8; x < W - 9; x += 5) R(x, y - 3, 3, 3, ['#e87a50', '#ffd54a', '#5ab84a', '#5a8ad8'][((x + y) >> 2) % 4]); }
+      R(6, SY + 4, W - 12, 3, '#7a8a98');
+      const bw = 20, bx = Math.round(W / 2 - bw / 2);
+      R(bx + 4, SY + 3, 1, 4, '#4e555f'); R(bx + bw - 5, SY + 3, 1, 4, '#4e555f');
+      R(bx, SY + 7, bw, 8, '#f4f0e4'); R(bx, SY + 7, bw, 1, '#ffffff');
+      for (let i = 0; i < 3; i++) R(bx + 3 + i * 5, SY + 9, 4, 4, '#c8443c');                    // 休息中
     } else {                                            // 店面：整片落地玻璃＋中間的門
       R(5, SY + 3, W - 10, H - SY - 7, FRAME);
       R(6, SY + 4, W - 12, H - SY - 9, GLASS2);

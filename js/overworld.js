@@ -95,7 +95,9 @@ const OW = {
   tile(x, y) { const r = this.L.rows; if (y < 0 || y >= r.length || x < 0 || x >= r[0].length) return this.L.indoor ? 'X' : 'T'; const o = G && G.opened && G.opened[this.id + ':' + x + ',' + y]; return o || r[y][x]; },
   npcAt(x, y) { return this.npcs.find(n => n.x === x && n.y === y); },
   chestAt(x, y) { return (this.L.chests || []).find(c => c.x === x && c.y === y); },
-  solid(x, y) { return SOLID.has(this.tile(x, y)) || !!this.npcAt(x, y) || !!this.chestAt(x, y); },
+  solid(x, y) { return SOLID.has(this.tile(x, y)) || !!this.npcAt(x, y) || !!this.chestAt(x, y) || this.eave(x, y); },
+  /* 屋簷底下走不過去（stampProps 記在 L.eaves） */
+  eave(x, y) { const L = this.L; if (!L.eaves) return false; if (!L.eaveSet) L.eaveSet = new Set(L.eaves); return L.eaveSet.has(x + ',' + y); },
 
   run(fn) { this.busy = true; Promise.resolve().then(fn).catch(e => console.error(e)).finally(() => { this.busy = false; Input.eat(); }); },
 
@@ -239,6 +241,13 @@ const OW = {
       if (this.tile(p.moving ? p.tx : p.x, p.moving ? p.ty : p.y) === 'g' && (!p.moving || k > 0.5)) g.drawImage(GFX.tile(theme, 'g'), 0, 10, 16, 6, px - cx, py - cy + 10, 16, 6);
     } });
     actors.sort((a, b) => a.y - b.y).forEach(a => a.draw());
+    /* 屋簷：建築往上超出 footprint 的那幾格（over）最後再畫一次，
+       人走到屋簷下會被擋住一點（站在房子後面），不會看起來像站在屋頂上（2026-10-05 回饋） */
+    for (const [kind, bx, by] of L.props || []) {
+      const C = GFX.CAMPUS && GFX.CAMPUS[kind]; if (!C || !C.over) continue;
+      const im = GFX.campus(kind), oh = C.over * 16;
+      g.drawImage(im, 0, 0, im.width, oh, bx * 16 - cx, (by - C.over) * 16 - cy, im.width, oh);
+    }
     // 任務提示：該對話的對象頭上閃爍
     const marks = questMarks();
     for (const n of this.npcs) { const m = marks[n.role === W.roles.questGiver ? 'questGiver' : n.key.split(':')[1]]; if (m) drawMark(g, n.x * 16 + n.ox - cx + 3, n.y * 16 + n.oy - cy - (n.look.sprite === 'boss' ? 28 : 15), m, now); }

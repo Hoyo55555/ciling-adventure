@@ -138,7 +138,8 @@ const TeacherTravel = {
       (L.cuts && L.cuts[x + ',' + y]) ||
       (L.npcs || []).some(e => e.x === x && e.y === y) ||
       (L.chests || []).some(e => e.x === x && e.y === y) ||
-      (L.devices && L.devices[x + ',' + y]);
+      (L.devices && L.devices[x + ',' + y]) ||
+      (L.eaves || []).includes(x + ',' + y);                 // 屋簷底下走不過去
     if (bus && !SOLID.has(L.rows[bus.y][bus.x]) && !taken(bus.x, bus.y)) return [bus.x, bus.y];
     const H = L.rows.length, W2 = L.rows[0].length;
     let best = null, bd = Infinity;

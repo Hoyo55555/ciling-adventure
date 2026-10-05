@@ -46,7 +46,7 @@ CAMPUS_MAPS.s1 = {
   ],
   /* 左邊兩棟公寓、右上公寓（都進不去，沒有門）；右下是自己家（透天厝，木門＋地墊）。
      巷子往南是死巷（圍牆），往北整條路寬都通到大馬路口。起點這裡不放商店。 */
-  props: [['flatx', 2, 2], ['flatx', 2, 9], ['flatx', 13, 2], ['house', 13, 9]],
+  props: [['flatx', 2, 2], ['shopx', 2, 9], ['flatx', 13, 2], ['house', 13, 9]],
   doorWarps: {
     '15,13': { to: 'house1f', tx: 4, ty: 6, dir: 'up', ret: { x: 15, y: 14 } },   // 自己家（一樓客廳，媽媽在這裡）
   },
@@ -82,7 +82,7 @@ CAMPUS_MAPS.s2 = {
     '##......,,,,......##',
     '##......,,,,......##',
   ],
-  props: [['cvs', 2, 3], ['flatx', 13, 2]],
+  props: [['cvs', 2, 3], ['shopx', 13, 2]],
   doorWarps: {
     '4,6':  { to: 'store_h', tx: 5, ty: 5, dir: 'up', ret: { x: 4,  y: 7 } },    // 便利商店
   },
@@ -463,8 +463,8 @@ CAMPUS_MAPS.house1f = {
    ============================================================ */
 const CAMPUS_NPCS = {
   s1: [
-    { role: 't_cd_a', x: 6,  y: 8,  dir: 'right' },
-    { role: 't_cd_b', x: 14, y: 8,  dir: 'down' },
+    { role: 't_cd_a', x: 7,  y: 7,  dir: 'right' },
+    { role: 't_cd_b', x: 12, y: 8,  dir: 'right' },
   ],
   s2: [
     { role: 'dictA',  x: 7,  y: 18, dir: 'right', sight: 3 },   // 草叢邊：第一個會攔人的同學
