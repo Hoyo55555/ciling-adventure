@@ -50,14 +50,50 @@ CAMPUS_MAPS.s1 = {
   doorWarps: {
     '15,13': { to: 'house1f', tx: 4, ty: 6, dir: 'up', ret: { x: 15, y: 14 } },   // 自己家（一樓客廳，媽媽在這裡）
   },
-  warps: [8, 9, 10, 11].map(x => ({ x, y: 0, to: 's2', tx: x, ty: 20, dir: 'up' })),
+  warps: [8, 9, 10, 11].map(x => ({ x, y: 0, to: 'path1', tx: x, ty: 20, dir: 'up' })),
 };
 
 /* ---- 2. 大馬路口 20×22：教商店、道具，以及第一場草叢遭遇 ---- */
+/* ---- 2. 通學路 20×22：河堤旁的步道，兩邊都是草叢——整段上學路收集碎片的主要地方 ----
+   試玩回饋（2026-10-05）：「大馬路口改成通學路，都是草叢跟 NPC」，第一場戰鬥也在這裡。 */
+CAMPUS_MAPS.path1 = {
+  music: 'route', theme: 't_campus', chapter: 0, tutorial: 1,
+  rows: [
+    'TTTTTTTT,,,,TTTTTTTT',
+    'TT....T.,,,,.T....TT',
+    'TTggggg.,,,,.gggggTT',
+    'TTggggg.,,,,.gggggTT',
+    'TTggggg.,,,,.gggggTT',
+    'TT..T...,,,,...T..TT',
+    'TT......,,,,......TT',
+    'TTggg..F,,,,F..gggTT',
+    'TTggg...,,,,...gggTT',
+    'TTggg...,,,,...gggTT',
+    'TT...T..,,,,..T...TT',
+    'TT~~~...,,,,......TT',
+    'TT~~~...,,,,.gggggTT',
+    'TT.....L,,,,.gggggTT',
+    'TTgggg..,,,,..ggggTT',
+    'TTgggg..,,,,..ggggTT',
+    'TTgggg.L,,,,L.ggggTT',
+    'TT......,,,,......TT',
+    'TT..T...,,,,...T..TT',
+    'TTggg...,,,,...gggTT',
+    'TTggg...,,,,...gggTT',
+    'TTTTTTTT,,,,TTTTTTTT',
+  ],
+  props: [],
+  /* 等級跟著碎片數慢慢長：一開始 Lv2–4，四片時 Lv10–12，回家路上還是有得練 */
+  foes: { lv: [2, 4], scale: 2, auto: 1, rate: .18, safe: 1 },
+  warps: [8, 9, 10, 11].flatMap(x => [
+    { x, y: 21, to: 's1', tx: x, ty: 1,  dir: 'down' },
+    { x, y: 0,  to: 's2', tx: x, ty: 20, dir: 'up' },
+  ]),
+};
+
 CAMPUS_MAPS.s2 = {
-  music: 'route', theme: 't_street', chapter: 0, tutorial: 1,   // tutorial：新手教學戰在這裡
-  /* 十字路口：巷子（直的、4 格寬）從南邊穿過大馬路，一路通到北邊的校門前。
-     大馬路兩頭有施工圍籬擋著（4），看得出路還在延伸、但不是要走的方向。 */
+  music: 'route', theme: 't_street', chapter: 0,
+  /* 十字路口：只有補給站（左下，回血）與便利商店（左上，買東西）。草叢搬到通學路了。 */
   rows: [
     '##......,,,,......##',
     '##......,,,,......##',
@@ -75,23 +111,38 @@ CAMPUS_MAPS.s2 = {
     ',4,,,,00,,,,00,,,,4,',
     ',4,,,,00,,,,00,,,,4,',
     '##......,,,,......##',
-    '##.L....,,,,....L.##',
-    '##ggggg.,,,,.ggggg##',
-    '##ggggg.,,,,.ggggg##',
-    '##ggggg.,,,,.ggggg##',
+    '##......,,,,......##',
+    '##......,,,,......##',
+    '##......,,,,......##',
+    '##......,,,,......##',
     '##......,,,,......##',
     '##......,,,,......##',
   ],
-  props: [['cvs', 2, 3], ['shopx', 13, 2]],
+  props: [['cvs', 2, 3], ['shopx', 13, 2], ['clinic', 2, 16], ['flatx', 13, 16]],
   doorWarps: {
-    '4,6':  { to: 'store_h', tx: 5, ty: 5, dir: 'up', ret: { x: 4,  y: 7 } },    // 便利商店
+    '4,6':  { to: 'store_h',  tx: 5, ty: 5, dir: 'up', ret: { x: 4, y: 7 } },    // 便利商店
+    '4,19': { to: 'pharmacy', tx: 4, ty: 5, dir: 'up', ret: { x: 4, y: 20 } },   // 補給站
   },
-  /* 路邊的草叢：整個遊戲的第一場戰鬥 */
-  foes: { lv: [2, 3], scale: 0, auto: 1, rate: .18, safe: 1 },
   warps: [8, 9, 10, 11].flatMap(x => [
-    { x, y: 21, to: 's1', tx: x,     ty: 1,  dir: 'down' },
-    { x, y: 0,  to: 's3', tx: x + 1, ty: 14, dir: 'up' },
+    { x, y: 21, to: 'path1', tx: x,     ty: 1,  dir: 'down' },
+    { x, y: 0,  to: 's3',    tx: x + 1, ty: 14, dir: 'up' },
   ]),
+};
+
+/* 補給站（大馬路口的小診所）：跟保健室同一個格局，阿姨換人 */
+CAMPUS_MAPS.pharmacy = {
+  music: 'town', theme: 't_dawn', chapter: 0, indoor: 1,
+  rows: [
+    'wwwwwwwwww',
+    'wb_kkk__bw',
+    'w________w',
+    'wtttt____w',
+    'w_p____p_w',
+    'w________w',
+    'wwww__wwww',
+  ],
+  warps: [{ x: 4, y: 6, to: '@ret' }, { x: 5, y: 6, to: '@ret' }],
+  npcs: [{ role: 'pharmacist', x: 2, y: 2, dir: 'down' }],
 };
 
 /* ---- 3. 校門前 22×16：教碎片、鍛造、錯題本。往上穿過圍牆就進校園 ---- */
@@ -109,15 +160,17 @@ CAMPUS_MAPS.s3 = {
     '##........,,........##',
     '##..ooo...,,....ooo.##',
     '##..ooo...,,....ooo.##',
-    '##........,,........##',
-    '##......O.,,.O......##',
-    '##........,,........##',
-    ',4,,,,,,,0000,,,,,,44,',
-    ';4;;;;;;;0000;;;;;;44;',
-    ',4,,,,,,,0000,,,,,,44,',
-    ',4,,,,,,,0000,,,,,,44,',
+    '##.ggggg..,,..ggggg.##',
+    '##.gggggO.,,.Oggggg.##',
+    '##.ggggg..,,..ggggg.##',
+    ',4,,,,,,,0000,,,,,,,4,',
+    ';4;;;;;;;0000;;;;;;;4;',
+    ',4,,,,,,,0000,,,,,,,4,',
+    ',4,,,,,,,0000,,,,,,,4,',
   ],
   props: [['gateopen', 8, 0]],
+  /* 斑馬線兩側的草叢（試玩回饋：校門前也補一些，收集碎片才不會太難） */
+  foes: { lv: [3, 5], scale: 3, auto: 1, rate: .16, safe: 2 },
   warps: [
     { x: 10, y: 0, to: 'front', tx: 12, ty: 16, dir: 'up' },
     { x: 11, y: 0, to: 'front', tx: 13, ty: 16, dir: 'up' },
@@ -413,13 +466,13 @@ CAMPUS_MAPS.room = {
     'wb____(__w',
     'w_______)w',
     'w__rr___)w',
-    'wp_rr__<<w',
-    'w______<<w',
+    'wp_rr____w',
+    'w_______<w',
     'wwwwwwwwww',
   ],
-  /* 房間在二樓：右下角的樓梯走下去就是一樓客廳（媽媽在那裡）。序幕做完之前樓梯被擋住 */
-  warps: [{ x: 7, y: 6, to: 'house1f', tx: 7, ty: 3, dir: 'down' }, { x: 8, y: 6, to: 'house1f', tx: 8, ty: 3, dir: 'down' }],
-  gates: { '7,5': 'prologue', '8,5': 'prologue', '7,6': 'prologue', '8,6': 'prologue' },
+  /* 房間在二樓：右下角那一格是往下的樓梯，走上去就到一樓客廳（媽媽在那裡）。序幕做完之前被擋住 */
+  warps: [{ x: 8, y: 6, to: 'house1f', tx: 8, ty: 2, dir: 'down' }],
+  gates: { '8,6': 'prologue' },
   acts: { '2,1': 'alarmClock', '6,2': 'schoolbag' },
   signs: { '3,0': 'rm_window', '8,0': 'rm_window', '7,1': 'rm_desk', '5,1': 'rm_shelf',
            '8,3': 'rm_closet', '8,4': 'rm_closet', '1,2': 'rm_bed' },
@@ -432,8 +485,8 @@ CAMPUS_MAPS.house1f = {
   music: 'town', theme: 't_home', chapter: 0, indoor: 1,
   rows: [
     'wwww/w/www',
-    'wttt___<<w',
-    'w______<<w',
+    'wttt____>w',
+    'w________w',
     'w__tt____w',
     'w__tt__V_w',
     'wp_______w',
@@ -441,7 +494,7 @@ CAMPUS_MAPS.house1f = {
     'wwww__wwww',
   ],
   warps: [
-    { x: 7, y: 1, to: 'room', tx: 7, ty: 4, dir: 'left' }, { x: 8, y: 1, to: 'room', tx: 7, ty: 4, dir: 'left' },
+    { x: 8, y: 1, to: 'room', tx: 7, ty: 6, dir: 'left' },          // 往上的樓梯（一格）
     { x: 4, y: 7, to: '@ret' }, { x: 5, y: 7, to: '@ret' },
   ],
   npcs: [{ role: 'homeNpc', x: 2, y: 2, dir: 'down' }],
@@ -466,13 +519,13 @@ const CAMPUS_NPCS = {
     { role: 't_cd_a', x: 7,  y: 7,  dir: 'right' },
     { role: 't_cd_b', x: 12, y: 8,  dir: 'right' },
   ],
-  s2: [
-    { role: 'dictA',  x: 7,  y: 18, dir: 'right', sight: 3 },   // 草叢邊：第一個會攔人的同學
+  path1: [
+    { role: 'dictA',  x: 7,  y: 9,  dir: 'right', sight: 3 },   // 草叢邊：第一個會攔人的同學
+    { role: 'dictB',  x: 12, y: 4,  dir: 'left',  sight: 3 },
+    { role: 't_zy_a', x: 6,  y: 17, dir: 'down' },
   ],
   s3: [
-    { role: 'dictB',     x: 7,  y: 6,  dir: 'right', sight: 3 },
-    { role: 'roamHint2', x: 16, y: 9,  dir: 'down' },
-    { role: 't_zy_a',    x: 4,  y: 11, dir: 'down' },
+    { role: 'roamHint2', x: 19, y: 5,  dir: 'down' },
   ],
   front: [
     { role: 'gymTip1',  x: 16, y: 8,  dir: 'down' },
@@ -567,7 +620,9 @@ function CAMPUS_PATCH(S) {
     g_ink:   { where: 'yard2', place: '中庭的水池',
       clue: '「去那個水面黑得像墨的地方——中庭的水池邊。」' },
   };
-  S.roamMaps = ['s1', 's2', 's3', 'front', 'yard2', 'field', 'audyard'];
+  S.roamMaps = ['s1', 'path1', 's2', 's3', 'front', 'yard2', 'field', 'audyard'];
+  R.pharmacist = { kind: 'healer', name: '補給站阿姨', look: { hair: '#3a2a20', cloth: '#f8f8f8', cloth2: '#5ab88a', gender: 'f' },
+    text: '補給站阿姨：「上學路上辛苦了，喝杯熱茶再走吧！」' };
   /* 起點：自己的房間（床邊，面向床頭鬧鐘）。出門落在巷口自己家門前 */
   S.start = { map: 'room', x: 2, y: 2, dir: 'up', ret: { map: 's1', x: 15, y: 14 } };
   /* 回城點：前庭的保健室門口（通學路是單向的，回不了家） */
@@ -604,7 +659,8 @@ function CAMPUS_PATCH(S) {
   ST.forEach(([name, text], i) => Object.assign(S.stages[i], { name, text, tiles: [] }));
   /* 選單「地圖」：校園版的清單（區域地圖重做〔待辦 5〕之前的過渡版） */
   S.mapChain = [
-    { id: 'house1f', kind: 'rest', tag: '媽媽可以幫你回復' }, { id: 's1', kind: 'path', tag: '家門口' }, { id: 's2', kind: 'path' }, { id: 's3', kind: 'path' },
+    { id: 'house1f', kind: 'rest', tag: '媽媽可以幫你回復' }, { id: 's1', kind: 'path', tag: '家門口' }, { id: 'path1', kind: 'path', tag: '草叢多・練功' },
+    { id: 's2', kind: 'rest', tag: '補給站・便利商店' }, { id: 's3', kind: 'path', tag: '草叢' },
     { id: 'front', kind: 'rest', tag: '保健室・練功草叢' }, { id: 'hall', kind: 'area' },
     { id: 'corridor1', kind: 'area', tag: '福利社・工藝教室・自己的教室' }, { id: 'c1a', kind: 'gym', gym: 1 },
     { id: 'stair1', kind: 'area' }, { id: 'corridor2', kind: 'area' }, { id: 'lib', kind: 'gym', gym: 2 },
@@ -615,13 +671,13 @@ function CAMPUS_PATCH(S) {
   S.mapLegend = '🟡 道館　🔵 保健室　🟢 通學路　🟠 校園';
   /* 教師版「直達」的分類 */
   S.travelGroups = [
-    ['家．通學路', ['room', 'house1f', 's1', 's2', 's3']],
+    ['家．通學路', ['room', 'house1f', 's1', 'path1', 's2', 'pharmacy', 's3']],
     ['校園', ['front', 'hall', 'corridor1', 'stair1', 'corridor2', 'yard2', 'field', 'audyard']],
     ['道館', ['c1a', 'lib', 'yard', 'hist', 'aud']],
     ['教室．其他', ['c8', 'clinic_h', 'store_c', 'forge', 'inkpool']],
   ];
   Object.assign(S.mapNames, {
-    s1: '巷口', s2: '大馬路口', s3: '校門前', front: '校門與前庭', hall: '穿堂',
+    s1: '巷口', path1: '通學路', s2: '大馬路口', s3: '校門前', pharmacy: '補給站', front: '校門與前庭', hall: '穿堂',
     corridor1: '走廊 1F', stair1: '樓梯間', corridor2: '走廊 2F', yard2: '中庭',
     field: '操場與跑道', audyard: '禮堂前廣場', room: '我的房間（2F）', house1f: '我家（1F）', c8: '自己的教室',
     c1a: '一年甲班', lib: '圖書館', yard: '文藝教室', hist: '校史室', aud: '大禮堂',

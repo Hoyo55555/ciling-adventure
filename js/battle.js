@@ -451,6 +451,10 @@ async function foeTurn(s, forceQ) {
 async function foeUseItem(s) {
   const f = s.foe;
   if (f.kind !== 'person' || !f.potions) return false;
+  /* 先決定這回合要不要用道具；要用的話，先清楚標出「換對手了」，訊息也要按 A 才繼續。
+     以前你一打完、牠就馬上補血，訊息不到一秒就自動跳過，看起來像在你的回合裡補的（2026-10-05 回饋） */
+  const turnMark = () => msg('── 對手的回合 ──', { auto: 650 });
+  const amsg = async (t) => { await turnMark(); await msg(t); };
   const low = f.hp / f.maxhp;
   const bad = Object.keys(s.st.foe).filter(k => s.st.foe[k] > 0);
   if (bad.length && Math.random() < 0.35) {
@@ -460,8 +464,9 @@ async function foeUseItem(s) {
   }
   if (low < 0.4 && Math.random() < 0.5) {
     f.potions--; const from = f.hp, amt = Math.round(f.maxhp * 0.22);
+    await turnMark(); await msg(`${f.name} 拿出了補給品……`, { auto: 500 });           // 先說、再補，血條才不會在你的回合就漲回去
     f.hp = Math.min(f.maxhp, f.hp + amt); Sound.sfx('heal'); await tweenHP(s, true, from, f.hp);
-    await amsg(`${f.name} 喝下了補給品，恢復了 ${f.hp - from} 點氣血！`, 900);
+    await msg(`${f.name} 喝下了補給品，恢復了 ${f.hp - from} 點氣血！`);
     return true;
   }
   if ((s.buff.atk || s.buff.def || s.buff.dodge) && Math.random() < 0.25) {
