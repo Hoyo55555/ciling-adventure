@@ -19,6 +19,8 @@ const GFX = (() => {
   const IND = n => sheet('indoor_sheet.png', n, 27, 17), RPG = n => sheet('rpg_sheet.png', n, 57, 17);
   /* 3×3 一組的邊界拼塊（左上、上、右上、左、中、右、左下、下、右下），用鄰格遮罩選 */
   const SET9 = arr => arr.map(RPG);
+  const CITY = n => sheet('city_sheet.png', n, 37, 16);
+  const HOME = ['t_home', 't_dawn'], SCHOOL_IN = ['t_campus', 't_oldwing'];
   const GREEN = ['t_campus', 't_dawn', 'school', 't_slope', 't_port', 't_rain', 't_flower', 't_stele', 't_spring', 't_tower', 't_oldwing'];
   const SKINS = [
     /* ---- 室外自然：Kenney Roguelike / RPG Pack（沒有黑外框、比較柔和）---- */
@@ -33,8 +35,22 @@ const GFX = (() => {
     /* 草叢：RPG Pack 的配色自己畫（這套沒有現成的高草） */
     { themes: '*', code: 'g', custom: 'kgrass', pick: [{ im: { complete: true, naturalWidth: 1 } }] },
     { themes: GREEN, code: 'F', under: '.', pick: [RPG(542), RPG(541), RPG(542), RPG(541)] },       // 花圃
-    /* ---- 街道：Kenney RPG Urban ---- */
-    { themes: ['t_street'], code: '.', pick: [one('urban_0013.png'), one('urban_0036.png'), one('urban_0013.png'), one('urban_0013.png')] },
+    /* ---- 街道：Kenney Roguelike Modern City（路面）＋ RPG Urban（街道擺設）---- */
+    { themes: ['t_street'], code: '.', pick: [CITY(703), CITY(704), CITY(705), CITY(703)] },      // 人行道石板
+    { themes: ['t_street'], code: ',', pick: [CITY(714)] },                                     // 柏油路
+    { themes: ['t_street'], code: ';', pick: [CITY(716)] },                                     // 雙黃線
+    { themes: ['t_street'], code: '0', pick: [CITY(826)] },                                     // 斑馬線
+    /* ---- 室內：Kenney Roguelike / RPG Pack（跟室外同一包，風格才一致）---- */
+    { themes: HOME, code: '_', indoor: 1, pick: [RPG(233), RPG(233), RPG(234), RPG(233)] },     // 家裡：木地板
+    { themes: SCHOOL_IN, code: '_', indoor: 1, pick: [RPG(121), RPG(121), RPG(178), RPG(121)] },// 學校：米色地磚
+    { themes: '*', code: 'w', indoor: 1, custom: 'wall', pick: [RPG(873), RPG(868)] },          // 室內牆：下面是地板的那排用有踢腳板的
+    { themes: SCHOOL_IN, code: 'W', indoor: 1, pick: [RPG(215)] },                              // 窗
+    { themes: '*', code: 'b', under: '_', pick: [RPG(129)] },                                   // 床
+    { themes: HOME, code: ')', under: '_', pick: [RPG(311)] },                                  // 衣櫃
+    { themes: HOME, code: 't', under: '_', pick: [RPG(28), RPG(29), RPG(28), RPG(29)] },        // 廚房流理臺／櫃子
+    { themes: '*', code: 'q', indoor: 1, custom: 'row', under: '_', pick: [IND(0), IND(1), IND(2), IND(5)] },   // 餐桌：左端、中段、右端、單張
+    { themes: '*', code: '$', indoor: 1, under: '_', pick: [IND(54)] },                                     // 椅子
+    { themes: '*', code: 'r', indoor: 1, custom: 'set9', shift: 0, under: '_', pick: SET9([922, 923, 924, 979, 980, 981, 1036, 1037, 1038]) },   // 地毯（3×3）
     { themes: ['t_street'], code: 'T', under: '.', pick: [one('urban_0286.png')] },             // 行道樹（花台）
     { themes: '*', code: 'L', under: 'base', pick: [one('urban_0168.png')] },                  // 路燈
     { themes: '*', code: ':', under: '.', pick: [one('urban_0167.png')] },                     // 站牌
@@ -43,11 +59,11 @@ const GFX = (() => {
     { themes: '*', code: '!', under: '.', pick: [one('urban_0216.png')], post: 'wires' },      // 電線桿
     /* ---- 室內：Kenney Roguelike Indoors ---- */
     { themes: '*', code: 'p', under: 'base', pick: [IND(16)] },                                // 盆栽
-    { themes: '*', code: 'k', under: '_', pick: [IND(478)] },                                  // 書櫃
+    { themes: '*', code: 'k', under: '_', pick: [RPG(88), RPG(87), RPG(88), RPG(87)] },          // 書櫃
   ];
   const SKIN_IDX = {};
   for (const s of SKINS) for (const t of (s.themes === '*' ? ['*'] : s.themes)) SKIN_IDX[t + s.code] = s;
-  const skinFor = (theme, code) => SKIN_IDX[theme + code] || SKIN_IDX['*' + code];
+  const skinFor = (theme, code) => { const s = SKIN_IDX[theme + code] || SKIN_IDX['*' + code]; return s && s.indoor && !INDOOR ? null : s; };
   const allImgs = () => Object.values(IMG);
   /* 全部載入完 → 清快取，畫面自動換成素材版 */
   const skinsReady = (typeof document === 'undefined') ? Promise.resolve() :
@@ -359,7 +375,15 @@ const GFX = (() => {
       for (const [cx, by] of LAY) clump(cx, by);
       cache.set(key, cv); return cv;
     }
-    if (sk && (sk.custom === 'trees' || sk.custom === 'set9')) {
+    if (sk && sk.custom === 'row') {                                 // 一排接起來的家具：fr 是鄰格遮罩（右2、左8＝那一邊不是同一種）
+      const p = sk.pick[(fr & 8) && (fr & 2) ? 3 : (fr & 8) ? 0 : (fr & 2) ? 2 : 1];
+      if (p.im.complete && p.im.naturalWidth) { g.drawImage(tile(theme, '_', 0), 0, 0); g.imageSmoothingEnabled = false; g.drawImage(p.im, p.sx, p.sy, 16, 16, 0, 0, 16, 16); cache.set(key, cv); return cv; }
+      var skinPending = true;
+    } else if (sk && sk.custom === 'wall') {                                // 室內牆：fr 第 0 位＝下面是房間 → 有踢腳板的那一塊
+      const p = sk.pick[(fr & 1) ? 1 : 0];
+      if (p.im.complete && p.im.naturalWidth) { g.imageSmoothingEnabled = false; g.drawImage(p.im, p.sx, p.sy, 16, 16, 0, 0, 16, 16); cache.set(key, cv); return cv; }
+      var skinPending = true;
+    } else if (sk && (sk.custom === 'trees' || sk.custom === 'set9')) {
       const ok = sk.pick.every(p => p.im.complete && p.im.naturalWidth);
       if (ok) {
         let p;

@@ -463,7 +463,7 @@ CAMPUS_MAPS.room = {
   rows: [
     'www/wwww/w',
     'wb]__k[[_w',
-    'wb____(__w',
+    'w_____(__w',
     'w_______)w',
     'w__rr___)w',
     'wp_rr____w',
@@ -475,7 +475,7 @@ CAMPUS_MAPS.room = {
   gates: { '8,6': 'prologue' },
   acts: { '2,1': 'alarmClock', '6,2': 'schoolbag' },
   signs: { '3,0': 'rm_window', '8,0': 'rm_window', '7,1': 'rm_desk', '5,1': 'rm_shelf',
-           '8,3': 'rm_closet', '8,4': 'rm_closet', '1,2': 'rm_bed' },
+           '8,3': 'rm_closet', '8,4': 'rm_closet', '1,1': 'rm_bed' },
   npcs: [],
 };
 
@@ -487,8 +487,8 @@ CAMPUS_MAPS.house1f = {
     'wwww/w/www',
     'wttt____>w',
     'w________w',
-    'w__tt____w',
-    'w__tt__V_w',
+    'w__qq____w',
+    'w__$$__V_w',
     'wp_______w',
     'w__rr___pw',
     'wwww__wwww',

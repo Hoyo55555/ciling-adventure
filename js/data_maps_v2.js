@@ -120,6 +120,8 @@ const TILES = {
   '/': { walk: 0, name: '室內的窗（夜裡）' },
   '<': { walk: 1, name: '往下的樓梯（一格，走上去就下樓）' },
   '>': { walk: 1, name: '往上的樓梯（一格，走上去就上樓）' },
+  'q': { walk: 0, name: '餐桌（兩格寬，左右自動接）' },
+  '$': { walk: 0, name: '椅子' },
 };
 for (const [ch, t] of Object.entries(TILES)) if (!t.walk) SOLID.add(ch);
 

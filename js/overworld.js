@@ -192,6 +192,8 @@ const OW = {
       /* 水面：低兩位是波浪動畫、高位是岸線；球場：整個 fr 就是邊線；其餘：由座標決定的四種變化 */
       const fr2 = c === '~' ? (wf | (this.edgeMask(tx, ty, '~') << 2) | (((tx * 5 + ty * 11) & 3) << 6))
                 : c === 'K' ? this.edgeMask(tx, ty, 'K')
+                : c === 'r' ? this.edgeMask(tx, ty, 'r')                  // 地毯：3×3 拼塊
+                : c === 'q' ? this.edgeMask(tx, ty, 'q')                  // 餐桌：左右接起來
                 /* 樹：鄰格遮罩＋「在這一串直的樹裡是上半還是下半」——素材的樹是兩格高（上半樹冠＋下半樹幹） */
                 : c === 'T' ? treeFr(this, tx, ty)
                 /* 跑道：低四位是白邊線、高位是雜訊變化 */
@@ -305,7 +307,7 @@ const wenqiDots = () => `<span class="wq">${Array.from({ length: ULT_COST }, (_,
 function treeFr(ow, x, y) {
   const L = ow.L, isT = (a, b) => b >= 0 && b < L.rows.length && a >= 0 && a < L.rows[0].length && ow.tile(a, b) === 'T';
   let k = 0; while (isT(x, y - k - 1)) k++;
-  return ow.edgeMask(x, y, 'T') | ((k & 1) << 4) | ((isT(x, y + 1) ? 1 : 0) << 5) | (((x * 7 + 3) % 5 === 0 ? 1 : 0) << 6);
+  return ow.edgeMask(x, y, 'T') | ((k & 1) << 4) | ((isT(x, y + 1) ? 1 : 0) << 5) | (0 << 6);   // 第 6 位（圓樹）不用了：圍起來的樹統一用松樹
 }
 /* 出口箭頭的方向：在地圖邊緣就朝外；不在邊緣的（開著的校門、樓梯）朝「擋住的那一邊」 */
 function exitDir(L, w) {
