@@ -106,7 +106,7 @@ const OW = {
   run(fn) { this.busy = true; Promise.resolve().then(fn).catch(e => console.error(e)).finally(() => { this.busy = false; Input.eat(); }); },
 
   update(dt) {
-    const p = this.p; this.bumpCd -= dt; this.updateHud();
+    const p = this.p; this.bumpCd -= dt; this.updateHud(); this.updateDoorTag();
     if (this.busy) return;
     this.idleT += dt;
     if (this.idleT > 1.6) { this.idleT = 0; for (const n of this.npcs) if (n.wander && Math.random() < 0.35) n.dir = pick(['up', 'down', 'left', 'right']); }
@@ -168,6 +168,24 @@ const OW = {
     const act = this.L.acts && this.L.acts[key]; if (act && ACTS[act]) { this.run(() => ACTS[act]()); return; }
     if (this.tile(tx, ty) === '~') this.run(() => say('水面波光粼粼，倒映著天空。'));
   },
+  /* 靠近門的時候，畫面上方顯示那間房間的名字（需要碎片、還不能進去的也會註明）。
+     以前走廊上一排門長得都一樣，玩家分不清哪間是哪間（2026-10-06 回饋） */
+  updateDoorTag() {
+    const drop = () => { if (this.doorTag) { this.doorTag.remove(); this.doorTag = null; this.doorTagText = ''; } };
+    if (!G || Game.scene !== 'overworld' || this.busy || UI.active || !this.L) return drop();
+    const p = this.p; let best = null, bd = 99;
+    for (const [k, d] of Object.entries(this.L.doorWarps || {})) {
+      if (d.hidden) continue; const [x, y] = k.split(',').map(Number), dist = Math.abs(x - p.x) + Math.abs(y - p.y);
+      if (dist <= 3 && dist < bd) { bd = dist; best = d; }
+    }
+    if (!best) return drop();
+    let text = best.label || W.mapNames[best.to] || '';
+    if (best.need != null && typeof best.need === 'number' && G.badges.length < best.need) text += `（需要 ${best.need} 片碎片）`;
+    else if (best.needFlag && !G.flags[best.needFlag]) text += '（還不能進去）';
+    if (!text) return drop();
+    if (!this.doorTag || !this.doorTag.isConnected) { this.doorTag = UI.el('box doortag'); this.doorTagText = ''; }
+    if (text !== this.doorTagText) { this.doorTagText = text; this.doorTag.textContent = text; }
+  },
   updateHud() {
     if (!Settings.hud || !G || Game.scene !== 'overworld' || !G.equip.length) { if (this.hud) { this.hud.remove(); this.hud = null; this.hudKey = ''; } return; }
     if (!this.hud || !this.hud.isConnected) { this.hud = UI.el('box mhud'); this.hudKey = ''; }
@@ -197,6 +215,8 @@ const OW = {
                 : c === 'r' ? this.edgeMask(tx, ty, 'r')                  // 地毯：3×3 拼塊
                 : c === 'q' ? this.edgeMask(tx, ty, 'q')                  // 餐桌：左右接起來
                 : c === '=' ? this.edgeMask(tx, ty, '=')                  // 柵欄：左右接起來
+                : c === '*' ? ((SOLID.has(this.tile(tx, ty + 1)) ? 0 : 1) | (SOLID.has(this.tile(tx + 1, ty)) ? 0 : 2) | (SOLID.has(this.tile(tx - 1, ty)) ? 0 : 4) | (((tx * 5 + ty * 11) & 3) << 3))   // 海報：牆的收邊＋圖案
+                : c === '$' ? (this.tile(tx, ty - 1) === '?' ? 1 : 0)                                                  // 椅子：課桌後面才畫背面（餐桌旁維持正面）
                 : c === '&' ? (this.edgeMask(tx, ty, '&') | (((tx * 5 + ty * 11) & 3) << 4))   // 墨塵：邊緣遮罩＋雜訊
                 : c === '#' && theme === 't_street' ? this.edgeMask(tx, ty, '#')   // 街邊大樓屋頂：3×3 拼塊
                 /* 樹：鄰格遮罩＋「在這一串直的樹裡是上半還是下半」——素材的樹是兩格高（上半樹冠＋下半樹幹） */
@@ -231,6 +251,8 @@ const OW = {
       if (d.hidden) continue;                                          // 秘密入口（硯海墨池）不提示
       const [x, y] = k.split(',').map(Number);
       if (!SOLID.has(this.tile(x, y + 1))) g.drawImage(GFX.doormat(), x * 16 - cx, (y + 1) * 16 - cy);
+      /* 門牌：室內的門上方那面牆掛一塊（室外的建築正面本來就有招牌） */
+      if (L.indoor && SOLID.has(this.tile(x, y - 1))) g.drawImage(GFX.plate(d.plate || 'class'), x * 16 - cx, (y - 1) * 16 + 2 - cy);
     }
     {
       const H2 = L.rows.length, W2 = L.rows[0].length, bob = Math.round(Math.sin(now / 260) * 1.5);

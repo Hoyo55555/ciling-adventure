@@ -71,6 +71,7 @@ button{ font-family:inherit; }
 .nametag{ left:calc(var(--u)*4); bottom:calc(var(--u)*47); padding:0 calc(var(--u)*6); font-size:calc(var(--u)*8); font-weight:700; }
 canvas.portrait{ position:absolute; left:calc(var(--u)*3); bottom:calc(var(--u)*46); width:calc(var(--u)*48); height:calc(var(--u)*45);
   image-rendering:pixelated; pointer-events:none; filter:drop-shadow(0 calc(var(--u)*1) 0 rgba(0,0,0,.25)); }
+.doortag{ left:50%; top:calc(var(--u)*3); transform:translateX(-50%); padding:calc(var(--u)*1.5) calc(var(--u)*8); font-size:calc(var(--u)*8.5); font-weight:700; white-space:nowrap; pointer-events:none; }
 .menu{ padding:calc(var(--u)*4) calc(var(--u)*7) calc(var(--u)*4) calc(var(--u)*4); font-size:calc(var(--u)*9); }
 .menu.grid{ display:grid; column-gap:calc(var(--u)*6); }
 .opt{ position:relative; padding:calc(var(--u)*.6) 0 calc(var(--u)*.6) calc(var(--u)*10); white-space:nowrap; cursor:pointer; }

@@ -51,13 +51,28 @@ const GFX = (() => {
     /* ---- 室內：Kenney Roguelike / RPG Pack（跟室外同一包，風格才一致）---- */
     { themes: HOME, code: '_', indoor: 1, pick: [RPG(233), RPG(233), RPG(234), RPG(233)] },     // 家裡：木地板
     { themes: SCHOOL_IN, code: '_', indoor: 1, pick: [RPG(121), RPG(121), RPG(178), RPG(121)] },// 學校：米色地磚
+    /* 主題教室各自的地板（RPG Pack 第 25 列起的大塊地板：木、灰、米、綠、橘、藍綠） */
+    { themes: ['t_forge'], code: '_', indoor: 1, pick: [RPG(1486)] },     // 工藝教室：灰石板
+    { themes: ['t_shop'], code: '_', indoor: 1, pick: [RPG(1498)] },      // 福利社／商店：藍綠磁磚
+    { themes: ['t_library'], code: '_', indoor: 1, pick: [RPG(1483)] },   // 圖書館：棕木地板
+    { themes: ['t_museum'], code: '_', indoor: 1, pick: [RPG(1495)] },    // 校史室：橘褐石磚
+    { themes: ['t_stage'], code: '_', indoor: 1, pick: [RPG(1495)] },     // 禮堂：橘褐木地板
+    { themes: ['t_art'], code: '_', indoor: 1, pick: [RPG(1492)] },       // 文藝教室（花室）：綠色地磚
     { themes: '*', code: 'w', indoor: 1, custom: 'wall', pick: [RPG(873), RPG(868)] },          // 室內牆：下面是地板的那排用有踢腳板的
     { themes: SCHOOL_IN, code: 'W', indoor: 1, pick: [RPG(215)] },                              // 窗
     { themes: '*', code: 'b', under: '_', pick: [RPG(129)] },                                   // 床
     { themes: HOME, code: ')', under: '_', pick: [RPG(311)] },                                  // 衣櫃
     { themes: HOME, code: 't', under: '_', pick: [RPG(28), RPG(29), RPG(28), RPG(29)] },        // 廚房流理臺／櫃子
     { themes: '*', code: 'q', indoor: 1, custom: 'row', under: '_', pick: [IND(0), IND(1), IND(2), IND(5)] },   // 餐桌：左端、中段、右端、單張
-    { themes: '*', code: '$', indoor: 1, under: '_', pick: [IND(54)] },                                     // 椅子
+    { themes: '*', code: '$', indoor: 1, under: '_', pick: [IND(54), IND(55)] },   // fr 第 0 位＝上面是課桌 → 用背面
+    /* 教室：課桌（桌面朝上的方桌）、課椅（從背面看，放在桌子後面）、牆上的海報 */
+    { themes: '*', code: '?', indoor: 1, under: '_', pick: [IND(85), IND(86), IND(85), IND(86)] },
+    { themes: '*', code: '@', indoor: 1, under: '_', pick: [IND(55)] },
+    { themes: '*', code: '}', indoor: 1, under: '_', pick: [RPG(14)] },       // 熔爐（壁爐）
+    { themes: '*', code: '|', indoor: 1, under: '_', pick: [RPG(15)] },       // 鐵砧
+    /* 福利社的貨架：Kenney 室內包的櫃子，擺著盒子、瓶子（每格隨位置換一種） */
+    { themes: ['t_shop'], code: 'k', indoor: 1, under: '_', pick: [IND(328), IND(329), IND(330), IND(331)] },
+    { themes: '*', code: '*', indoor: 1, custom: 'poster', pick: [IND(343), IND(18), IND(370), IND(340)] },                                     // 椅子
     /* 室外的紅地毯（禮堂前的星光大道）：RPG Pack 的橘紅色 3×3 */
     { themes: GREEN, code: 'r', outdoor: 1, custom: 'set9', shift: 0, under: ',', pick: SET9([1093, 1094, 1095, 1150, 1151, 1152, 1207, 1208, 1209]) },
     { themes: '*', code: 'r', indoor: 1, custom: 'set9', shift: 0, under: '_', pick: SET9([922, 923, 924, 979, 980, 981, 1036, 1037, 1038]) },   // 地毯（3×3）
@@ -315,6 +330,8 @@ const GFX = (() => {
                 wall: '#eeeae2', fence: '#d8b040', fence2: '#a07f20', door: '#c83838', door2: '#7a1c1c' },
   };
   for (const [k, v] of Object.entries(TOWN_THEMES)) THEMES[k] = Object.assign({}, THEMES.school, v);
+  /* 主題教室（2026-10-06）：配色沿用校園，各自有自己的地板（見 SKINS）和家具 */
+  for (const k of ['t_forge', 't_shop', 't_library', 't_museum', 't_stage', 't_art']) THEMES[k] = Object.assign({}, THEMES.t_campus);
   /* 我的房間：暖色木地板、米色壁紙（序幕的房間不是教室，不能是磨石子） */
   THEMES.t_home = Object.assign({}, THEMES.t_dawn, { floorStyle: 'wood', floor: '#c49a66', floor2: '#a07a4a',
     iwall: '#efe4cc', iwall2: '#b89a72', blanket: '#5a7ac8' });
@@ -392,6 +409,10 @@ const GFX = (() => {
     if (sk && sk.custom === 'row') {                                 // 一排接起來的家具：fr 是鄰格遮罩（右2、左8＝那一邊不是同一種）
       const p = sk.pick[(fr & 8) && (fr & 2) ? 3 : (fr & 8) ? 0 : (fr & 2) ? 2 : 1];
       if (p.im.complete && p.im.naturalWidth) { if (sk.under === 'base') base(); else g.drawImage(tile(theme, sk.under || '_', 0), 0, 0); g.imageSmoothingEnabled = false; g.drawImage(p.im, p.sx, p.sy, 16, 16, 0, 0, 16, 16); cache.set(key, cv); return cv; }
+      var skinPending = true;
+    } else if (sk && sk.custom === 'poster') {                              // 海報：底下是牆（fr 低三位＝牆的收邊旗標），高位＝第幾種圖案
+      const p = sk.pick[(fr >> 3) & 3];
+      if (p.im.complete && p.im.naturalWidth) { g.drawImage(tile(theme, 'w', fr & 7), 0, 0); g.imageSmoothingEnabled = false; g.drawImage(p.im, p.sx, p.sy, 16, 16, 0, 0, 16, 16); cache.set(key, cv); return cv; }
       var skinPending = true;
     } else if (sk && sk.custom === 'wall') {                                // 室內牆：fr 第 0 位＝下面是房間 → 有踢腳板的那一塊
       const p = sk.pick[(fr & 1) ? 1 : 0];
@@ -2017,6 +2038,28 @@ const GFX = (() => {
     g.fillStyle = '#d8a050'; for (let x = 4; x < 12; x += 2) g.fillRect(x, 2, 1, 3);
     cache.set(key, cv); return cv;
   }
+  /* 門牌：掛在門上方的牆上，一塊有顏色和小圖案的木牌（房間名稱在靠近時顯示在畫面上方，字太小畫在牌子上看不清楚）。
+     kind：class 教室、shop 店、craft 工藝、lib 圖書、hist 校史、art 文藝、hall 禮堂、cross 保健 */
+  const PLATES = {
+    class: ['#3a6aa8', '#7aa8e0', ['#####', '#...#', '#.#.#', '#...#', '#####']],
+    shop:  ['#2f8a58', '#6ac890', ['.#.#.', '#####', '#...#', '#...#', '.###.']],
+    craft: ['#b8602a', '#e8a060', ['#####', '.###.', '..#..', '.###.', '#####']],
+    lib:   ['#7a4a2a', '#c89060', ['#####', '#.#.#', '#.#.#', '#.#.#', '#####']],
+    hist:  ['#6a6a78', '#b0b0c0', ['#####', '.#.#.', '.#.#.', '.#.#.', '#####']],
+    art:   ['#b84a80', '#e890b8', ['.###.', '#.#.#', '##.##', '#.#.#', '.###.']],
+    hall:  ['#6a3a98', '#a878d8', ['..#..', '.###.', '#####', '.###.', '..#..']],
+    cross: ['#c83a34', '#f08a80', ['..#..', '..#..', '#####', '..#..', '..#..']],
+  };
+  function plate(kind) {
+    const key = 'plate:' + kind; if (cache.has(key)) return cache.get(key);
+    const [col, hi, glyph] = PLATES[kind] || PLATES.class;
+    const cv = document.createElement('canvas'); cv.width = 16; cv.height = 12; const g = cv.getContext('2d');
+    const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+    R(1, 0, 14, 11, '#2a2018'); R(2, 1, 12, 9, col); R(2, 1, 12, 1, hi); R(2, 1, 1, 9, hi);     // 外框、牌面、左上受光
+    R(7, 10, 2, 1, '#2a2018');                                                                  // 掛鉤
+    glyph.forEach((row, y) => [...row].forEach((c, x) => { if (c === '#') R(5 + x, 3 + y, 1, 1, '#fffbe8'); }));
+    cache.set(key, cv); return cv;
+  }
   /* 地圖出口的箭頭：指向要走出去的方向 */
   function exitArrow(dir) {
     const key = 'arrow:' + dir; if (cache.has(key)) return cache.get(key);
@@ -2028,5 +2071,5 @@ const GFX = (() => {
     g.fillStyle = 'rgba(255,248,220,.9)'; g.fill(); g.lineWidth = 1.2; g.strokeStyle = 'rgba(60,40,20,.75)'; g.stroke();
     cache.set(key, cv); return cv;
   }
-  return { anim, monBig, person, tile, setIndoor, clockHands, doormat, exitArrow, skinsReady, SKINS, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
+  return { anim, monBig, plate, person, tile, setIndoor, clockHands, doormat, exitArrow, skinsReady, SKINS, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
 })();

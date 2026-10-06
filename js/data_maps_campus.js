@@ -54,7 +54,7 @@ CAMPUS_MAPS.s1 = {
      巷子往南是死巷（圍牆），往北整條路寬都通到大馬路口。起點這裡不放商店。 */
   props: [['flatx', 2, 2], ['shopx', 2, 9], ['flaty', 13, 2], ['house', 13, 9]],
   doorWarps: {
-    '15,13': { to: 'house1f', tx: 4, ty: 6, dir: 'up', ret: { x: 15, y: 14 } },   // 自己家（一樓客廳，媽媽在這裡）
+    '15,13': { label: '我家', to: 'house1f', tx: 4, ty: 6, dir: 'up', ret: { x: 15, y: 14 } },   // 自己家（一樓客廳，媽媽在這裡）
   },
   warps: [8, 9, 10, 11].map(x => ({ x, y: 0, to: 'path1', tx: x, ty: 20, dir: 'up' })),
 };
@@ -126,8 +126,8 @@ CAMPUS_MAPS.s2 = {
   ],
   props: [['cvs', 2, 3], ['shopx', 13, 2], ['clinic', 2, 16], ['flatx', 13, 16]],
   doorWarps: {
-    '4,6':  { to: 'store_h',  tx: 5, ty: 5, dir: 'up', ret: { x: 4, y: 7 } },    // 便利商店
-    '4,19': { to: 'pharmacy', tx: 4, ty: 5, dir: 'up', ret: { x: 4, y: 20 } },   // 補給站
+    '4,6':  { plate: 'shop', label: '便利商店', to: 'store_h',  tx: 5, ty: 5, dir: 'up', ret: { x: 4, y: 7 } },    // 便利商店
+    '4,19': { plate: 'cross', label: '補給站', to: 'pharmacy', tx: 4, ty: 5, dir: 'up', ret: { x: 4, y: 20 } },   // 補給站
   },
   warps: [8, 9, 10, 11].flatMap(x => [
     { x, y: 21, to: 'path1', tx: x,     ty: 1,  dir: 'down' },
@@ -139,7 +139,7 @@ CAMPUS_MAPS.s2 = {
 CAMPUS_MAPS.pharmacy = {
   music: 'town', theme: 't_dawn', chapter: 0, indoor: 1,
   rows: [
-    'wwwwwwwwww',
+    'ww*wwww*ww',
     'wb_kkk__bw',
     'w________w',
     'wtttt____w',
@@ -219,8 +219,8 @@ CAMPUS_MAPS.front = {
      對齊舊版六條步道的曲線 —— 校園一開學就全部走得到，不能用「哪張地圖」決定強弱。 */
   foes: { lv: [2, 5], scale: 4, pool: 'A', rate: .16, safe: 2 },
   doorWarps: {
-    '4,7':  { to: 'clinic_h', tx: 5, ty: 5, dir: 'up', ret: { x: 4,  y: 8 } },
-    '14,7': { to: 'hall',     tx: 11, ty: 10, dir: 'up', ret: { x: 14, y: 8 } },   // 教學樓大門→穿堂
+    '4,7':  { plate: 'cross', label: '保健室', to: 'clinic_h', tx: 5, ty: 5, dir: 'up', ret: { x: 4,  y: 8 } },
+    '14,7': { plate: 'class', label: '教學樓', to: 'hall',     tx: 11, ty: 10, dir: 'up', ret: { x: 14, y: 8 } },   // 教學樓大門→穿堂
   },
   /* 校門開著：從中間走出去就回到校門前（通學路改成雙向，2026-10-05） */
   warps: [
@@ -234,7 +234,7 @@ CAMPUS_MAPS.front = {
 CAMPUS_MAPS.hall = {
   music: 'town', theme: 't_campus', chapter: 1, indoor: 1,
   rows: [
-    'wwwwwwwwwww__wwwwwwwwwww',
+    'wwwwwwww*ww__ww*wwwwwwww',
     'w__222_f__w__w__f_222__w',
     'w______________________w',
     'w_p__________________p_w',
@@ -270,7 +270,7 @@ CAMPUS_MAPS.corridor1 = {
   music: 'town', theme: 't_campus', chapter: 1, indoor: 1,
   rows: [
     'wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww',
-    'w7wWDWwzzwWDWwzzwWDWwzzwWDWwzzww',
+    'w7wWDWwzz*WDWwzzwWDWwzz*WDWwzzww',
     '________________________________',
     '_______&&_______&&____&&________',
     '_______&&_______&&____&&________',
@@ -278,10 +278,10 @@ CAMPUS_MAPS.corridor1 = {
   ],
   foes: INK_B,
   doorWarps: {
-    '4,1':  { to: 'store_c', tx: 5, ty: 5, dir: 'up', ret: { x: 4,  y: 2 } },   // 福利社（通學路是單向的，校內要能補貨）
-    '11,1': { to: 'c8',      tx: 6, ty: 7, dir: 'up', ret: { x: 11, y: 2 } },   // 自己的教室（王老師、筆靈）
-    '18,1': { to: 'c1a',     tx: 6, ty: 7, dir: 'up', ret: { x: 18, y: 2 } },   // 一年甲班＝道館①
-    '25,1': { to: 'forge',   tx: 5, ty: 5, dir: 'up', ret: { x: 25, y: 2 } },   // 工藝教室（碎片合成、武器升階）
+    '4,1':  { plate: 'shop', label: '福利社', to: 'store_c', tx: 5, ty: 5, dir: 'up', ret: { x: 4,  y: 2 } },   // 福利社（通學路是單向的，校內要能補貨）
+    '11,1': { plate: 'class', label: '自己的教室', to: 'c8',      tx: 6, ty: 7, dir: 'up', ret: { x: 11, y: 2 } },   // 自己的教室（王老師、筆靈）
+    '18,1': { plate: 'class', label: '一年甲班', to: 'c1a',     tx: 6, ty: 7, dir: 'up', ret: { x: 18, y: 2 } },   // 一年甲班＝道館①
+    '25,1': { plate: 'craft', label: '工藝教室', to: 'forge',   tx: 5, ty: 5, dir: 'up', ret: { x: 25, y: 2 } },   // 工藝教室（碎片合成、武器升階）
   },
   warps: [
     { x: 31, y: 2, to: 'hall', tx: 1, ty: 5, dir: 'right' },
@@ -320,7 +320,7 @@ CAMPUS_MAPS.yard2 = {
   foes: { lv: [4, 7], scale: 4, pool: 'D', rate: .16, safe: 2 },
   props: [['artroom', 8, 1]],
   doorWarps: {
-    '11,6': { to: 'yard', tx: 7, ty: 10, dir: 'up', ret: { x: 11, y: 7 },
+    '11,6': { plate: 'art', label: '文藝教室', to: 'yard', tx: 7, ty: 10, dir: 'up', ret: { x: 11, y: 7 },
               need: 2, gate: 'need2' },                       // 文藝教室＝道館③（要兩片碎片）
     /* 舊牆角的墨漬：二週目、三隻器靈都帶在身上才打得開（跟舊版墨泉鄉的泉眼同一套） */
     '19,0': { to: 'inkpool', tx: 7, ty: 10, dir: 'up', ret: { x: 19, y: 1 }, need: 'stone', hidden: 1 },   // hidden：秘密入口，不鋪地墊
@@ -360,7 +360,7 @@ CAMPUS_MAPS.audyard = {
   foes: { lv: [5, 8], scale: 4, pool: 'F', rate: .16, safe: 2 },
   props: [['audi', 6, 1]],
   doorWarps: {
-    '11,8': { to: 'aud', tx: 7, ty: 12, dir: 'up', ret: { x: 11, y: 9 },
+    '11,8': { plate: 'hall', label: '大禮堂', to: 'aud', tx: 7, ty: 12, dir: 'up', ret: { x: 11, y: 9 },
               need: 4, gate: 'need4',
               needFlag: 'guardianDone',
               flagText: '（小墨擋在台階前：「先照我說的去一趟，回來我就讓開。」）' },
@@ -377,7 +377,7 @@ CAMPUS_MAPS.audyard = {
 CAMPUS_MAPS.stair1 = {
   music: 'town', theme: 't_campus', chapter: 1, indoor: 1,
   rows: [
-    'wwwwwwwwww',
+    'ww*wwww*ww',
     'w__iiii__w',
     'w__iiii__w',
     'w________w',
@@ -405,7 +405,7 @@ CAMPUS_MAPS.corridor2 = {
   music: 'town', theme: 't_campus', chapter: 2, indoor: 1,
   rows: [
     'wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww',
-    'wzzwWDWwWWWwzzw22wWDWwWWWwzzwwww',
+    'wzz*WDWwWWW*zzw22wWDWwWWW*zzw*ww',
     '________________________________',
     '_________&&_____&&_____&&_______',
     '_________&&_____&&_____&&_______',
@@ -413,9 +413,9 @@ CAMPUS_MAPS.corridor2 = {
   ],
   foes: INK_C,
   doorWarps: {
-    '5,1':  { to: 'lib',  tx: 7, ty: 10, dir: 'up', ret: { x: 5,  y: 2 },
+    '5,1':  { plate: 'lib', label: '圖書館', to: 'lib',  tx: 7, ty: 10, dir: 'up', ret: { x: 5,  y: 2 },
               need: 1, gate: 'need1' },                       // 圖書館＝道館②
-    '20,1': { to: 'hist', tx: 6, ty: 10, dir: 'up', ret: { x: 20, y: 2 },
+    '20,1': { plate: 'hist', label: '校史室', to: 'hist', tx: 6, ty: 10, dir: 'up', ret: { x: 20, y: 2 },
               need: 3, gate: 'need3' },                       // 校史室＝道館④
   },
   warps: [
@@ -741,6 +741,130 @@ function migrateToCampus(G) {
   if (G.roamAt && !(W.roamMaps || []).includes(G.roamAt)) G.roamAt = null;
   return moved;
 }
+
+/* ============================================================
+   主題教室（2026-10-06）
+   ------------------------------------------------------------
+   以前每間教室都是同一種配置（桌子其實是櫃檯），走進去分不出是哪間。
+   現在每間有自己的地板、家具、海報，一進門就知道自己在哪：
+     自己的教室／一年甲班：課桌椅排整齊、側牆海報（甲班有三塊黑板）
+     工藝教室：灰石板地、熔爐與鐵砧　福利社／便利商店：藍綠磁磚、貨架擺滿盒子瓶子
+     圖書館：棕木地板　校史室：橘褐石磚、牆上掛史料　文藝教室（花室）：綠地磚　禮堂：橘褐木地板、觀眾席
+   只換磚、不動 NPC／機關／寶箱／出入口的位置（座標不變，測試照舊）。
+   ============================================================ */
+const ROOM_REDO = {
+  c8: { theme: 't_campus', rows: [
+    'w**wBBBBw**w',
+    'w____e_____w',
+    'w_??____??_w',
+    'w_$$____$$_w',
+    'w_??____??_w',
+    'w_$$____$$_w',
+    'w_??____??_w',
+    'wp$$____$$pw',
+    'wwwww__wwwww' ] },
+  c1a: { theme: 't_campus', rows: [
+    'w**wBBBBBB*w',
+    'w____e_____w',
+    'w__________w',
+    'w_??_rr_??_w',
+    'w_$______$_w',
+    'w_??_rr_??_w',
+    'wp$$____$_pw',
+    'w__________w',
+    'wwwww__wwwww' ] },
+  forge: { theme: 't_forge', rows: [
+    'wwwwwwwwwwww',
+    'w}|_ttt__|}w',
+    'w__________w',
+    'w_t_____t__w',
+    'w__r____r__w',
+    'wp________pw',
+    'wwwww__wwwww' ] },
+  store_c: { theme: 't_shop', rows: [
+    'wwwwwwwwwwww',
+    'wkkkkk_kkkkw',
+    'w__________w',
+    'w__tttt____w',
+    'w____rr____w',
+    'wp________pw',
+    'wwwww__wwwww' ] },
+  store_h: { theme: 't_shop', rows: [
+    'ww*wwww*ww',
+    'wkkkk_kkkw',
+    'w________w',
+    'w__ttt___w',
+    'w________w',
+    'wp__rr__pw',
+    'wwww__wwww' ] },
+  clinic_h: { theme: 't_campus', rows: [
+    'ww*wwww*ww',
+    'wb_kkk__bw',
+    'w________w',
+    'wtttt____w',
+    'w_p____p_w',
+    'w________w',
+    'wwww__wwww' ] },
+  lib: { theme: 't_library', rows: [
+    'wwww**wwwwww**ww',
+    'wkk__________kkw',
+    'wkkkkkkkkkkkkkkw',
+    'w_QQ__k__kk_QQ_w',
+    'w____k______k__w',
+    'wQQ__k_kkkk_k_Qw',
+    'w____k____k____w',
+    'w_kkkk_kk_kkkk_w',
+    'w__QQ______QQ__w',
+    'wp____kkkk____pw',
+    'w______________w',
+    'wwwwwww__wwwwwww' ] },
+  hist: { theme: 't_museum', rows: [
+    'www*wwwwwww*ww',
+    'wkk___t____kkw',
+    'w____________w',
+    'wkkk_kkkk_kkkw',
+    'w____________w',
+    'w_p________p_w',
+    'w**wwMMMMww**w',
+    'w____________w',
+    'wk__OO__OO__kw',
+    'w____________w',
+    'w____________w',
+    'wwwwww__wwwwww' ] },
+  yard: { theme: 't_art', rows: [
+    'www**wwwwww**www',
+    'w____t____t____w',
+    'w_FF________FF_w',
+    'w______rr______w',
+    'w_~~~__rr__~~~_w',
+    'w_~~~__rr__~~~_w',
+    'w______rr______w',
+    'w_FF___rr___FF_w',
+    'w______________w',
+    'wp____A__A____pw',
+    'w______________w',
+    'wwwwwww__wwwwwww' ] },
+  aud: { theme: 't_stage', rows: [
+    'wwwwwwwwwwwwwwww',
+    'ww**wBBBBBBw**ww',
+    'w______________w',
+    'w@@@@@@__@@@@@@w',
+    'w______rr______w',
+    'w_@@_V_rr_@_@@_w',
+    'w______rr______w',
+    'w_@@_@_rr_@_@@_w',
+    'w______rr______w',
+    'w_@@_@_rr_V_@@_w',
+    'w______rr______w',
+    'wV_@_@_rr_@_@@_w',
+    'w______rr______w',
+    'wwwwwww__wwwwwww' ] },
+};
+for (const [id, patch] of Object.entries(ROOM_REDO)) {
+  const base = LAYOUTS[id]; if (!base) continue;
+  CAMPUS_MAPS[id] = Object.assign({}, base, patch);
+}
+CAMPUS_MAPS.pharmacy.theme = 't_shop';
 
 if (typeof LAYOUTS !== 'undefined') {
   for (const L of Object.values(CAMPUS_MAPS)) if (typeof stampProps === 'function') stampProps(L);
