@@ -58,7 +58,7 @@ const Battle = {
       g.globalAlpha = s.fo.a; const f = s.foe;
       if (f.kind === 'mon') {
         const big = GFX.monBig(f.sp);                                                  // 新畫風：64×64 原尺寸（1 倍，不放大）
-        if (big) g.drawImage(big, 146 + s.fo.x, 40 + s.fo.dy);
+        if (big) g.drawImage(big, 146 + s.fo.x, 40 + s.fo.dy + (64 - big.naturalHeight));   // 腳底對齊；畫布比 64 高的（較高的妖怪）往上長
         else g.drawImage(GFX.weaponMon(f.sp, W.theme), 146 + s.fo.x, 40 + s.fo.dy, 64, 64);
       }
       else if (f.look.sprite) {
