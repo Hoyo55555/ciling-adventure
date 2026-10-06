@@ -29,6 +29,22 @@ function paginate(text, max = 46) {
   return out.length ? out : [''];
 }
 
+/* 說話者頭像：名字對得上就在對話框左上方多放一個會動的小圖（GFX.anim 的 'big' 四格動畫） */
+const PORTRAITS = { '小墨': 'xiaomo' };
+function portraitFor(name) {
+  const kind = PORTRAITS[name]; if (!kind) return null;
+  const c = document.createElement('canvas'); c.width = 64; c.height = 60; c.className = 'portrait';
+  UI.root.appendChild(c);
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  (function loop() {                                               // 元件被移除就停，不用另外清
+    if (!c.isConnected) return;
+    const im = GFX.anim(kind, 'big', performance.now());
+    if (im) { g.clearRect(0, 0, 64, 60); g.drawImage(im, 0, 0); }
+    requestAnimationFrame(loop);
+  })();
+  return c;
+}
+
 /* 對話：opt.name 說話者；opt.dark 戰鬥框；opt.auto 毫秒後自動關閉；opt.hold 打完字就返回並保留對話框 */
 UI.say = function (text, opt = {}) {
   return new Promise(res => {
@@ -37,12 +53,14 @@ UI.say = function (text, opt = {}) {
     if (opt.right) box.style.right = U(opt.right);
     if (opt.left) box.style.left = U(opt.left);
     const tx = h('div', 'tbtext'), ar = h('div', 'tbarrow', '▼'); box.append(tx, ar); ar.style.visibility = 'hidden';
+    const pic = !opt.dark && opt.name ? portraitFor(fmt(opt.name)) : null;
     const tag = opt.name ? UI.el('box nametag', esc(fmt(opt.name))) : null;
+    if (pic && tag) tag.style.left = U(52);                       // 名牌讓出頭像的位置
     let pi = 0, n = 0, acc = 0, full = pages[0], done = false, timer = 0, closed = false;
     const last = () => pi >= pages.length - 1;
-    const close = () => { if (closed) return; closed = true; UI.pop(m); if (tag) tag.remove(); res(); };
+    const close = () => { if (closed) return; closed = true; UI.pop(m); if (tag) tag.remove(); if (pic) pic.remove(); res(); };
     const finishTyping = () => { n = full.length; tx.textContent = full; done = true;
-      if (last() && opt.hold) { UI.pop(m, true); closed = true; res(() => { box.remove(); if (tag) tag.remove(); }); return; }
+      if (last() && opt.hold) { UI.pop(m, true); closed = true; res(() => { box.remove(); if (tag) tag.remove(); if (pic) pic.remove(); }); return; }
       ar.style.visibility = (last() && opt.auto) ? 'hidden' : 'visible'; timer = 0; };
     const next = () => {
       if (closed) return;

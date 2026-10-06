@@ -69,6 +69,8 @@ button{ font-family:inherit; }
 @keyframes bob{ 50%{ transform:translateY(calc(var(--u)*1.5)); } }
 .tb.dark{ background:#283850; color:#f8f8f8; border-color:#c8a848; box-shadow:inset 0 0 0 calc(var(--u)*1) #685830; text-shadow:calc(var(--u)*.6) calc(var(--u)*.6) 0 #101828; }
 .nametag{ left:calc(var(--u)*4); bottom:calc(var(--u)*47); padding:0 calc(var(--u)*6); font-size:calc(var(--u)*8); font-weight:700; }
+canvas.portrait{ position:absolute; left:calc(var(--u)*3); bottom:calc(var(--u)*46); width:calc(var(--u)*48); height:calc(var(--u)*45);
+  image-rendering:pixelated; pointer-events:none; filter:drop-shadow(0 calc(var(--u)*1) 0 rgba(0,0,0,.25)); }
 .menu{ padding:calc(var(--u)*4) calc(var(--u)*7) calc(var(--u)*4) calc(var(--u)*4); font-size:calc(var(--u)*9); }
 .menu.grid{ display:grid; column-gap:calc(var(--u)*6); }
 .opt{ position:relative; padding:calc(var(--u)*.6) 0 calc(var(--u)*.6) calc(var(--u)*10); white-space:nowrap; cursor:pointer; }
