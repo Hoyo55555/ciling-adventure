@@ -44,6 +44,7 @@ const OW = {
        on    踩在哪一種磚上才會遇敵（預設 'g' 草叢）
        safe  剛踩進草叢的前幾步一定不會遇到
        rate  之後每走一步的遇敵機率
+       pool  這一區的名單代號（AREA_POOLS 的 A～F），有寫就不用 auto／list
        lv / scale / auto / list 與原本相同 */
   resetEncounter() { this.grassSteps = 0; },
   /* 回傳 true 代表這一步觸發了戰鬥，onStep 就不要再做別的事 */
@@ -58,7 +59,8 @@ const OW = {
     if (Math.random() >= (F.rate == null ? 0.16 : F.rate)) return false;
     this.grassSteps = 0;
     const st = G.badges.length;
-    const sp = F.auto ? pick(monsAtStage(st)) : weighted(F.list.filter(x => (x.stage || 0) <= st)).sp;
+    const sp = F.pool ? weighted(AREA_POOLS[F.pool].map(k => ({ sp: k, w: AREA_RARE.has(k) ? 1 : 3 }))).sp   // 這一區自己的名單
+              : F.auto ? pick(monsAtStage(st)) : weighted(F.list.filter(x => (x.stage || 0) <= st)).sp;
     const lv = rnd(F.lv[0], F.lv[1]) + (F.scale || 0) * st + (G.ng || 0) * 4;
     p.cont = false;
     this.run(() => wildEncounter(sp, lv));

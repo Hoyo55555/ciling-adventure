@@ -98,6 +98,11 @@ const DEX_TITLES = [
   { id: 'd30', n: 30, name: '校園妖怪通', stat: 'def', val: 0.07 },
   { id: 'd40', n: 40, name: '圖鑑大師', stat: 'dodge', val: 0.10 },
   { id: 'd50', n: 50, name: '萬象皆知', stat: 'atk', val: 0.13 },
+  /* 2026-10-06 妖怪增加到 91 隻，稱號跟著往上補（數值沿用最後一個的等級，不再大幅提高） */
+  { id: 'd60', n: 60, name: '書山有路', stat: 'hp', val: 0.13 },
+  { id: 'd70', n: 70, name: '學海無涯', stat: 'def', val: 0.13 },
+  { id: 'd80', n: 80, name: '才高八斗', stat: 'atk', val: 0.15 },
+  { id: 'd90', n: 90, name: '滿腹經綸', stat: 'dodge', val: 0.12 },
 ];
 /* 收集滿一個種族的所有妖怪，另外解鎖專屬稱號 */
 const RACE_TITLES = [
@@ -295,6 +300,61 @@ const MONSTERS = {
   ink_stick: ['墨條妖', '墨', '木', 'block', '#2a2a34', 'maobi', 2], ink_pad: ['印泥妖', '墨', '火', 'block', '#b8322a', 'seal', 3],
   ink_duster: ['板擦妖', '墨', '土', 'block', '#8a7a5a', 'chalk', 2],
 };
+/* ===== 新增 38 隻（2026-10-06 妖怪重新設計，詳見 妖怪設計.md）=====
+   外形先借武器的樣子＋顏色頂著，之後圖一張張換成新畫風（在 data_sprites.js 的 QMON 補手調圖就會自動蓋過）。
+   最後一欄「階段」＝該區域的順序（A、B＝0，C＝1，D＝2，E＝3，F＝4），只給還在用 auto 的舊地圖參考。 */
+Object.assign(MONSTERS, {
+  bag: ['書包妖', '器', '土', 'block', '#3a6a9a', 'tome', 0],
+  pencase: ['鉛筆盒妖', '器', '金', 'block', '#8a8a98', 'brush', 0],
+  bottle: ['水壺妖', '器', '水', 'block', '#58a8d8', 'eraser', 0],
+  bikebell: ['腳踏車鈴妖', '音', '金', 'bell', '#d8d8e0', 'bell', 0],
+  umbrella: ['雨傘妖', '器', '水', 'fan', '#4a78c8', 'fan', 0],
+  tone: ['聲調旗妖', '音', '木', 'stick', '#e0603a', 'zhuyin', 0],
+  zyblock: ['注音方塊妖', '紙', '火', 'block', '#e87a50', 'zhuyin', 0],
+  radical: ['部首積木妖', '器', '土', 'block', '#c89858', 'ruler', 0],
+  grid: ['田字格妖', '紙', '木', 'book', '#e8f0d0', 'brush', 0],
+  twins: ['形近字雙胞胎', '紙', '水', 'card', '#a8c8e8', 'chalk', 0],
+  echo: ['回聲筒妖', '音', '水', 'whistle', '#d8c8a8', 'bell', 0],
+  blackboard: ['黑板妖', '器', '土', 'tablet', '#2e5a3a', 'chalk', 0],
+  fish: ['成語魚', '紙', '水', 'card', '#58a8d8', 'idiom', 1],
+  turtle: ['典故龜', '紙', '土', 'orb', '#6a8a58', 'idiom', 1],
+  bookworm: ['書蟲妖', '紙', '木', 'book', '#98c858', 'dict', 1],
+  libcard: ['借書證妖', '紙', '金', 'card', '#e8e0c0', 'bookmark', 1],
+  cardcat: ['目錄抽屜妖', '器', '木', 'abacus', '#a8784a', 'notebook', 1],
+  bookcart: ['書車妖', '器', '土', 'tablet', '#8a6a4a', 'glasses', 1],
+  simile: ['譬喻花', '紙', '木', 'star', '#f08ab0', 'fan', 2],
+  parallel: ['排比三花', '紙', '木', 'star', '#f0a0c0', 'marker', 2],
+  couplet: ['對仗蝶', '紙', '水', 'fan', '#a8c8f0', 'poemcard', 2],
+  bellflower: ['風鈴花妖', '音', '木', 'bell', '#e8f0f8', 'mic', 2],
+  lantern: ['詩箋燈籠', '器', '火', 'lamp', '#e84a3a', 'lamp', 2],
+  windmill: ['平仄風車', '器', '木', 'star', '#f0c850', 'palette', 2],
+  teapot: ['茶壺妖', '器', '土', 'cup', '#a8785a', 'lamp', 2],
+  stele: ['石碑妖', '器', '土', 'tablet', '#8a8a90', 'tablet', 3],
+  rubbing: ['拓本妖', '紙', '水', 'card', '#c8c0a8', 'tablet', 3],
+  bamboo: ['竹簡捲妖', '紙', '木', 'scroll', '#a8c070', 'classic', 3],
+  inkstone: ['硯台妖', '器', '水', 'block', '#3a3a4a', 'maobi', 3],
+  coin: ['銅錢妖', '器', '金', 'ring', '#c89a40', 'abacus', 3],
+  jade: ['玉珮妖', '器', '水', 'ring', '#78c8a8', 'seal', 3],
+  oldmap: ['古地圖卷妖', '紙', '土', 'scroll', '#d8b878', 'globe', 3],
+  skylantern: ['孔明燈妖', '器', '火', 'lamp', '#f0b050', 'lamp', 3],
+  spotlight: ['聚光燈妖', '器', '火', 'lamp', '#f0e090', 'lamp', 4],
+  curtain: ['布幕妖', '紙', '土', 'card', '#b83a3a', 'trophy', 4],
+  trophy: ['獎盃妖', '器', '金', 'cup', '#e8c030', 'trophy', 4],
+  hourglass: ['沙漏妖', '器', '土', 'cup', '#d8c898', 'chess', 4],
+  pendulum: ['擺鐘妖', '音', '金', 'bell', '#8a6a3a', 'bell', 4],
+});
+/* ===== 遇敵區域：每個夢中小鎮自己的一份名單（地圖寫 foes: { pool: 'B', … } 就用那一份）=====
+   A 通學路・前庭　B 1F 注音坡　C 2F 典籍港　D 中庭 花南街　E 3F 碑林關（3F 還沒蓋，暫時掛在操場）　F 禮堂 鐘塔台
+   AREA_RARE 裡的是稀有妖怪（出現權重 1，其他 3）。 */
+const AREA_POOLS = {
+  A: ['pen_auto', 'pen_shake', 'paper_text', 'paper_dict', 'paper_exam', 'tool_ruler', 'tool_eraser', 'bag', 'pencase', 'bottle', 'bikebell', 'umbrella'],
+  B: ['pen_red', 'pen_blue', 'pen_chalk', 'paper_work', 'paper_hand', 'paper_contact', 'tool_tri', 'ink_white', 'arm_broom', 'ink_duster', 'tone', 'zyblock', 'radical', 'grid', 'twins', 'echo', 'blackboard'],
+  C: ['pen_black', 'pen_hl', 'paper_idiom', 'paper_note', 'paper_mark', 'ink_bottle', 'tool_compass', 'tool_stapler', 'tool_lens', 'arm_plane', 'fish', 'turtle', 'bookworm', 'libcard', 'cardcat', 'bookcart'],
+  D: ['pen_green', 'pen_color', 'paper_scrap', 'paper_poem', 'tool_scissor', 'sound_flute', 'sound_harmonica', 'sound_tamb', 'arm_fan', 'simile', 'parallel', 'couplet', 'bellflower', 'lantern', 'windmill', 'teapot'],
+  E: ['pen_mao', 'pen_fountain', 'paper_essay', 'tool_protractor', 'tool_abacus', 'arm_bamboo', 'ink_stick', 'ink_pad', 'stele', 'rubbing', 'bamboo', 'inkstone', 'coin', 'jade', 'oldmap', 'skylantern'],
+  F: ['pen_marker', 'tool_calc', 'sound_bell', 'sound_ring', 'sound_whistle', 'sound_mic', 'sound_triangle', 'sound_metro', 'arm_bat', 'spotlight', 'curtain', 'trophy', 'hourglass', 'pendulum']
+};
+const AREA_RARE = new Set(["umbrella", "paper_exam", "twins", "ink_white", "turtle", "pen_black", "couplet", "lantern", "jade", "pen_fountain", "trophy", "sound_triangle"]);
 const MON_KEYS = Object.keys(MONSTERS);
 const monDef = k => { const m = MONSTERS[k]; return { name: m[0], race: m[1], el: m[2], shape: m[3], col: m[4], drop: m[5], stage: m[6] }; };
 const monsAtStage = st => MON_KEYS.filter(k => MONSTERS[k][6] <= st);

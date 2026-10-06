@@ -26,11 +26,9 @@ const CAMPUS_MAPS = {};
 /* ---- 1. 巷口 20×16：教移動與對話 ---- */
 /* 墨塵角落（校舍裡的遇敵點）：走廊、穿堂、樓梯間的角落有幾灘漫開的墨，踩進去會遇到武器妖。
    學校裡本來沒有草叢，收集碎片只能往外跑；這樣在校內也能練、能撿碎片。
-   墨族（修正液、墨水瓶、墨條、板擦、印泥）比較常出現，掉的碎片剛好是毛筆、橡皮擦、粉筆、印章。 */
-const INK_FOES = { on: '&', lv: [3, 6], scale: 4, rate: .26, safe: 0, list: [
-  { sp: 'pen_auto', w: 2, stage: 0 }, { sp: 'tool_eraser', w: 2, stage: 0 }, { sp: 'paper_exam', w: 2, stage: 0 }, { sp: 'tool_ruler', w: 2, stage: 0 },
-  { sp: 'ink_white', w: 3, stage: 1 }, { sp: 'ink_bottle', w: 3, stage: 1 }, { sp: 'paper_hand', w: 1, stage: 1 },
-  { sp: 'ink_duster', w: 3, stage: 2 }, { sp: 'ink_stick', w: 3, stage: 2 }, { sp: 'ink_pad', w: 3, stage: 3 }] };
+   名單跟著所在樓層走（1F＝B 注音坡、2F＝C 典籍港）。 */
+const inkFoes = pool => ({ on: '&', pool, lv: [3, 6], scale: 4, rate: .26, safe: 0 });
+const INK_B = inkFoes('B'), INK_C = inkFoes('C');
 
 CAMPUS_MAPS.s1 = {
   music: 'route', theme: 't_street', chapter: 0,
@@ -92,7 +90,7 @@ CAMPUS_MAPS.path1 = {
   ],
   props: [],
   /* 等級跟著碎片數慢慢長：一開始 Lv2–4，四片時 Lv10–12，回家路上還是有得練 */
-  foes: { lv: [2, 4], scale: 2, auto: 1, rate: .18, safe: 1 },
+  foes: { lv: [2, 4], scale: 2, pool: 'A', rate: .18, safe: 1 },
   warps: [8, 9, 10, 11].flatMap(x => [
     { x, y: 21, to: 's1', tx: x, ty: 1,  dir: 'down' },
     { x, y: 0,  to: 's2', tx: x, ty: 20, dir: 'up' },
@@ -178,7 +176,7 @@ CAMPUS_MAPS.s3 = {
   ],
   props: [['gateopen', 8, 0]],
   /* 斑馬線兩側的草叢（試玩回饋：校門前也補一些，收集碎片才不會太難） */
-  foes: { lv: [3, 5], scale: 3, auto: 1, rate: .16, safe: 2 },
+  foes: { lv: [3, 5], scale: 3, pool: 'A', rate: .16, safe: 2 },
   warps: [
     { x: 10, y: 0, to: 'front', tx: 12, ty: 16, dir: 'up' },
     { x: 11, y: 0, to: 'front', tx: 13, ty: 16, dir: 'up' },
@@ -219,7 +217,7 @@ CAMPUS_MAPS.front = {
   props: [['clinic', 2, 4], ['block', 9, 1], ['guard', 3, 15], ['gateopen', 10, 17]],
   /* 教學樓旁的雜草叢：校內可以練功的地方。等級跟著碎片數長（0 片 Lv2–5 … 4 片 Lv18–21），
      對齊舊版六條步道的曲線 —— 校園一開學就全部走得到，不能用「哪張地圖」決定強弱。 */
-  foes: { lv: [2, 5], scale: 4, auto: 1, rate: .16, safe: 2 },
+  foes: { lv: [2, 5], scale: 4, pool: 'A', rate: .16, safe: 2 },
   doorWarps: {
     '4,7':  { to: 'clinic_h', tx: 5, ty: 5, dir: 'up', ret: { x: 4,  y: 8 } },
     '14,7': { to: 'hall',     tx: 11, ty: 10, dir: 'up', ret: { x: 14, y: 8 } },   // 教學樓大門→穿堂
@@ -249,7 +247,7 @@ CAMPUS_MAPS.hall = {
     'w&&&_2__2_w__w_2__2_&&&w',
     'wwwwwwwwwww__wwwwwwwwwww',
   ],
-  foes: INK_FOES,
+  foes: INK_B,
   warps: [
     /* 南→前庭　北→中庭　西→走廊1F　東→禮堂前廣場 */
     { x: 11, y: 11, to: 'front', tx: 14, ty: 8, dir: 'down' },
@@ -278,7 +276,7 @@ CAMPUS_MAPS.corridor1 = {
     '_______&&_______&&____&&________',
     '11111111111111111111111111111111',
   ],
-  foes: INK_FOES,
+  foes: INK_B,
   doorWarps: {
     '4,1':  { to: 'store_c', tx: 5, ty: 5, dir: 'up', ret: { x: 4,  y: 2 } },   // 福利社（通學路是單向的，校內要能補貨）
     '11,1': { to: 'c8',      tx: 6, ty: 7, dir: 'up', ret: { x: 11, y: 2 } },   // 自己的教室（王老師、筆靈）
@@ -302,12 +300,12 @@ CAMPUS_MAPS.yard2 = {
   rows: [
     'TTTT,,TTTTTTTTTTTT3333TT',   // 4–5：往北到操場的小路；18–21：爬滿藤蔓的舊牆角（二週目：硯海墨池的入口）
     'TT..,,................TT',
-    'TT..,,................TT',
-    'TT..,,................TT',
-    'TT..,,................TT',
-    'TT..,,................TT',
-    'TT..,,................TT',
-    'TT..,,................TT',
+    'TTgg,,..........ggggggTT',
+    'TTgg,,..........ggggggTT',
+    'TTgg,,..........ggggggTT',
+    'TTgg,,................TT',
+    'TT..,,..ggggg.........TT',
+    'TT..,,..ggggg.........TT',
     'TT,,,,,,,,,,,,,,,,,,,,TT',
     'TT.T.......,,..T....T.TT',
     'TTF.~~~+~~.,,...AA....TT',
@@ -319,6 +317,7 @@ CAMPUS_MAPS.yard2 = {
     'TT........F,,F.....T..TT',
     'TTTTTTTTTTT,,TTTTTTTTTTT',
   ],
+  foes: { lv: [4, 7], scale: 4, pool: 'D', rate: .16, safe: 2 },
   props: [['artroom', 8, 1]],
   doorWarps: {
     '11,6': { to: 'yard', tx: 7, ty: 10, dir: 'up', ret: { x: 11, y: 7 },
@@ -342,10 +341,10 @@ CAMPUS_MAPS.audyard = {
   rows: [
     'TTTTTTTTTTTTTTTTTTTTTTTT',
     'TT....................TT',
-    'TT....................TT',
-    'TT....................TT',
-    'TT....................TT',
-    'TT....................TT',
+    'TT.gggggg......gggggg.TT',
+    'TT.gggggg......gggggg.TT',
+    'TT.gggggg......gggggg.TT',
+    'TT.gggggg......gggggg.TT',
     'TT....................TT',
     'TT....................TT',
     'TT....................TT',
@@ -358,6 +357,7 @@ CAMPUS_MAPS.audyard = {
     'TT,,,,,,,,,rr,,,,,,,,,TT',
     'TTTTTTTTTTTTTTTTTTTTTTTT',
   ],
+  foes: { lv: [5, 8], scale: 4, pool: 'F', rate: .16, safe: 2 },
   props: [['audi', 6, 1]],
   doorWarps: {
     '11,8': { to: 'aud', tx: 7, ty: 12, dir: 'up', ret: { x: 11, y: 9 },
@@ -386,7 +386,7 @@ CAMPUS_MAPS.stair1 = {
     'w___&&___w',
     'wwwwwwwwww',
   ],
-  foes: INK_FOES,
+  foes: INK_B,
   warps: [
     { x: 3, y: 1, to: 'corridor2', tx: 1, ty: 3, dir: 'right' },
     { x: 4, y: 1, to: 'corridor2', tx: 1, ty: 3, dir: 'right' },
@@ -411,7 +411,7 @@ CAMPUS_MAPS.corridor2 = {
     '_________&&_____&&_____&&_______',
     '11111111111111111111111111111111',
   ],
-  foes: INK_FOES,
+  foes: INK_C,
   doorWarps: {
     '5,1':  { to: 'lib',  tx: 7, ty: 10, dir: 'up', ret: { x: 5,  y: 2 },
               need: 1, gate: 'need1' },                       // 圖書館＝道館②
@@ -459,7 +459,7 @@ CAMPUS_MAPS.field = {
   ],
   props: [],
   /* 操場角落的雜草叢（跟前庭同一套：等級跟著碎片數長，稍微強一點） */
-  foes: { lv: [3, 6], scale: 4, auto: 1, rate: .16, safe: 2 },
+  foes: { lv: [3, 6], scale: 4, pool: 'E', rate: .16, safe: 2 },
   warps: [
     { x: 15, y: 23, to: 'yard2', tx: 4, ty: 1, dir: 'down' },
     { x: 16, y: 23, to: 'yard2', tx: 5, ty: 1, dir: 'down' },
