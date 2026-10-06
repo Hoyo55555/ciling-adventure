@@ -1179,8 +1179,24 @@ const GFX = (() => {
     full.getContext('2d').drawImage(BOOK, f * 64, 0, 64, 64, 0, 0, 64, 64);
     const out = size === 64 ? full : shrinkTo(full, size); cache.set(key, out); return out;
   }
+  /* 含苞的花（花南街的入口）：24×24，Kenney 的粉、綠、白，不加黑邊。f＝輕輕搖擺的位置 */
+  function budFrame(f, N) {
+    const key = 'bud:' + f + ':' + N; if (cache.has(key)) return cache.get(key);
+    const cv = document.createElement('canvas'); cv.width = cv.height = 24; const g = cv.getContext('2d'), R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+    const sw = [0, 1, 0, -1][f];                                                              // 花苞的頂端左右各搖一格
+    R(10, 20, 4, 2, 'rgba(60,90,50,.25)');                                                    // 地上的影子
+    R(11, 12, 2, 9, '#5a9a48'); R(11, 12, 1, 9, '#7ac060');                                   // 莖
+    R(6, 15, 5, 3, '#7ac060'); R(5, 14, 2, 2, '#7ac060'); R(6, 17, 3, 1, '#5a9a48');          // 左葉
+    R(13, 17, 5, 3, '#7ac060'); R(17, 16, 2, 2, '#7ac060'); R(14, 19, 3, 1, '#5a9a48');       // 右葉
+    R(9 + sw, 3, 6, 1, '#f9b8d0'); R(8 + sw, 4, 8, 6, '#f48ab8'); R(9 + sw, 10, 6, 2, '#f48ab8');   // 花苞
+    R(8 + sw, 4, 2, 6, '#f9b8d0'); R(11 + sw, 4, 2, 7, '#ee7aa8'); R(15 + sw, 5, 1, 5, '#ee7aa8');  // 受光面、花瓣的縫
+    R(10 + sw, 5, 1, 2, '#ffffff');                                                           // 亮點
+    R(9, 12, 6, 1, '#7ac060'); R(10, 13, 4, 1, '#5a9a48');                                    // 萼片
+    cache.set(key, N === 24 ? cv : shrinkTo(cv, N)); return cache.get(key);
+  }
   function anim(kind, size, now) {
     if (kind === 'vortex') return vortexFrame(Math.floor(now / 90) % 8);
+    if (kind === 'bud') return budFrame(Math.floor(now / 450) % 4, typeof size === 'number' ? size : 24);
     if (kind === 'book') {                                                              // 靜止約 1.2 秒，再翻一頁（8 格 × 110ms）
       const t = now % 2080, f = t < 1200 ? 0 : Math.min(8, 1 + Math.floor((t - 1200) / 110));
       const N = size === 'big' ? 64 : typeof size === 'number' ? size : BOOK_MAP;                // size 可以直接給像素（入口 20、醒來 24）
@@ -2158,5 +2174,5 @@ const GFX = (() => {
     g.fillStyle = 'rgba(255,248,220,.9)'; g.fill(); g.lineWidth = 1.2; g.strokeStyle = 'rgba(60,40,20,.75)'; g.stroke();
     cache.set(key, cv); return cv;
   }
-  return { anim, bookFrame, devProp, monBig, plate, person, tile, setIndoor, clockHands, doormat, exitArrow, skinsReady, SKINS, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
+  return { anim, bookFrame, budFrame, devProp, monBig, plate, person, tile, setIndoor, clockHands, doormat, exitArrow, skinsReady, SKINS, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
 })();

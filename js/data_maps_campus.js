@@ -749,6 +749,119 @@ CAMPUS_MAPS.dj_gym = {
   signs: {},
 };
 
+/* ============================================================
+   夢中小鎮 ③ 花南街（文藝教室的夢，W.dreams.hn）
+   ------------------------------------------------------------
+   現代文青助教怕「不夠美」：居民是他「過度裝飾」的修辭（譬喻、擬人、誇飾、排比）。下著花雨的街。
+   進夢：現實的文藝教室（yard）→ 助教本人邀你 → 花雨落下（petals）→ 這裡。
+   hn_town 花南街：含苞的花（醒來）、花攤老闆娘（休息）、4 位委託人、小婷、3 盆花（機關）、道館大門
+   hn_pavilion 聽雨亭：D 區妖怪、3 個寶箱（走失的風鈴）、吹牛的漁夫、雙胞胎、老詩人
+   hn_gym 夢中的花室：真正的助教
+   ============================================================ */
+CAMPUS_MAPS.hn_town = {
+  music: 'town', theme: 't_flower', chapter: 3, dream: 'hn',
+  rows: [
+    'TTTTTTTTTTTTTTTTTTTTTTTT',
+    'TT....................TT',
+    'TT.F................F.TT',
+    'TT.F................F.TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT,,,,,,,,,,,,,,,,,,,,TT',
+    'TT.mmm.F.S,,,.SF.mmm..TT',
+    'TT.....F..,,,..F......TT',
+    'TT....~~~~,,,,~~~~....TT',
+    'TT....~~~~,,,,~~~~....TT',
+    'TT..F.~~~~,,,,~~~~.F..TT',
+    'TT....~~~~,,,,~~~~....TT',
+    'TT....~~~~,,,,~~~~....TT',
+    'TT....~~~~,,,,~~~~....TT',
+    'TTTTTTTTTTT,,TTTTTTTTTTT',
+  ],
+  props: [['artroom', 8, 1]],
+  doorWarps: {
+    '11,6': { plate: 'art', label: '夢中的花室', to: 'hn_gym', tx: 7, ty: 10, dir: 'up', ret: { x: 11, y: 7 },
+              needFlag: 'hnOpen', flagText: '（溫室的門被花雨鎖著……先幫街上的人解決麻煩吧。）' },
+  },
+  warps: [
+    { x: 11, y: 17, to: 'hn_pavilion', tx: 9,  ty: 1, dir: 'down' },
+    { x: 12, y: 17, to: 'hn_pavilion', tx: 10, ty: 1, dir: 'down' },
+  ],
+  devices: {
+    '7,10':  { group: 'hnflower', flag: 'hf1', cat: '修辭', label: '低頭的花', under: 'F',
+      text: '一盆花低著頭，花瓣上寫滿了「像……像……」。\n（把它到底像什麼說清楚，花就會開。）',
+      ok: '花瓣舒展開來——「像」說完了，剩下的就是花本身。', allText: '三盆花都開了！' },
+    '15,10': { group: 'hnflower', flag: 'hf2', cat: '修辭', label: '低頭的花', under: 'F',
+      text: '第二盆花的葉子上掛著一長串形容詞，壓得它抬不起頭。', ok: '形容詞落了下來，花也抬起頭了！', allText: '三盆花都開了！' },
+    '19,13': { group: 'hnflower', flag: 'hf3', cat: '修辭', label: '低頭的花', under: 'F',
+      text: '最後一盆花，被雨淋得只剩下花苞。', ok: '最後一盆也開了——整條街的花，都看得見了！',
+      allText: '三盆花都開了——賣花人再也不用只會說「像……」了！', onAll: 'hfAll' },
+  },
+  signs: { '9,9': 'hn_board1', '14,9': 'hn_board2' },
+};
+CAMPUS_MAPS.hn_pavilion = {
+  music: 'town', theme: 't_flower', chapter: 3, dream: 'hn',
+  rows: [
+    'TTTTTTTTT,,TTTTTTTTT',
+    'TT.......,,.......TT',
+    'TT.......,,.......TT',
+    'TT.ggggg.,,.ggggg.TT',
+    'TT.ggggg.,,.ggggg.TT',
+    'TT.ggggg.,,.ggggg.TT',
+    'TT.......,,.......TT',
+    'TT.......,,.......TT',
+    'TT~~~~...,,...~~~~TT',
+    'TT~~~~...,,...~~~~TT',
+    'TT~~~~...,,...~~~~TT',
+    'TT.......,,.......TT',
+    'TT.......,,.......TT',
+    'TT.ggggg.,,.ggggg.TT',
+    'TT.ggggg.,,.ggggg.TT',
+    'TT.ggggg.,,.ggggg.TT',
+    'TT.......,,.......TT',
+    'TT.......,,.......TT',
+    'TT.......,,S......TT',
+    'TT.......AA.......TT',
+    'TT.......AA.......TT',
+    'TTTTTTTTTTTTTTTTTTTT',
+  ],
+  foes: { lv: [12, 15], scale: 3, pool: 'D', rate: .17, safe: 2 },
+  warps: [
+    { x: 9,  y: 0, to: 'hn_town', tx: 11, ty: 16, dir: 'up' },
+    { x: 10, y: 0, to: 'hn_town', tx: 12, ty: 16, dir: 'up' },
+  ],
+  chests: [
+    { x: 3,  y: 2,  id: 'hnb1', items: { hint: 1 } },
+    { x: 16, y: 12, id: 'hnb2', items: { heal: 1 } },
+    { x: 3,  y: 17, id: 'hnb3', items: { hint: 1 } },
+  ],
+  signs: { '11,18': 'hn_rain' },
+};
+CAMPUS_MAPS.hn_gym = {
+  music: 'hall', theme: 't_flower', chapter: 3, indoor: 1, dream: 'hn',
+  rows: [
+    'www**wwwwww**www',
+    'w____t____t____w',
+    'w_FF________FF_w',
+    'w______rr______w',
+    'w_~~~__rr__~~~_w',
+    'w_~~~__rr__~~~_w',
+    'w______rr______w',
+    'w_FF___rr___FF_w',
+    'w______________w',
+    'wp____A__A____pw',
+    'w______________w',
+    'wwwwwww__wwwwwww',
+  ],
+  warps: [
+    { x: 7, y: 11, to: 'hn_town', tx: 11, ty: 7, dir: 'down' },
+    { x: 8, y: 11, to: 'hn_town', tx: 12, ty: 7, dir: 'down' },
+  ],
+  signs: {},
+};
+
 const CAMPUS_NPCS = {
   s1: [
     { role: 't_cd_a', x: 7,  y: 7,  dir: 'right' },
@@ -802,6 +915,25 @@ const CAMPUS_NPCS = {
   ],
   dj_gym: [
     { role: 'boss2', x: 8, y: 2, dir: 'down', key: 'lib:boss2' },   // 真正的股長。打倒的紀錄沿用 lib:boss2（舊存檔、測試都不用改）
+  ],
+  hn_town: [
+    { role: 'hnWake', x: 12, y: 9,  dir: 'down' },
+    { role: 'hnShop', x: 4,  y: 10, dir: 'down' },
+    { role: 'hnG1',   x: 8,  y: 10, dir: 'left' },
+    { role: 'hnG2',   x: 19, y: 10, dir: 'down' },
+    { role: 'hnG3',   x: 5,  y: 14, dir: 'right' },
+    { role: 'hnG4',   x: 18, y: 14, dir: 'left' },
+    { role: 'hnTing', x: 13, y: 10, dir: 'left' },
+    { role: 'hnQuiz', x: 17, y: 10, dir: 'down' },
+  ],
+  hn_pavilion: [
+    { role: 'hnFish',  x: 12, y: 9,  dir: 'left',  sight: 3 },
+    { role: 'hnTwinA', x: 8,  y: 16, dir: 'right', sight: 3 },
+    { role: 'hnTwinB', x: 11, y: 16, dir: 'left',  sight: 3 },
+    { role: 'hnPoet',  x: 10, y: 18, dir: 'left' },
+  ],
+  hn_gym: [
+    { role: 'boss3', x: 7, y: 1, dir: 'down', key: 'yard:boss3' },   // 真正的助教。打倒的紀錄沿用 yard:boss3（舊存檔、測試都不用改）
   ],
   hall: [
     { role: 'spar_h',  x: 12, y: 8,  dir: 'down' },
@@ -884,7 +1016,7 @@ CAMPUS_MAPS.field.devices = {
 function CAMPUS_PATCH(S) {
   const R = S.roles;
   R.avatar2.needDefeated = ['corridor2:rival1'];            // 圖書館的化身要先打倒周以恆；真正的股長在夢裡，不用再擋
-  R.boss3.needDefeated = ['yard2:m1', 'yard2:m2', 'yard2:m3'];
+  R.avatar3.needDefeated = ['yard2:m1', 'yard2:m2', 'yard2:m3'];   // 文藝教室的助教要先點醒三位組員；真正的助教在夢裡，不用再擋
   R.sideAGiver.need    = ['yard2:m1', 'yard2:m2', 'yard2:m3'];
   R.boss4.needDefeated = ['stair1:rival2'];
   /* 器靈的地點：神器據點重做（待辦 1）之前先放在中庭 */
@@ -920,6 +1052,9 @@ function CAMPUS_PATCH(S) {
     h1_table: '（餐桌上放著你的便當盒，還有一張紙條：「考試加油！」）',
     dj_board1: '（排行榜上的名字一直在換，名次亂成一團，只有最上面兩行是固定的。）',
     dj_board2: '（榜單最底下有一行小字：「借了幾本不重要，讀懂幾本才重要。」不知道是誰寫的。）',
+    hn_board1: '（花攤的招牌：「本店的花，每一朵都像……」後面被劃掉了，改寫成兩個小字：「很香。」）',
+    hn_board2: '（告示板上的字寫得又小又密。最後一行被人用手指抹過，只剩下一個淡淡的「真」。）',
+    hn_rain: '（聽雨亭的柱子上刻著：「雨聲不必翻譯，聽得見就好。」）',
     dj_well: '（一口乾涸的老井。井口刻著：「天只有井口那麼大？」）',
     zy_rest: '（坡道盡頭有一張長椅，椅背上刻著：「讀得慢也沒關係，唸對才是真的。」下面還有一行很小的字：「——小老師」）',
   });
@@ -988,15 +1123,34 @@ function CAMPUS_PATCH(S) {
                   '（角落的長桌邊，股長和周以恆各自抱著一本書，並肩坐著，誰也沒說話。）',
                   '周以恆：「……借同一本，也行。」',
                   '股長：「這本，我想從頭讀。」'] },
+    hn: { name: '花南街', home: { map: 'yard', x: 7, y: 3, dir: 'down' }, town: { map: 'hn_town', x: 11, y: 9, dir: 'down' },
+      heal: { map: 'hn_town', x: 5, y: 10 }, need: 3, openFlag: 'hnOpen', doneFlag: 'hnDone', enteredFlag: 'hnEntered', seenFlag: 'hnSeen',
+      legacyKey: 'yard:boss3', homeName: '文藝教室', fx: 'petals', tint: [255, 170, 205, .16],
+      glyphs: ['花', '雨', '風', '像', '如', '對', '排', '比', '詩', '美', '字', '夢'],
+      openText: ['（遠處傳來玻璃輕輕打開的聲音——街尾，溫室的門開了。）', '（你想起花攤老闆娘說的話：「他以前每天來買一朵花，說是要送給阿嬤。」）'],
+      arrive: ['（花雨停了。你站在一條鋪滿花瓣的街上，兩旁是一整排花攤，遠處有座小小的亭子。）',
+               '小墨：「別怕，這是「花南街」——助教的碎片留下的夢。」',
+               '小墨：「這裡的居民，都是助教「過度裝飾」的修辭變出來的。」',
+               '小墨：「真正的助教在街尾的溫室裡，但夢把門鎖上了。幫街上的人解決三件麻煩，夢才會鬆口。」',
+               '小墨：「想回文藝教室的話，隨時可以從含苞的花、或選單的「醒來」回去，進度都會留著。」'],
+      finish: ['（助教身上的花瓣一片一片飛了起來，把整條街染成淡淡的粉紅……）',
+               '（賣花人、風鈴小妹、垂釣的大叔、雙胞胎……每個人都朝你揮了揮手。）',
+               '小墨：「夢要醒了。你做得很好。」',
+               '小墨：「碎片，是一個人心裡最怕被看見的那一頁。」',
+               '小墨：「那朵花會留在文藝教室裡。想念這裡的人，隨時可以回來看看。」'],
+      afterWake: ['（你回到了文藝教室。花圃裡的花都開著，溫室中央，含苞的花輕輕地合著。）',
+                  '（助教站在窗邊，手裡捏著一片花瓣，花瓣上是一句很短的話。）',
+                  '助教：「……給阿嬤的。這次，我想親口念給她聽。」'] },
   };
   S.stages[0].roles = ['avatar1', 'boss1'];
   S.stages[1].roles = ['rival1', 'avatar2', 'boss2'];
+  S.stages[2].roles = ['m1', 'm2', 'm3', 'avatar3', 'boss3'];
   /* 教師版「直達」的分類 */
   S.travelGroups = [
     ['家．通學路', ['room', 'house1f', 's1', 'path1', 's2', 'pharmacy', 's3']],
     ['校園', ['front', 'hall', 'corridor1', 'stair1', 'corridor2', 'yard2', 'field', 'audyard']],
     ['道館', ['c1a', 'lib', 'yard', 'hist', 'aud']],
-    ['夢中小鎮', ['zy_town', 'zy_slope', 'zy_gym', 'dj_town', 'dj_pier', 'dj_gym']],
+    ['夢中小鎮', ['zy_town', 'zy_slope', 'zy_gym', 'dj_town', 'dj_pier', 'dj_gym', 'hn_town', 'hn_pavilion', 'hn_gym']],
     ['教室．其他', ['c8', 'clinic_h', 'store_c', 'forge', 'inkpool']],
   ];
   Object.assign(S.mapNames, {
@@ -1007,6 +1161,7 @@ function CAMPUS_PATCH(S) {
     clinic_h: '保健室', store_h: '便利商店', store_c: '福利社', forge: '工藝教室',
     zy_town: '夢中小鎮．注音坡', zy_slope: '注音坡道', zy_gym: '夢中的一年甲班',
     dj_town: '夢中小鎮．書海港', dj_pier: '船埠', dj_gym: '夢中的圖書館',
+    hn_town: '夢中小鎮．花南街', hn_pavilion: '聽雨亭', hn_gym: '夢中的花室',
   });
 }
 
@@ -1175,6 +1330,11 @@ ROOM_REDO.c1a.npcs = [
   { role: 'gy1a',   x: 3, y: 4, dir: 'right', sight: 3 },
   { role: 'gy1b',   x: 8, y: 4, dir: 'left',  sight: 3 },
   { role: 'c1aTip', x: 2, y: 7, dir: 'right' },
+];
+/* 文藝教室：助教本人邀你進夢（沒有碎片化身）。三盆花開了、組員都點醒之後才肯談；含苞的花在進夢之後留在原地（花南街的入口，詳見 W.dreams.hn） */
+ROOM_REDO.yard.npcs = [
+  { role: 'avatar3', x: 7, y: 1, dir: 'down', hideFlag: 'hnEntered' },
+  { role: 'hnPortal', x: 7, y: 1, dir: 'down', needFlag: 'hnEntered' },
 ];
 /* 圖書館：股長是「碎片化身」，三本辭典歸位、書架讓開後才見得到；攤開的書在打完化身之後留在原地（書海港的入口，詳見 W.dreams.dj） */
 ROOM_REDO.lib.npcs = [

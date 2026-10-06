@@ -433,8 +433,57 @@ async function pagesIn(D) {
   await Anim.run(0.5, k => { st.swirl = .4 * (1 - k); st.book = 1 - k; st.player = 1; });
   OW.fx.length = 0; OW.hidePlayer = false; OW.dark = 0; OW.flash = 0;
 }
+/* 花雨（花南街）：花瓣從畫面上方慢慢飄下，越落越密，慢慢圍到玩家身邊把人包起來（沒有吸力，是輕輕的）。
+   st：rain 花雨強度 0～1、cover 花瓣圍攏程度（0 在外面飄、1 全圍在身邊）、glow 玩家身後的柔光 */
+const PETAL_COL = ['#f9b8d0', '#f48ab8', '#ffffff', '#fbd0e0', '#ee7aa8'];
+function drawPetalsFx(g, x, y, st, img) {
+  const t = performance.now() / 1000, I = st.rain, C = st.cover, N = 64;
+  if (st.glow > 0) {
+    const rg = g.createRadialGradient(x, y, 2, x, y, 46); rg.addColorStop(0, `rgba(255,226,238,${.7 * st.glow})`); rg.addColorStop(1, 'rgba(255,190,220,0)');
+    g.fillStyle = rg; g.fillRect(x - 60, y - 60, 120, 120);
+  }
+  if (st.player > 0) { g.globalAlpha = st.player; g.drawImage(img, Math.round(x - 8), Math.round(y - 12)); g.globalAlpha = 1; }
+  const n = Math.round(N * Math.min(1, I));
+  for (let i = 0; i < n; i++) {
+    const u = (i * .6180339) % 1, v = (i * .7548777) % 1, sp = 16 + 22 * v, sw = 8 + 12 * u;
+    let px = u * 260 - 10 + Math.sin(t * (.8 + v) + i) * sw, py = ((t * sp + i * 41) % 210) - 20;                 // 外面：斜斜地飄下來
+    const a = i * .5236 + t * (.5 + .4 * v), R = 8 + (i % 5) * 4.5;                                              // 裡面：繞著玩家慢慢轉的一圈
+    const ex = x + Math.cos(a) * R * 1.2, ey = y - 4 + Math.sin(a) * R * .8;
+    px = px + (ex - px) * C; py = py + (ey - py) * C;
+    const flap = Math.abs(Math.cos(t * 3 + i * 1.3)), w = 2 + 2 * flap, h = 4;
+    g.save(); g.translate(Math.round(px), Math.round(py)); g.rotate(Math.sin(t * 1.7 + i) * .9 + C * a);
+    g.fillStyle = PETAL_COL[i % PETAL_COL.length]; g.fillRect(-w / 2, -h / 2, w, h);
+    if (flap > .6) { g.fillStyle = 'rgba(255,255,255,.7)'; g.fillRect(-w / 2, -h / 2, 1, 1); }
+    g.restore();
+  }
+  if (C > .3) {                                                                                                  // 圍起來之後，字也跟著輕輕轉
+    const GL = st.glyphs || DREAM_GLYPHS; g.font = '9px sans-serif'; g.textAlign = 'center';
+    for (let i = 0; i < 6; i++) { const a = i * 1.047 + t * .9, R = 20 * (1 - .1 * Math.sin(t * 2 + i)); g.fillStyle = `rgba(255,244,250,${.8 * C})`; g.fillText(GL[i % GL.length], x + Math.cos(a) * R, y - 4 + Math.sin(a) * R * .75 + 3); }
+    g.textAlign = 'start';
+  }
+}
+async function petalsOut(D) {
+  const p = OW.p, wx = p.x * 16 + 8, wy = p.y * 16 + 8, img = GFX.person(G.player.look, 'down', 0), st = { rain: 0, cover: 0, glow: 0, player: 1, glyphs: D && D.glyphs };
+  OW.fx.push((g, cx, cy) => drawPetalsFx(g, wx - cx, wy - cy, st, img));
+  OW.hidePlayer = true; Sound.sfx('encounter');
+  await Anim.run(1.4, k => { st.rain = k; OW.dark = k * .08; });
+  Sound.sfx('heal');
+  await Anim.run(1.6, k => { st.cover = k * k * (3 - 2 * k); st.glow = k; OW.dark = .08 + k * .12; });
+  await Anim.run(0.5, k => { OW.flash = k; st.player = 1 - k; });
+  OW.fx.length = 0;
+}
+async function petalsIn(D) {
+  const p = OW.p, wx = p.x * 16 + 8, wy = p.y * 16 + 8, img = GFX.person(G.player.look, 'down', 0), st = { rain: 1, cover: 1, glow: 1, player: 0, glyphs: D && D.glyphs };
+  OW.hidePlayer = true; OW.flash = 1; OW.dark = .2;
+  OW.fx.push((g, cx, cy) => drawPetalsFx(g, wx - cx, wy - cy, st, img));
+  Sound.sfx('heal');
+  await Anim.run(0.5, k => { OW.flash = 1 - k; st.player = k; });
+  await Anim.run(1.5, k => { st.cover = 1 - k * k * (3 - 2 * k); st.glow = 1 - k; OW.dark = .2 * (1 - k); });
+  await Anim.run(1.0, k => { st.rain = 1 - k; });
+  OW.fx.length = 0; OW.hidePlayer = false; OW.dark = 0; OW.flash = 0;
+}
 /* 進夢／醒來的轉場動畫：W.dreams[id].fx 選一種（預設旋渦）；每種是 { out: 吸進去／淡出, in: 淡入 } */
-const DREAM_FX = { vortex: { out: vortexOut, in: vortexIn }, pages: { out: pagesOut, in: pagesIn } };
+const DREAM_FX = { vortex: { out: vortexOut, in: vortexIn }, pages: { out: pagesOut, in: pagesIn }, petals: { out: petalsOut, in: petalsIn } };
 const dreamFx = D => DREAM_FX[D.fx] || DREAM_FX.vortex;
 async function dreamEnter(id) {
   const D = W.dreams[id], FX = dreamFx(D);
