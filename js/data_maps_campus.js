@@ -953,7 +953,7 @@ function CAMPUS_PATCH(S) {
   S.dreams = {
     zy: { name: '注音坡', home: { map: 'c1a', x: 5, y: 3, dir: 'down' }, town: { map: 'zy_town', x: 11, y: 10, dir: 'down' },
       heal: { map: 'zy_town', x: 11, y: 10 }, need: 3, openFlag: 'zyOpen', doneFlag: 'zyDone', enteredFlag: 'zyEntered', seenFlag: 'zySeen',
-      legacyKey: 'c1a:boss1', homeName: '教室', fx: 'vortex', tint: [140, 110, 230, .09],
+      legacyKey: 'c1a:boss1', homeName: '教室', fx: 'vortex', tint: [140, 110, 230, .15],
       glyphs: ['字', '音', '形', 'ㄅ', '注', 'ㄆ', '錯', '對', 'ㄇ', '夢', '筆', 'ㄈ', '墨', '紙'],
       openText: ['（遠處傳來一聲清脆的鐘響——坡頂道館的大門，開了。）', '（你想起老爺爺說的話：「你替她說一句：寫錯，沒關係。」）'],
       arrive: ['（睜開眼睛，周圍的樹、坡道、房子，都像是從課本裡長出來的。）',
@@ -971,7 +971,7 @@ function CAMPUS_PATCH(S) {
                   '小老師：「……這次，我自己寫的。」'] },
     dj: { name: '書海港', home: { map: 'lib', x: 8, y: 3, dir: 'down' }, town: { map: 'dj_town', x: 11, y: 9, dir: 'down' },
       heal: { map: 'dj_town', x: 5, y: 10 }, need: 3, openFlag: 'djOpen', doneFlag: 'djDone', enteredFlag: 'djEntered', seenFlag: 'djSeen',
-      legacyKey: 'lib:boss2', homeName: '圖書館', fx: 'pages', tint: [255, 196, 110, .10],
+      legacyKey: 'lib:boss2', homeName: '圖書館', fx: 'pages', tint: [255, 190, 100, .17],
       glyphs: ['守', '株', '待', '兔', '亡', '羊', '補', '牢', '掩', '耳', '盜', '鈴', '井', '蛙', '書', '頁'],
       openText: ['（遠處傳來翻動書頁的聲音——港口盡頭，圖書館的大門開了。）', '（你想起老管理員說的話：「榜單可以換，讀懂的那一本不會。」）'],
       arrive: ['（書頁停了下來。你站在一座港口的石板路上，海面上漂著一頁一頁的書。）',

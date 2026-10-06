@@ -301,9 +301,12 @@ const OW = {
     if (L.dream && W.dreams && W.dreams[L.dream]) {
       const D = W.dreams[L.dream], T = D.tint || [140, 110, 230, .09], GL = D.glyphs || DREAM_GLYPHS;
       g.fillStyle = `rgba(${T[0]},${T[1]},${T[2]},${T[3]})`; g.fillRect(0, 0, 240, 160);
-      g.font = '9px sans-serif'; g.textAlign = 'center';
-      for (let i = 0; i < 9; i++) { const gx = (i * 53 + now / 55) % 250 - 5, gy = 170 - ((now / 38 + i * 37) % 190);
-        g.fillStyle = `rgba(236,228,255,${.16 + .12 * Math.sin(now / 700 + i)})`; g.fillText(GL[(i * 5) % GL.length], gx, gy); }
+      /* 四角壓暗一點（暈邊），畫面中央留亮：夢的感覺比單純蒙一層色明顯 */
+      const vg = g.createRadialGradient(120, 80, 60, 120, 80, 150); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, `rgba(${T[0] >> 3},${T[1] >> 3},${T[2] >> 3},.34)`);
+      g.fillStyle = vg; g.fillRect(0, 0, 240, 160);
+      g.font = 'bold 10px sans-serif'; g.textAlign = 'center';
+      for (let i = 0; i < 13; i++) { const gx = (i * 41 + now / 48) % 250 - 5, gy = 172 - ((now / 32 + i * 29) % 195);
+        g.fillStyle = `rgba(${Math.min(255, T[0] + 60)},${Math.min(255, T[1] + 60)},${Math.min(255, T[2] + 60)},${.32 + .18 * Math.sin(now / 700 + i)})`; g.fillText(GL[(i * 5) % GL.length], gx, gy); }
       g.textAlign = 'start';
     }
     /* night：序幕結束前房間是暗的（天還沒亮）。用地圖資料決定，讀檔回來也一樣暗 */
