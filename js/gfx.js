@@ -1067,10 +1067,10 @@ const GFX = (() => {
     cache.set(key, cv); return cv;
   }
   /* 有動畫的劇情角色（使用者提供的造型，assets/sprites/）：
-     big ＝ 戰鬥／過場用，每格 64×60；map ＝ 地圖用，每格 32×30（照大圖縮小、五官重點）。
+     big ＝ 戰鬥／過場用，每格 64×60；map ＝ 地圖用，每格 24×24（左右對稱、手點）。
      四格：0 原位、1 下沉、2 上浮、3 閉眼。圖還沒載入完回傳 null，呼叫端改用 special() 的舊圖。 */
   const SHEETS = {
-    xiaomo: { big: [img('../sprites/xiaomo_big.png'), 64, 60], map: [img('../sprites/xiaomo_map.png'), 32, 30] },
+    xiaomo: { big: [img('../sprites/xiaomo_big.png'), 64, 60], map: [img('../sprites/xiaomo_map.png'), 24, 24] },
   };
   function anim(kind, size, now) {
     const s = SHEETS[kind] && SHEETS[kind][size]; if (!s) return null;
