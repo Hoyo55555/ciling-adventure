@@ -274,6 +274,14 @@ const OW = {
         g.drawImage(GFX.exitArrow(dir), w.x * 16 - cx + ax * bob, w.y * 16 - cy + ay * bob);
       }
     }
+    /* 機關（題卷台）：先鋪地面把原本的磚蓋掉，再畫台子；沒解開的帶一圈淡淡的光暈 */
+    for (const [k, d] of Object.entries(L.devices || {})) {
+      const [dx, dy] = k.split(',').map(Number), px = dx * 16 - cx, py = dy * 16 - cy; if (px < -16 || px > 240 || py < -16 || py > 160) continue;
+      const solved = !!G.flags[d.flag];
+      g.drawImage(GFX.tile(theme, d.under || (L.indoor ? '_' : '.'), (dx * 5 + dy * 11) & 3), px, py);
+      if (!solved) { const rg = g.createRadialGradient(px + 8, py + 6, 1, px + 8, py + 6, 11); rg.addColorStop(0, `rgba(160,215,255,${.38 + .18 * Math.sin(now / 300)})`); rg.addColorStop(1, 'rgba(160,215,255,0)'); g.fillStyle = rg; g.fillRect(px - 4, py - 6, 24, 24); }
+      g.drawImage(GFX.devProp(solved), px, py);
+    }
     for (const c of L.chests || []) g.drawImage(GFX.chest(!!G.chests[c.id]), c.x * 16 - cx, c.y * 16 - cy);
     const actors = this.npcs.map(n => ({ y: n.y * 16 + n.oy, draw: () => {
       if (n.look.sprite) { const sp = GFX.anim(n.look.sprite, n.look.size || 'map', now) || GFX.special(n.look.sprite), sw = sp.width, sh = sp.height; const bob = Math.round(Math.sin(now / 300) * 1.5);

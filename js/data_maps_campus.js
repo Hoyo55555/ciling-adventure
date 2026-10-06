@@ -660,10 +660,10 @@ CAMPUS_MAPS.dj_town = {
     'TT.....,S,,,,,,,S.....TT',
     'TTO....,,,,,,,,,,....OTT',
     'TT~~~~~~~~++++~~~~~~~~TT',
-    'TT~~~~~~~~Q+++~~~~~~~~TT',
+    'TT~~~~~~~~++++~~~~~~~~TT',
     'TT~~~~~~~~+++O~~~~~~~~TT',
     'TT~~~~~~~~++++~~~~~~~~TT',
-    'TT~~~~~~~~+++Q~~~~~~~~TT',
+    'TT~~~~~~~~++++~~~~~~~~TT',
     'TT~~~~~~~~++++~~~~~~~~TT',
     'TTTTTTTTTTT++TTTTTTTTTTT',
   ],
@@ -682,7 +682,7 @@ CAMPUS_MAPS.dj_town = {
       ok: '缺的字回到了石碑上，石碑亮了起來！', allText: '三塊石碑都亮起來了！' },
     '21,10': { group: 'djstone', flag: 'ds2', cat: '成語', label: '成語石碑',
       text: '第二塊石碑被海風磨得看不清楚，只剩下半個字。', ok: '字跡清楚了，石碑也亮了！', allText: '三塊石碑都亮起來了！' },
-    '13,13': { group: 'djstone', flag: 'ds3', cat: '成語', label: '成語石碑',
+    '13,13': { group: 'djstone', flag: 'ds3', cat: '成語', label: '成語石碑', under: '+',
       text: '棧橋邊的最後一塊石碑，浪花打濕了一半的字。', ok: '最後一塊石碑也亮了——整座港口的石碑都連成了一句話！',
       allText: '三塊石碑都亮起來了——港口的人不會再「守著樹墩等兔子」了！', onAll: 'dsAll' },
   },
@@ -1073,7 +1073,7 @@ const ROOM_REDO = {
     'wwwww__wwwww' ] },
   c1a: { theme: 't_campus', rows: [
     'w**wBBBBBB*w',
-    'w____e_____w',
+    'w___MeM_M__w',
     'w__________w',
     'w_??_rr_??_w',
     'w_$______$_w',
@@ -1133,8 +1133,8 @@ const ROOM_REDO = {
     'wkkk_kkkk_kkkw',
     'w____________w',
     'w_p________p_w',
-    'w**wwMMMMww**w',
-    'w____________w',
+    'w**wwwwwwww**w',
+    'w____MMM_____w',
     'wk__OO__OO__kw',
     'w____________w',
     'w____________w',
@@ -1181,6 +1181,10 @@ ROOM_REDO.lib.npcs = [
   { role: 'avatar2', x: 8, y: 1, dir: 'down', hideFlag: 'djEntered' },
   { role: 'djPortal', x: 8, y: 1, dir: 'down', needFlag: 'djEntered' },
 ];
+/* 機關改成「題卷台」：靠牆的機關往前挪一格，站在牆前（台子本身的圖在 overworld 畫） */
+const moveDevices = (id, map) => { const dv = {}; for (const [k, d] of Object.entries(LAYOUTS[id].devices)) dv[map[k] || k] = d; ROOM_REDO[id].devices = dv; };
+moveDevices('c1a', { '4,0': '4,1', '6,0': '6,1', '8,0': '8,1' });
+moveDevices('hist', { '5,6': '5,7', '6,6': '6,7', '7,6': '7,7' });
 for (const [id, patch] of Object.entries(ROOM_REDO)) {
   const base = LAYOUTS[id]; if (!base) continue;
   CAMPUS_MAPS[id] = Object.assign({}, base, patch);

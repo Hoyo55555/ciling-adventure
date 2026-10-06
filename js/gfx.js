@@ -1231,6 +1231,21 @@ const GFX = (() => {
     const cv = toCanvas(n, n, raster(n, n, sp.parts, null));
     cache.set(k, cv); return cv;
   }
+  /* 機關：題卷台（2026-10-06）。木製讀書台，上面攤著一卷題目，蓋著印；沒解開是紅印、解開是綠印。
+     所有地圖的機關都畫這個（overworld 在機關那一格先鋪地面，再蓋上這張圖，未解開時另外加一圈光暈）。 */
+  function devProp(solved) {
+    const key = 'dev:' + (solved ? 1 : 0); if (cache.has(key)) return cache.get(key);
+    const cv = document.createElement('canvas'); cv.width = cv.height = 16; const g = cv.getContext('2d');
+    const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); }, O = '#2a2018';
+    R(3, 14, 10, 1, 'rgba(0,0,0,.25)');
+    R(6, 10, 4, 4, O); R(7, 10, 2, 4, '#8a5a2a'); R(5, 14, 6, 1, O);                                   // 台腳
+    R(1, 7, 14, 4, O); R(2, 8, 12, 2, '#b07a3c'); R(2, 8, 12, 1, '#d09a58'); R(2, 10, 12, 1, '#7a4a20');   // 斜面台
+    R(2, 2, 12, 7, O); R(3, 3, 10, 5, '#f4e8c6'); R(3, 7, 10, 1, '#d8c490');                            // 卷面
+    R(1, 3, 2, 5, O); R(2, 4, 1, 3, '#c8a860'); R(13, 3, 2, 5, O); R(13, 4, 1, 3, '#c8a860');          // 兩端的軸
+    R(4, 4, 6, 1, '#6a5a40'); R(4, 6, 4, 1, '#6a5a40');                                                // 題目的字
+    R(10, 5, 3, 3, solved ? '#2f7a4a' : '#c83830'); R(11, 6, 1, 1, solved ? '#9be8b0' : '#e8827a');     // 印
+    cache.set(key, cv); return cv;
+  }
   function chest(open) {
     const key = 'chest' + open; if (cache.has(key)) return cache.get(key);
     const S = RPG(550);                                              // Kenney 的鐵箍木箱；沒有打開的版本，開啟時把箱蓋換成黑色箱內
@@ -2144,5 +2159,5 @@ const GFX = (() => {
     g.fillStyle = 'rgba(255,248,220,.9)'; g.fill(); g.lineWidth = 1.2; g.strokeStyle = 'rgba(60,40,20,.75)'; g.stroke();
     cache.set(key, cv); return cv;
   }
-  return { anim, bookFrame, monBig, plate, person, tile, setIndoor, clockHands, doormat, exitArrow, skinsReady, SKINS, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
+  return { anim, bookFrame, devProp, monBig, plate, person, tile, setIndoor, clockHands, doormat, exitArrow, skinsReady, SKINS, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
 })();
