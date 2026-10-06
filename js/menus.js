@@ -651,23 +651,23 @@ const Records = {
 const SettingsPanel = {
   open() {
     return UI.panel(ctl => {
-      const F = [{ k: 'music', label: '音樂音量' }, { k: 'sfx', label: '音效音量' }, { k: 'speed', label: '文字速度' }, { k: 'hud', label: '地圖狀態列' }, { k: 'fill', label: '畫面縮放' }, { k: 'help', label: '遊戲說明' }];
+      const F = [{ k: 'music', label: '音樂音量' }, { k: 'sfx', label: '音效音量' }, { k: 'speed', label: '文字速度' }, { k: 'hud', label: '地圖狀態列' }, { k: 'fill', label: '畫面縮放' }, { k: 'help', label: '遊戲說明' }, { k: 'credits', label: '製作名單' }];
       ctl.box.innerHTML = `<h2>設定</h2><div class="fields"></div>` + footKeys('↑↓ 選擇　←→ 調整　B 返回');
       const wrap = $('.fields', ctl.box); const els = F.map(() => { const d = h('div', 'field'); wrap.appendChild(d); return d; });
       let sel = 0;
-      const val = k => k === 'help' ? '<span class="muted">按 A 查看</span>' : k === 'speed' ? ['慢', '中', '快'][Settings.speed] : k === 'hud' ? (Settings.hud ? '顯示' : '隱藏')
+      const val = k => k === 'help' || k === 'credits' ? '<span class="muted">按 A 查看</span>' : k === 'speed' ? ['慢', '中', '快'][Settings.speed] : k === 'hud' ? (Settings.hud ? '顯示' : '隱藏')
         : k === 'fill' ? (Settings.fill ? '填滿畫面<span class="muted">（像素會忽粗忽細）</span>' : '銳利<span class="muted">（整數倍，畫面略小）</span>')
         : '■'.repeat(Settings[k]) + '<span class="muted">' + '□'.repeat(10 - Settings[k]) + '</span>';
       const paint = () => F.forEach((f, i) => { els[i].classList.toggle('sel', i === sel); els[i].innerHTML = `<label>${f.label}</label><div class="val"><span class="arrow">◀</span>${val(f.k)}<span class="arrow">▶</span></div>`; });
-      const change = (k, d) => { if (k === 'help') return;
+      const change = (k, d) => { if (k === 'help' || k === 'credits') return;
         if (k === 'speed') Settings.speed = clamp(Settings.speed + d, 0, 2);
         else if (k === 'hud') Settings.hud = !Settings.hud;
         else if (k === 'fill') { Settings.fill = !Settings.fill; resize(); }
         else Settings[k] = clamp(Settings[k] + d, 0, 10);
         Sound.applyVol(); saveSettings(); Sound.sfx('cursor'); paint(); };
-      els.forEach((d, i) => d.addEventListener('pointerdown', e => { e.preventDefault(); sel = i; if (F[i].k === 'help') { Help.open(); return; } change(F[i].k, e.target === d.querySelector('.arrow') ? -1 : 1); }));
+      els.forEach((d, i) => d.addEventListener('pointerdown', e => { e.preventDefault(); sel = i; if (F[i].k === 'help') { Help.open(); return; } if (F[i].k === 'credits') { CreditsPanel.open(); return; } change(F[i].k, e.target === d.querySelector('.arrow') ? -1 : 1); }));
       ctl.update = () => { const d = Input.dir(); if (d === 'up' && sel > 0) { sel--; paint(); } if (d === 'down' && sel < F.length - 1) { sel++; paint(); } if (d === 'left' || d === 'right') change(F[sel].k, d === 'left' ? -1 : 1);
-        if (Input.p('A') && F[sel].k === 'help') { Sound.sfx('ok'); Help.open(); return; } if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } };
+        if (Input.p('A') && F[sel].k === 'help') { Sound.sfx('ok'); Help.open(); return; } if (Input.p('A') && F[sel].k === 'credits') { Sound.sfx('ok'); CreditsPanel.open(); return; } if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } };
       paint();
     });
   },
@@ -1030,6 +1030,38 @@ const Help = {
     });
   },
 };
+
+/* ============ 製作名單 ============
+   使用到的外部素材一律在這裡標示作者、來源、授權（CC BY／CC BY-SA 要求標示；CC0 不要求，但一併感謝）。
+   新增素材時，在 CREDITS 補一筆，並更新 assets/kenney/README.txt。 */
+const CREDITS = [
+  { head: '詞靈冒險．翡翠之卷', lines: ['國中國文 × 像素冒險'] },
+  { head: '企劃・題庫・劇情', lines: ['詞靈冒險 製作團隊'] },
+  { head: '程式設計', lines: ['Claude（Anthropic）協助製作'] },
+  { head: '原創圖像', lines: ['小墨、武器妖與場景概念圖：詞靈冒險 製作團隊'] },
+  { head: '音樂與音效', lines: ['遊戲內即時合成（原創）'] },
+  { head: '外部素材（需標示作者）', items: [
+    { name: 'Pixel Book (Animated)', by: 'Gokhan Solak（hansolo）', lic: 'CC BY 3.0', url: 'opengameart.org/content/pixel-book-animated', use: '書海港的入口「攤開的書」' },
+    { name: 'Free Pixelart Chests/Boxes Pack 16-16px', by: 'IbinGames', lic: 'CC BY-SA 4.0', url: 'ibingames.itch.io/free-pixelart-chestsboxes-pack-16-16px', use: '寶箱（若修改，修改後的圖同樣以 CC BY-SA 4.0 公開）' }] },
+  { head: '外部素材（CC0，感謝）', items: [
+    { name: 'Roguelike / RPG Pack、Roguelike Indoors、Roguelike Caves & Dungeons、Roguelike Modern City、RPG Urban Pack', by: 'Kenney', lic: 'CC0', url: 'kenney.nl', use: '地圖、建築、室內與道具的像素圖' }] },
+  { head: '授權條款', lines: ['CC BY 3.0：creativecommons.org/licenses/by/3.0', 'CC BY-SA 4.0：creativecommons.org/licenses/by-sa/4.0', 'CC0：creativecommons.org/publicdomain/zero/1.0'] },
+  { head: '感謝', lines: ['所有一起練習國文的同學與老師'] },
+];
+const CreditsPanel = {
+  html() {
+    return CREDITS.map(c => `<div class="qsec">${esc(c.head)}</div>` + (c.lines || []).map(l => `<div>${esc(l)}</div>`).join('') +
+      (c.items || []).map(it => `<div style="margin:2px 0 4px"><b>${esc(it.name)}</b><br><span class="muted">作者：${esc(it.by)}　授權：${esc(it.lic)}<br>${esc(it.url)}<br>用途：${esc(it.use)}</span></div>`).join('')).join('');
+  },
+  open() {
+    return UI.panel(ctl => {
+      ctl.box.innerHTML = `<h2>製作名單</h2><div class="scroll small" style="line-height:1.6">${this.html()}</div>` + footKeys('↑↓ 捲動　B 返回');
+      const sc = $('.scroll', ctl.box);
+      ctl.update = () => { const d = Input.dir(); if (d === 'up') sc.scrollTop -= 24; if (d === 'down') sc.scrollTop += 24; if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } };
+    });
+  },
+};
+
 const RecordHall = {
   open() {
     return UI.panel(ctl => {

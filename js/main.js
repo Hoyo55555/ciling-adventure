@@ -234,7 +234,7 @@ async function titleScreen() {
   if (Cloud.enabled && !Cloud.user && !Cloud.skipped && !TeacherAuth.on) { logo.style.display = 'none'; const r = await LoginPanel.open(); if (r === 'skip' || r === null) Cloud.skipped = true; if (r === 'created') await say('帳號建立完成！之後請用同一組班級、座號和密碼登入。'); if (r === 'teacher') await say('教師登入成功！標題選單已出現「教師設定」。'); logo.style.display = ''; paintLink(); Cloud.paint(); }
   while (true) {
     // 只有「新的冒險」與「設定」一定出現；其他選項要有理由才出現
-    const labels = [].concat(Slots.any() ? ['繼續冒險'] : [], ['新的冒險'], Meta.hasAny() ? ['紀錄館'] : [], ['設定'], TeacherAuth.on ? ['教師設定', '教師登出'] : Cloud.enabled ? [Cloud.user ? '登出' : '登入帳號'] : []);
+    const labels = [].concat(Slots.any() ? ['繼續冒險'] : [], ['新的冒險'], Meta.hasAny() ? ['紀錄館'] : [], ['設定', '製作名單'], TeacherAuth.on ? ['教師設定', '教師登出'] : Cloud.enabled ? [Cloud.user ? '登出' : '登入帳號'] : []);
     const i = await UI.choose(labels, { pos: { left: '50%', bottom: U(6), transform: 'translateX(-50%)' }, cancel: false, start: Math.min(sel, labels.length - 1), cls: 'titlemenu', cols: labels.length > 3 ? 2 : 1 });
     sel = i; const L = labels[i];
     logo.style.display = 'none';
@@ -253,6 +253,7 @@ async function titleScreen() {
     if (L === '教師登出') { if (await UI.yesno('要登出教師模式嗎？')) { TeacherAuth.logout(); Cloud.skipped = false; paintLink(); Cloud.paint(); await say('已登出教師模式。'); logo.remove(); tlink.remove(); return titleScreen(); } }
     if (L === '紀錄館') await RecordHall.open();
     if (L === '設定') await SettingsPanel.open();
+    if (L === '製作名單') await CreditsPanel.open();
     logo.style.display = '';
   }
 }

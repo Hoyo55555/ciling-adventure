@@ -17,7 +17,7 @@ urban_sheet    Kenney「RPG Urban Pack」（Tilemap/tilemap_packed：16×16、�
 其他外部素材
 - assets/book/book_sheet.png：Pixel Book (Animated)，Gokhan Solak（hansolo），CC-BY 3.0。
   來源 https://opengameart.org/content/pixel-book-animated
-  用途：圖書館夢中小鎮的入口（攤開的書）與「書頁翻飛」轉場。上線前要在遊戲內的製作名單標示作者。
+  用途：圖書館夢中小鎮的入口（攤開的書）與「書頁翻飛」轉場。遊戲內「製作名單」已標示（js/menus.js 的 CREDITS）。
 - assets/adventure/：Adventure Awaits Asset Pack 1.0，Ishtar Pixels，CC0（來源 https://opengameart.org/content/adventure-awaits-asset-pack-10）。目前沒有用在遊戲裡。
 - assets/chests/：Free Pixelart Chests/Boxes Pack 16-16px，IbinGames，CC BY-SA 4.0（來源 https://ibingames.itch.io/free-pixelart-chestsboxes-pack-16-16px）。
-  要標示作者；修改過的圖也要用 CC BY-SA 4.0 公開。上線前要在遊戲內的製作名單標示。
+  要標示作者；修改過的圖也要用 CC BY-SA 4.0 公開。遊戲內「製作名單」已標示（js/menus.js 的 CREDITS）。
