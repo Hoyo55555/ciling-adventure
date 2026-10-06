@@ -144,7 +144,7 @@ const OW = {
     const w = (this.L.warps || []).find(w => w.x === p.x && w.y === p.y);
     if (w) { this.run(() => w.to === '@ret' ? warpTo(G.ret.map, G.ret.x, G.ret.y, 'down') : warpTo(w.to, w.tx, w.ty, w.dir)); return true; }
     for (const n of this.npcs) if (n.sight && !G.defeated[n.key] && this.sees(n)) { p.cont = false; this.run(() => spotted(n)); return true; }
-    if (this.tile(p.x, p.y) === 'g') Sound.sfx('grass');
+    if (this.tile(p.x, p.y) === 'g' || this.tile(p.x, p.y) === '&') Sound.sfx('grass');
     /* 草叢隨機遇敵：擺在最後，出口與被發現都優先於遇敵 */
     if (this.rollEncounter()) return true;
     return false;
@@ -195,6 +195,7 @@ const OW = {
                 : c === 'r' ? this.edgeMask(tx, ty, 'r')                  // 地毯：3×3 拼塊
                 : c === 'q' ? this.edgeMask(tx, ty, 'q')                  // 餐桌：左右接起來
                 : c === '=' ? this.edgeMask(tx, ty, '=')                  // 柵欄：左右接起來
+                : c === '&' ? (this.edgeMask(tx, ty, '&') | (((tx * 5 + ty * 11) & 3) << 4))   // 墨塵：邊緣遮罩＋雜訊
                 : c === '#' && theme === 't_street' ? this.edgeMask(tx, ty, '#')   // 街邊大樓屋頂：3×3 拼塊
                 /* 樹：鄰格遮罩＋「在這一串直的樹裡是上半還是下半」——素材的樹是兩格高（上半樹冠＋下半樹幹） */
                 : c === 'T' ? treeFr(this, tx, ty)

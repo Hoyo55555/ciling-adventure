@@ -42,6 +42,7 @@ const TILES = {
   '.': { walk: 1, name: '草地' },
   ',': { walk: 1, name: '路' },
   'g': { walk: 1, name: '草叢（會遇敵）' },
+  '&': { walk: 1, name: '墨塵（校舍角落漫開的一灘墨，會遇敵）' },
   'i': { walk: 1, name: '石階（山道的階梯路）' },
   '+': { walk: 1, name: '木板橋' },
   '_': { walk: 1, name: '室內地板' },

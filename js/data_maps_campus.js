@@ -24,6 +24,14 @@ const CAMPUS_MAPS = {};
    ============================================================ */
 
 /* ---- 1. 巷口 20×16：教移動與對話 ---- */
+/* 墨塵角落（校舍裡的遇敵點）：走廊、穿堂、樓梯間的角落有幾灘漫開的墨，踩進去會遇到武器妖。
+   學校裡本來沒有草叢，收集碎片只能往外跑；這樣在校內也能練、能撿碎片。
+   墨族（修正液、墨水瓶、墨條、板擦、印泥）比較常出現，掉的碎片剛好是毛筆、橡皮擦、粉筆、印章。 */
+const INK_FOES = { on: '&', lv: [3, 6], scale: 4, rate: .26, safe: 0, list: [
+  { sp: 'pen_auto', w: 2, stage: 0 }, { sp: 'tool_eraser', w: 2, stage: 0 }, { sp: 'paper_exam', w: 2, stage: 0 }, { sp: 'tool_ruler', w: 2, stage: 0 },
+  { sp: 'ink_white', w: 3, stage: 1 }, { sp: 'ink_bottle', w: 3, stage: 1 }, { sp: 'paper_hand', w: 1, stage: 1 },
+  { sp: 'ink_duster', w: 3, stage: 2 }, { sp: 'ink_stick', w: 3, stage: 2 }, { sp: 'ink_pad', w: 3, stage: 3 }] };
+
 CAMPUS_MAPS.s1 = {
   music: 'route', theme: 't_street', chapter: 0,
   rows: [
@@ -237,10 +245,11 @@ CAMPUS_MAPS.hall = {
     '________________________',
     'ww____________________ww',
     'w_p__________________p_w',
-    'w______________________w',
-    'w____2__2_w__w_2__2____w',
+    'w&&&________________&&&w',
+    'w&&&_2__2_w__w_2__2_&&&w',
     'wwwwwwwwwww__wwwwwwwwwww',
   ],
+  foes: INK_FOES,
   warps: [
     /* 南→前庭　北→中庭　西→走廊1F　東→禮堂前廣場 */
     { x: 11, y: 11, to: 'front', tx: 14, ty: 8, dir: 'down' },
@@ -265,10 +274,11 @@ CAMPUS_MAPS.corridor1 = {
     'wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww',
     'w7wWDWwzzwWDWwzzwWDWwzzwWDWwzzww',
     '________________________________',
-    '________________________________',
-    '________________________________',
+    '_______&&_______&&____&&________',
+    '_______&&_______&&____&&________',
     '11111111111111111111111111111111',
   ],
+  foes: INK_FOES,
   doorWarps: {
     '4,1':  { to: 'store_c', tx: 5, ty: 5, dir: 'up', ret: { x: 4,  y: 2 } },   // 福利社（通學路是單向的，校內要能補貨）
     '11,1': { to: 'c8',      tx: 6, ty: 7, dir: 'up', ret: { x: 11, y: 2 } },   // 自己的教室（王老師、筆靈）
@@ -372,10 +382,11 @@ CAMPUS_MAPS.stair1 = {
     'w__iiii__w',
     'w________w',
     'w_________',
-    'w_________',
-    'w________w',
+    'w___&&____',
+    'w___&&___w',
     'wwwwwwwwww',
   ],
+  foes: INK_FOES,
   warps: [
     { x: 3, y: 1, to: 'corridor2', tx: 1, ty: 3, dir: 'right' },
     { x: 4, y: 1, to: 'corridor2', tx: 1, ty: 3, dir: 'right' },
@@ -396,10 +407,11 @@ CAMPUS_MAPS.corridor2 = {
     'wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww',
     'wzzwWDWwWWWwzzw22wWDWwWWWwzzwwww',
     '________________________________',
-    '________________________________',
-    '________________________________',
+    '_________&&_____&&_____&&_______',
+    '_________&&_____&&_____&&_______',
     '11111111111111111111111111111111',
   ],
+  foes: INK_FOES,
   doorWarps: {
     '5,1':  { to: 'lib',  tx: 7, ty: 10, dir: 'up', ret: { x: 5,  y: 2 },
               need: 1, gate: 'need1' },                       // 圖書館＝道館②
@@ -533,6 +545,8 @@ const CAMPUS_NPCS = {
     { role: 'townTip2', x: 20, y: 14, dir: 'down', wander: 1 },
   ],
   hall: [
+    { role: 'spar_h',  x: 12, y: 8,  dir: 'down' },
+    { role: 'inkTip',  x: 5,  y: 8,  dir: 'down' },
     { role: 't_cs_a',   x: 4,  y: 2,  dir: 'down' },
     { role: 't_cs_b',   x: 19, y: 2,  dir: 'down' },
     { role: 'townTip3', x: 4,  y: 9,  dir: 'right' },
@@ -540,10 +554,12 @@ const CAMPUS_NPCS = {
     { role: 'roamHint', x: 16, y: 3,  dir: 'down' },
   ],
   corridor1: [
+    { role: 'spar_c1', x: 10, y: 4,  dir: 'up' },
     { role: 't_r2a',    x: 14, y: 4,  dir: 'up', sight: 2 },    // 面向上：整條走廊的寬度都看得到
     { role: 'forgeTip', x: 27, y: 2,  dir: 'down' },
   ],
   stair1: [
+    { role: 'spar_s',  x: 7,  y: 3,  dir: 'left' },
     { role: 't_r2b',  x: 2, y: 5, dir: 'right', sight: 3 },
     { role: 'rival2', x: 2, y: 3, dir: 'right', sight: 3, minBadges: 3, maxBadges: 3 },
     /* 周以恆②之後現身的器靈：打輸了會留在樓梯間等你（哪一隻是隨機的，三隻都放，只會出現那一隻） */
@@ -552,6 +568,7 @@ const CAMPUS_NPCS = {
     { role: 'gd_ink',   x: 6, y: 5, dir: 'down', retry: 1 },
   ],
   corridor2: [
+    { role: 'spar_c2', x: 7,  y: 3,  dir: 'right' },
     { role: 'rival1',  x: 4,  y: 4, dir: 'up', sight: 2, minBadges: 1, maxBadges: 1 },
     { role: 't_r3a',   x: 14, y: 2, dir: 'down', sight: 2 },
     { role: 'gymTip4', x: 22, y: 2, dir: 'down' },

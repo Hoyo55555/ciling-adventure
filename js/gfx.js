@@ -480,6 +480,32 @@ const GFX = (() => {
         }
         break;
       }
+      case '&': {                                   // 墨塵：地板上漫開的一灘墨。fr 低四位＝鄰格遮罩（哪幾邊不是墨塵）、高位＝雜訊
+        base();
+        const m = fr & 15, v = (fr >> 4) & 3, RC = 5;
+        const ink = (x, y) => {                      // 圓角矩形，邊緣用雜訊咬出一點不規則；沒有開口的那幾邊一路連到鄰格
+          const dx = Math.min(m & 8 ? x : 99, m & 2 ? 15 - x : 99), dy = Math.min(m & 1 ? y : 99, m & 4 ? 15 - y : 99);
+          const rim = 1 + ((x * 7 + y * 13 + v * 5) % 3);
+          if (dx < 99 && dy < 99) return (dx >= RC || dy >= RC) ? Math.min(dx, dy) >= rim : Math.hypot(RC - dx, RC - dy) <= RC - rim + .5;
+          return Math.min(dx, dy) >= rim;
+        };
+        g.globalAlpha = .94;
+        for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) if (ink(x, y)) {
+          const wet = !ink(x - 1, y) || !ink(x + 1, y) || !ink(x, y - 1) || !ink(x, y + 1);
+          g.fillStyle = wet ? '#3d3870' : y < 8 && (x + v) % 5 === 0 && y % 3 === 1 ? '#2a2648' : '#211d3a'; g.fillRect(x, y, 1, 1);
+        }
+        g.globalAlpha = 1;
+        /* 潑出去的小墨點（只在有開口的那一側） */
+        if (m & 1) { R(2 + (v * 5) % 11, 0, 1, 1, '#2a2648'); R(9 - v, 1, 2, 1, '#2a2648'); }
+        if (m & 4) { R(3 + (v * 3) % 9, 15, 1, 1, '#2a2648'); R(11 - v, 14, 1, 1, '#2a2648'); }
+        if (m & 8) { R(0, 3 + (v * 4) % 9, 1, 1, '#2a2648'); R(1, 10 - v, 1, 2, '#2a2648'); }
+        if (m & 2) { R(15, 2 + (v * 3) % 10, 1, 1, '#2a2648'); R(14, 9 + v, 1, 2, '#2a2648'); }
+        /* 墨面的反光：一小道弧線＋一個亮點 */
+        const hx = 4 + v * 2, hy = 4 + (v & 1) * 5;
+        if (ink(hx, hy) && ink(hx + 3, hy - 1)) { R(hx, hy, 1, 1, '#8f8bdc'); R(hx + 1, hy - 1, 2, 1, '#8f8bdc'); R(hx + 3, hy, 1, 1, '#8f8bdc'); }
+        if (ink(10 - v, 10)) R(10 - v, 10, 1, 1, '#cfccff');
+        break;
+      }
       case 'g':
         if (theme === 'school') {   // 國中：散落的考卷堆
           R(0, 0, 16, 16, T.floor);
