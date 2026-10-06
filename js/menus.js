@@ -103,7 +103,7 @@ const BookMenu = {
     let sel = 0;
     while (true) {
       const opts = ['角色', '地圖', '武器', '電腦', '鍛造', '道具', '兵器譜', '妖怪圖鑑', '稱號', '任務', '存檔', '設定']
-        .concat(G && G.teacher ? ['🚌 直達'] : [], Cloud.user ? ['登出'] : [], ['回到主畫面', '關閉']);
+        .concat(OW.L && OW.L.dream && G.flags.dream ? ['醒來'] : [], G && G.teacher ? ['🚌 直達'] : [], Cloud.user ? ['登出'] : [], ['回到主畫面', '關閉']);
       const i = await UI.choose(opts, { pos: {}, cls: 'bookmenu', start: sel });
       const L = opts[i]; if (i < 0 || L === '關閉') return; sel = i;
       if (L === '角色') await CharPanel.open();
@@ -118,6 +118,8 @@ const BookMenu = {
       if (L === '任務') await Quests.open();
       if (L === '存檔') { autosave(); Sound.sfx('badge'); await say(`已儲存到欄位 ${G.slot}！（${fmtDate(G.savedAt)}）`); }
       if (L === '設定') await SettingsPanel.open();
+      if (L === '醒來') {                                    // 夢中小鎮：隨時可以醒來（進度保留）
+        if (await UI.yesno('要醒來、回到教室嗎？\n（進度都會保留，之後可以從教室的旋渦再進來）')) { await dreamWake(G.flags.dream); return; } }
       if (L === '🚌 直達') { if (await TeacherTravel.open()) return; }
       if (L === '登出') { if (await Cloud.logoutFlow()) { await fade(1, 0.3); titleScreen(); await fade(0, 0.3); return; } }
       if (L === '回到主畫面') { await goHome(); if (Game.scene === 'title') return; }

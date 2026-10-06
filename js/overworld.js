@@ -11,6 +11,7 @@ const OW = {
   load(id, x, y, dir) {
     if (!LAYOUTS[id]) { const H0 = (W && W.homeTown) || { map: 'chendu', x: 11, y: 7 }; id = H0.map; x = H0.x; y = H0.y; }   // 防呆：地圖不存在就回起點城鎮
     this.id = id; this.L = LAYOUTS[id];
+    if (G && G.defeated && G.defeated['c1a:boss1'] && !G.flags.zyEntered) { G.flags.zyEntered = G.flags.zyOpen = G.flags.zyDone = G.flags.zySeen = true; }   // 舊存檔：夢中小鎮出現之前就打過了
     Object.assign(this.p, { x, y, dir: dir || this.p.dir, moving: false, t: 0 });
     this.npcs = (this.L.npcs || []).concat((G.flags.cleared && W.postNpcs && W.postNpcs[id]) || []).map(s => {
       const role = W.roles[s.role]; if (!role) return null;
@@ -29,7 +30,7 @@ const OW = {
       /* 校園版所有地方一開始就走得到，所以用「拿到幾片碎片」決定人物什麼時候登場、什麼時候離開 */
       if (s.minBadges != null && G.badges.length < s.minBadges) return null;
       if (s.maxBadges != null && G.badges.length > s.maxBadges) return null;
-      return { key: id + ':' + s.role + (s.retry ? ':retry' : ''), retry: !!s.retry, role, x: s.x, y: s.y, dir: s.dir, home: s.dir, sight: s.sight || 0, wander: s.wander, ox: 0, oy: 0, fr: 0, look: role.look };
+      return { key: s.key || (id + ':' + s.role + (s.retry ? ':retry' : '')), retry: !!s.retry, role, x: s.x, y: s.y, dir: s.dir, home: s.dir, sight: s.sight || 0, wander: s.wander, ox: 0, oy: 0, fr: 0, look: role.look };
     }).filter(Boolean);
     this.resetEncounter();
     if (id === 'inkpool') this.spawnSpirit();
@@ -279,7 +280,7 @@ const OW = {
         g.drawImage(sp, n.x * 16 + n.ox - cx - (sw - 16) / 2, n.y * 16 + n.oy - cy - (sh - 16) - 3 + bob); }   // 依圖原尺寸畫，不拉伸；有動畫的（小墨）播四格
       else g.drawImage(GFX.person(n.look, n.dir, n.fr), n.x * 16 + n.ox - cx, n.y * 16 + n.oy - cy - 3); } }));
     const fr = p.moving ? (k < 0.5 ? (p.step % 2 ? 1 : 2) : 0) : 0;
-    actors.push({ y: py, draw: () => {
+    if (!this.hidePlayer) actors.push({ y: py, draw: () => {
       g.drawImage(GFX.person(G.player.look, p.dir, fr), px - cx, py - cy - 3 - (p.hop || 0));   // hop：過場用的跳起高度
       if (this.tile(p.moving ? p.tx : p.x, p.moving ? p.ty : p.y) === 'g' && (!p.moving || k > 0.5)) g.drawImage(GFX.tile(theme, 'g'), 0, 10, 16, 6, px - cx, py - cy + 10, 16, 6);
     } });
@@ -296,6 +297,14 @@ const OW = {
     for (const n of this.npcs) { const m = marks[n.role === W.roles.questGiver ? 'questGiver' : n.key.split(':')[1]]; if (m) drawMark(g, n.x * 16 + n.ox - cx + 3, n.y * 16 + n.oy - cy - (n.look.sprite === 'boss' ? 28 : 15), m, now); }
     for (const [k, d] of Object.entries(this.L.devices || {})) if (!G.flags[d.flag]) { const [dx2, dy2] = k.split(',').map(Number); drawMark(g, dx2 * 16 - cx + 4, Math.max(2, dy2 * 16 - cy - 9), 'side', now); }
     for (const f of this.fx || []) f(g, cx, cy);
+    /* 夢中小鎮：整張圖蒙一層淡淡的紫、飄著字（讓玩家一眼知道這裡不是現實） */
+    if (L.dream) {
+      g.fillStyle = 'rgba(140,110,230,.09)'; g.fillRect(0, 0, 240, 160);
+      g.font = '9px sans-serif'; g.textAlign = 'center';
+      for (let i = 0; i < 9; i++) { const gx = (i * 53 + now / 55) % 250 - 5, gy = 170 - ((now / 38 + i * 37) % 190);
+        g.fillStyle = `rgba(236,228,255,${.16 + .12 * Math.sin(now / 700 + i)})`; g.fillText(DREAM_GLYPHS[(i * 5) % DREAM_GLYPHS.length], gx, gy); }
+      g.textAlign = 'start';
+    }
     /* night：序幕結束前房間是暗的（天還沒亮）。用地圖資料決定，讀檔回來也一樣暗 */
     const dk = Math.max(this.dark, L.night && !G.flags.prologue ? L.night : 0);
     if (dk > 0) { g.fillStyle = `rgba(8,6,14,${dk})`; g.fillRect(0, 0, 240, 160); }
@@ -304,9 +313,122 @@ const OW = {
       g.fillStyle = '#2a2018'; g.fillRect(bx - 1, by - 1, 12, 13); g.fillStyle = '#fbf3dc'; g.fillRect(bx, by, 10, 11); g.fillStyle = '#b8322a'; g.fillRect(bx + 4, by + 2, 2, 5); g.fillRect(bx + 4, by + 8, 2, 2); }
   },
 };
+/* ============================================================
+   夢中小鎮（2026-10-06）
+   ------------------------------------------------------------
+   道館不再是「走進去就打」：教室解完謎 → 遇到小老師的「碎片化身」（打贏只拿到紙屑）→ 旋渦把玩家吸進夢中小鎮
+   → 幫鎮上的人解決麻煩（W.dreams[id].need 件）→ 道館開門 → 真正的小老師 → 夢醒、回到教室。
+   · 隨時可以醒來：小鎮裡的旋渦、選單的「醒來」；進度保留，下次從旋渦再進去。
+   · 夢裡倒下：休息處在小鎮（茶棚），不會被丟回現實。進夢時記下原本的休息處，醒來時還回去。
+   · 夢中小鎮走完之後，教室裡的旋渦留著，可以回去刷妖怪、補沒做完的委託。
+   設定：W.dreams（data_maps_campus.js 的 CAMPUS_PATCH）。
+   ============================================================ */
+const DREAM_GLYPHS = ['字', '音', '形', 'ㄅ', '注', 'ㄆ', '錯', '對', 'ㄇ', '夢', '筆', 'ㄈ', '墨', '紙'];
+function drawVortexFx(g, x, y, st, img) {
+  const t = performance.now() / 1000, I = st.swirl;                    // I：旋渦強度 0～1
+  if (I > 0) {
+    const rg = g.createRadialGradient(x, y, 2, x, y, 46 * (.5 + I * .6)); rg.addColorStop(0, `rgba(236,224,255,${.55 * I})`); rg.addColorStop(1, 'rgba(120,90,220,0)');
+    g.fillStyle = rg; g.fillRect(x - 60, y - 60, 120, 120);
+    for (let arm = 0; arm < 3; arm++) for (let j = 0; j < 26; j++) {                       // 三條螺旋臂
+      const r = j * 3.3 * (.45 + .55 * I), a = j * .42 + t * (3 + 5 * I) + arm * 2.094;
+      g.fillStyle = j % 5 === 0 ? `rgba(255,255,255,${.85 * I})` : `rgba(${150 + j * 3},${110 + j * 2},255,${.8 * I})`;
+      g.fillRect(Math.round(x + Math.cos(a) * r) - 1, Math.round(y + Math.sin(a) * r * .8) - 1, 2, 2);
+    }
+    g.font = '9px sans-serif'; g.textAlign = 'center';
+    for (let i = 0; i < 14; i++) {                                                           // 繞著轉的字
+      const R = (78 - 56 * st.pull) * (1 - .15 * Math.sin(t * 2 + i)), a = i * .449 + t * (2 + 6 * I);
+      g.fillStyle = `rgba(244,238,255,${.35 + .5 * I})`; g.fillText(DREAM_GLYPHS[i % DREAM_GLYPHS.length], x + Math.cos(a) * R, y + Math.sin(a) * R * .75 + 3);
+    }
+    g.textAlign = 'start';
+  }
+  if (st.player > 0) {                                                                       // 玩家被捲起來（縮小＋旋轉）
+    g.save(); g.translate(x, y); g.rotate((1 - st.player) * 14); g.scale(st.player, st.player); g.drawImage(img, -8, -12); g.restore();
+  }
+}
+/* 吸進旋渦：旋渦長出來 → 玩家被捲進去縮小 → 全白 */
+async function vortexOut() {
+  const p = OW.p, wx = p.x * 16 + 8, wy = p.y * 16 + 8, img = GFX.person(G.player.look, 'down', 0), st = { swirl: 0, pull: 0, player: 1 };
+  OW.fx.push((g, cx, cy) => drawVortexFx(g, wx - cx, wy - cy, st, img));
+  OW.hidePlayer = true; Sound.sfx('encounter');
+  await Anim.run(1.0, k => { st.swirl = k; st.pull = 0; OW.dark = k * .35; OW.shake = k * 1.2; });
+  Sound.sfx('hit');
+  await Anim.run(1.0, k => { st.pull = k; st.player = 1 - k; OW.dark = .35 + k * .4; OW.shake = 1.2; });
+  await Anim.run(0.35, k => OW.flash = k);
+  OW.shake = 0; OW.fx.length = 0;
+}
+/* 從白光裡出來：旋渦散開、玩家轉出來 */
+async function vortexIn() {
+  const p = OW.p, wx = p.x * 16 + 8, wy = p.y * 16 + 8, img = GFX.person(G.player.look, 'down', 0), st = { swirl: 1, pull: 1, player: 0 };
+  OW.hidePlayer = true; OW.flash = 1; OW.dark = .5;
+  OW.fx.push((g, cx, cy) => drawVortexFx(g, wx - cx, wy - cy, st, img));
+  Sound.sfx('heal');
+  await Anim.run(0.45, k => OW.flash = 1 - k);
+  await Anim.run(1.0, k => { st.pull = 1 - k; st.player = k; st.swirl = 1 - k * .9; OW.dark = .5 * (1 - k); });
+  await Anim.run(0.25, k => { st.swirl = .1 * (1 - k); st.player = 1; });
+  OW.fx.length = 0; OW.hidePlayer = false; OW.dark = 0; OW.flash = 0;
+}
+async function dreamEnter(id) {
+  const D = W.dreams[id];
+  await vortexOut();
+  if (!G.flags.dream) { G.flags.dreamPrevHeal = G.lastHeal ? Object.assign({}, G.lastHeal) : null; G.flags.dreamPrevRet = G.ret ? Object.assign({}, G.ret) : null; }   // 記下現實的休息處與出口落點，醒來時還回去
+  G.flags.dream = id; G.lastHeal = Object.assign({}, D.heal);
+  OW.load(D.town.map, D.town.x, D.town.y, D.town.dir); autosave();
+  await vortexIn();
+  if (!G.flags[id + 'Seen']) {
+    G.flags[id + 'Seen'] = true;
+    for (const t of D.arrive) await say(t, t.startsWith('（') ? undefined : '小墨');
+  }
+  autosave();
+}
+async function dreamWake(id) {
+  const D = W.dreams[id];
+  await vortexOut();
+  if (G.flags.dreamPrevHeal) G.lastHeal = Object.assign({}, G.flags.dreamPrevHeal); else G.lastHeal = Object.assign({}, W.startHeal || W.homeTown);
+  if (G.flags.dreamPrevRet) G.ret = Object.assign({}, G.flags.dreamPrevRet);        // 夢裡進道館會把 ret 改成小鎮，不還回去的話教室的出口會通到夢裡
+  G.flags.dreamPrevHeal = null; G.flags.dreamPrevRet = null; G.flags.dream = null;
+  OW.load(D.home.map, D.home.x, D.home.y, D.home.dir); autosave();
+  await vortexIn();
+}
+/* 旋渦（教室裡進去、小鎮裡醒來） */
+async function portalTalk(n) {
+  const R = n.role, D = W.dreams[R.dream];
+  if (R.wake) { await say(R.first); if (!(await UI.yesno(R.ask))) return; await dreamWake(R.dream); return; }
+  await say(G.flags[D.doneFlag] ? R.done : R.first);
+  if (!(await UI.yesno(R.ask))) return;
+  await dreamEnter(R.dream);
+}
+/* 小老師的「碎片化身」：解完謎才出現；打贏只拿到紙屑，旋渦把玩家吸進夢中小鎮 */
+async function avatarTalk(n) {
+  const R = n.role;
+  if (!G.flags.bbAll) { await say(R.gateText); return; }
+  if (!G.equip.length) { await say('……你手上沒有武器？', R.name); return; }
+  for (const t of R.lines) await say(t, t.startsWith('（') || t.includes('：') ? undefined : R.name);
+  const res = await Battle.start({ kind: 'gym', foe: makePersonFoe(R), role: R, cats: R.foe.cats });
+  if (res !== 'win') return;
+  for (const t of R.afterWin) await say(t, t.startsWith('（') || t.includes('：') ? undefined : R.name);
+  G.flags.zyEntered = true;
+  await dreamEnter(R.dream);
+}
+/* 委託做到第幾件：夠了就開道館的門 */
+async function dreamProgress(id) {
+  const D = W.dreams[id];
+  const n = Object.keys(G.flags).filter(k => /^sq:/.test(k) && !k.endsWith(':got') && (W.roles[k.split(':').pop()] || {}).dream === id).length;
+  if (G.flags[D.openFlag]) return;
+  if (n >= D.need) { G.flags[D.openFlag] = true; Sound.sfx('badge'); autosave(); await say(D.openText); }
+  else { await say(`（夢鬆動了一點……還差 ${D.need - n} 件。）`); }
+}
+/* 真正的小老師倒下之後：夢開始淡去，回到教室 */
+async function dreamFinish(id) {
+  const D = W.dreams[id]; G.flags[D.doneFlag] = true; autosave();
+  for (const t of D.finish) await say(t, t.startsWith('（') ? undefined : t.includes('：') ? undefined : '小墨');
+  await dreamWake(id);
+  for (const t of (D.afterWake || [])) await say(t);
+  autosave();
+}
+
 /* 目前該找誰：main 主線（黃 !）、side 可接支線（藍 !）、report 可回報（黃 ?） */
 function storyStage() { return G.badges.length; }
-const roleKey = r => { for (const [k, L] of Object.entries(LAYOUTS)) if ((L.npcs || []).some(s => s.role === r)) return k + ':' + r; return r; };
+const roleKey = r => { for (const [k, L] of Object.entries(LAYOUTS)) { const sp = (L.npcs || []).find(s => s.role === r); if (sp) return sp.key || (k + ':' + r); } return r; };
 const isDone = r => !!G.defeated[roleKey(r)];
 const roleReady = r => { const R = W.roles[r]; return !R.needDefeated || R.needDefeated.every(k => G.defeated[k]); };
 function questMarks() {
@@ -496,12 +618,15 @@ async function talkTo(n) {
     case 'spirit': return spiritTalk(n);
     case 'bus': return busTalk(n);
     case 'quest2': return sideQuestTalk(n);
+    case 'avatar': return avatarTalk(n);
+    case 'portal': return portalTalk(n);
     case 'roamer': return roamerTalk(n);
     case 'roam': return roamHintTalk(n);
     case 'guide': { const L = R.lines[Math.min(storyStage(), R.lines.length - 1)]; await say(L.join('\n\n'), R.name); return; }
     case 'healer': {
       Sound.sfx('door'); await say(R.text); G.hp = G.maxhp;
-      if (G.ret) G.lastHeal = { map: G.ret.map, x: G.ret.x, y: G.ret.y };
+      if (OW.L.dream) G.lastHeal = { map: OW.id, x: OW.p.x, y: OW.p.y };      // 夢裡的休息處就在茶棚旁，倒下了不會被丟回現實
+      else if (G.ret) G.lastHeal = { map: G.ret.map, x: G.ret.x, y: G.ret.y };
       Sound.sfx('heal'); await say('（氣血全滿了！）'); autosave(); n.dir = n.home; return; }
     case 'shop': await say(R.text); await Shop.open((G.ret && LAYOUTS[G.ret.map].shop) || ['heal', 'hint']); n.dir = n.home; return;
     case 'smith': await say(R.lines.join('\n\n'), R.name); await Forge.open(); n.dir = n.home; return;
@@ -559,7 +684,7 @@ async function busTalk(n) {
 /* 支線任務（分組報告、遺失的准考證） */
 async function sideQuestTalk(n) {
   const R = n.role, key = 'sq:' + n.key;
-  const done = R.need ? R.need.every(k => G.defeated[k]) : !!G.flags[R.needFlag];
+  const done = R.need ? R.need.every(k => G.defeated[k]) : R.needChests ? R.needChests.every(id => G.chests[id]) : !!G.flags[R.needFlag];
   if (G.flags[key]) { await say(R.after, R.name); return; }
   if (!done) { await say(G.flags[key + ':got'] ? R.progress : R.offer, R.name); G.flags[key + ':got'] = true; autosave(); return; }
   G.flags[key] = true; Sound.sfx('badge');
@@ -567,8 +692,11 @@ async function sideQuestTalk(n) {
   const P = R.prize || {};
   if (P.money) G.money += P.money;
   if (P.items) for (const id in P.items) G.bag[id] += P.items[id];
-  await say(`得到了 ${P.money} ${W.money}${P.items ? '、' + Object.entries(P.items).map(([id, c]) => `「${itemName(id)}」×${c}`).join('、') : ''}！`);
+  let fr = '';
+  if (P.frags) { const keys = ARCH_ORDER.filter(a => ARCH[a].ch <= 5); for (let i = 0; i < P.frags; i++) { const a = pick(keys); G.frags[a] = (G.frags[a] || 0) + 1; } fr = `、隨機碎片 ×${P.frags}`; }
+  await say(`得到了 ${P.money || 0} ${W.money}${P.items ? '、' + Object.entries(P.items).map(([id, c]) => `「${itemName(id)}」×${c}`).join('、') : ''}${fr}！`);
   autosave();
+  if (R.dream) await dreamProgress(R.dream);
 }
 /* 器靈現在會待在某一張地圖，鎮上的小孩會告訴你在哪 */
 const ROAM_MAPS = ['chendu', 'r1', 'zhuyin', 'r2', 'chaoshu', 'r3', 'dianji', 'r4', 'tingyu', 'huanan', 'r5', 'beilin', 'r6', 'moquan', 'zhongta'];
@@ -905,6 +1033,7 @@ async function trainerTalk(n) {
     else { G.chapter = G.badges.length + 1; Sound.play(W.music[OW.L.music] || OW.L.music); await sleep(200); showBanner(W.chapterName); await say(`【${W.chapterName}】\n${W.stages[storyStage()].text}`); }
   }
   autosave();
+  if (R.kind === 'gym' && R.dream && OW.L.dream) await dreamFinish(R.dream);      // 夢中小鎮的道館主：打完夢就醒
 }
 /* 序幕：八年級教室 */
 async function storyPrologue() {

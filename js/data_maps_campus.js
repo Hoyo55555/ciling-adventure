@@ -526,6 +526,116 @@ CAMPUS_MAPS.house1f = {
      小墨      禮堂前，接下守護神器任務之後守在台階旁
    居民的台詞還是舊城鎮的版本，寫新劇情時一起改。
    ============================================================ */
+
+/* ============================================================
+   夢中小鎮 ① 注音坡（2026-10-06）
+   ------------------------------------------------------------
+   碎片留下來的夢。從一年甲班的旋渦進來，在這裡幫 3 件麻煩，道館的門才會開（W.dreams.zy）。
+   · zy_town  小鎮：旋渦（醒來）、茶棚（休息處）、4 位委託人、壞掉的路牌（機關）、道館大門
+   · zy_slope 坡道：草叢（B 區：1F 注音坡的妖怪）、3 個箱子（找回積木）、錯字大王
+   · zy_gym   夢中的一年甲班：真正的小老師
+   ============================================================ */
+CAMPUS_MAPS.zy_town = {
+  music: 'town', theme: 't_slope', chapter: 1, dream: 'zy',
+  rows: [
+    'TTTTTTTTTTTTTTTTTTTTTTTT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT,,,,,,,,,,,,,,,,,,,,TT',
+    'TT.T...L...,,...L...T.TT',
+    'TT..F...,,,,,,,,...F..TT',
+    'TT......,,,,,,,,......TT',
+    'TT.S....,,,,,,,,....S.TT',
+    'TT......,,,,,,,,......TT',
+    'TT..mm.....,,.........TT',
+    'TT.......F.,,...T.....TT',
+    'TTT..F.T...,,..S..F..TTT',
+    'TTTTTTTTTTT,,TTTTTTTTTTT',
+  ],
+  props: [['flatx', 2, 2], ['block8', 8, 1], ['flaty', 17, 2]],
+  doorWarps: {
+    '11,7': { plate: 'class', label: '注音坡道館', to: 'zy_gym', tx: 6, ty: 7, dir: 'up', ret: { x: 11, y: 8 },
+              needFlag: 'zyOpen', flagText: '（道館的大門被夢鎖著……先幫鎮上的人解決麻煩吧。）' },
+  },
+  warps: [
+    { x: 11, y: 17, to: 'zy_slope', tx: 9,  ty: 1, dir: 'down' },
+    { x: 12, y: 17, to: 'zy_slope', tx: 10, ty: 1, dir: 'down' },
+  ],
+  devices: {
+    '3,12':  { group: 'zysign', flag: 'zs1', cat: '字音', label: '壞掉的路牌',
+      text: '路牌上的注音掉光了，只剩下空空的方格……\n（讀出正確的唸法，注音就會回到牌子上。）',
+      ok: '注音一個一個回到了牌子上！', allText: '三面路牌都亮起來了！' },
+    '20,12': { group: 'zysign', flag: 'zs2', cat: '字音', label: '壞掉的路牌',
+      text: '第二面路牌上的聲調全都歪掉了。', ok: '聲調站回了正確的位置！', allText: '三面路牌都亮起來了！' },
+    '15,16': { group: 'zysign', flag: 'zs3', cat: '字形', label: '壞掉的路牌',
+      text: '最後一面路牌上的字寫錯了，連「己」「已」都分不清……', ok: '字全都改對了，牌子端正地立了起來！',
+      allText: '三面路牌都亮起來了——小鎮的路不會再走錯了！', onAll: 'zsAll' },
+  },
+  signs: {},
+};
+CAMPUS_MAPS.zy_slope = {
+  music: 'route', theme: 't_slope', chapter: 1, dream: 'zy',
+  rows: [
+    'TTTTTTTTT,,TTTTTTTTT',
+    'TT.......,,.......TT',
+    'TT.T...T.,,.......TT',
+    'TTggggg..,,.......TT',
+    'TTggggg..,,.......TT',
+    'TTggggg..,,.T.....TT',
+    'TTggggg..,,.......TT',
+    'TT.......,,.......TT',
+    'TT.F.....,,...T...TT',
+    'TT..T..iiiiii.....TT',
+    'TT.....iiiiii...F.TT',
+    'TT.......,,.......TT',
+    'TT.......,,..gggggTT',
+    'TT.T...F.,,..gggggTT',
+    'TT.......,,..gggggTT',
+    'TT.......,,..gggggTT',
+    'TTggggg..,,..gggggTT',
+    'TTggggg..,,.......TT',
+    'TTggggg..,,.T.....TT',
+    'TTggggg.TS,....T..TT',
+    'TT...F...,,..F....TT',
+    'TTTTTTTTTTTTTTTTTTTT',
+  ],
+  foes: { lv: [5, 8], scale: 3, pool: 'B', rate: .17, safe: 2 },
+  warps: [
+    { x: 9,  y: 0, to: 'zy_town', tx: 11, ty: 16, dir: 'up' },
+    { x: 10, y: 0, to: 'zy_town', tx: 12, ty: 16, dir: 'up' },
+  ],
+  chests: [
+    { x: 5,  y: 7,  id: 'zyb1', items: { hint: 1 } },
+    { x: 16, y: 18, id: 'zyb2', items: { heal: 1 } },
+    { x: 4,  y: 15, id: 'zyb3', items: { hint: 1 } },
+  ],
+  signs: { '9,19': 'zy_rest' },
+};
+CAMPUS_MAPS.zy_gym = {
+  music: 'town', theme: 't_campus', chapter: 1, indoor: 1, dream: 'zy',
+  rows: [
+    'w**wBBBBBB*w',
+    'w____e_____w',
+    'w__________w',
+    'w_??_rr_??_w',
+    'w_$______$_w',
+    'w_??_rr_??_w',
+    'wp$$____$$pw',
+    'w__________w',
+    'wwwww__wwwww',
+  ],
+  warps: [
+    { x: 5, y: 8, to: 'zy_town', tx: 11, ty: 8, dir: 'down' },
+    { x: 6, y: 8, to: 'zy_town', tx: 12, ty: 8, dir: 'down' },
+  ],
+  signs: {},
+};
+
 const CAMPUS_NPCS = {
   s1: [
     { role: 't_cd_a', x: 7,  y: 7,  dir: 'right' },
@@ -543,6 +653,24 @@ const CAMPUS_NPCS = {
     { role: 'gymTip1',  x: 16, y: 8,  dir: 'down' },
     { role: 't_zy_b',   x: 12, y: 12, dir: 'down', wander: 1 },
     { role: 'townTip2', x: 20, y: 14, dir: 'down', wander: 1 },
+  ],
+  zy_town: [
+    { role: 'zyWake', x: 12, y: 11, dir: 'down' },
+    { role: 'zyG1',   x: 7,  y: 11, dir: 'right' },
+    { role: 'zyG2',   x: 16, y: 11, dir: 'left' },
+    { role: 'zyG3',   x: 18, y: 15, dir: 'left' },
+    { role: 'zyG4',   x: 8,  y: 15, dir: 'right' },
+    { role: 'zyKid',  x: 20, y: 14, dir: 'left', sight: 3 },
+    { role: 'zyTea',  x: 4,  y: 15, dir: 'up' },
+    { role: 'zyTip1', x: 9,  y: 13, dir: 'down' },
+    { role: 'zyTip2', x: 14, y: 13, dir: 'down' },
+    { role: 'zyQuiz', x: 6,  y: 9,  dir: 'down', wander: 1 },
+  ],
+  zy_slope: [
+    { role: 'zyThug', x: 10, y: 13, dir: 'up', sight: 3 },
+  ],
+  zy_gym: [
+    { role: 'boss1', x: 5, y: 2, dir: 'down', key: 'c1a:boss1' },   // 真正的小老師。打倒的紀錄沿用 c1a:boss1（舊存檔、測試都不用改）
   ],
   hall: [
     { role: 'spar_h',  x: 12, y: 8,  dir: 'down' },
@@ -659,6 +787,7 @@ function CAMPUS_PATCH(S) {
     h1_tv: '（電視開著晨間新聞：「……今年會考倒數——」你把頻道轉掉了。）',
     h1_kitchen: '（瓦斯爐上還溫著一鍋粥。）',
     h1_table: '（餐桌上放著你的便當盒，還有一張紙條：「考試加油！」）',
+    zy_rest: '（坡道盡頭有一張長椅，椅背上刻著：「讀得慢也沒關係，唸對才是真的。」）',
   });
   S.campus = true;
   S.postNpcs = Object.assign({}, S.postNpcs, {
@@ -667,7 +796,7 @@ function CAMPUS_PATCH(S) {
   });
   /* 章節名稱與目標（劇情選單、換章時的橫幅會顯示） */
   const ST = [
-    ['第一道館．一年甲班', '到教學樓走廊 1F 的「一年甲班」，挑戰字音字形小老師。'],
+    ['第一道館．一年甲班', '到教學樓走廊 1F 的「一年甲班」，把黑板上的錯字改完，見見小老師。'],
     ['第二道館．圖書館', '在走廊 2F 找到周以恆，再進圖書館挑戰成語圖書股長。'],
     ['第三道館．文藝教室', '到中庭幫報告組長叫醒三位組員，再挑戰文藝教室的現代文青助教。'],
     ['第四道館．校史室', '在樓梯間再次面對周以恆，然後到走廊 2F 的校史室。'],
@@ -686,11 +815,27 @@ function CAMPUS_PATCH(S) {
     { id: 'audyard', kind: 'area' }, { id: 'aud', kind: 'gym', gym: 5 },
   ];
   S.mapLegend = '🟡 道館　🔵 保健室　🟢 通學路　🟠 校園';
+  /* 夢中小鎮（2026-10-06）：進夢、醒來、休息處、開門條件、劇情台詞 */
+  S.dreams = {
+    zy: { name: '注音坡', home: { map: 'c1a', x: 5, y: 3, dir: 'down' }, town: { map: 'zy_town', x: 11, y: 10, dir: 'down' },
+      heal: { map: 'zy_town', x: 11, y: 10 }, need: 3, openFlag: 'zyOpen', doneFlag: 'zyDone',
+      openText: '（遠處傳來一聲清脆的鐘響——坡頂道館的大門，開了。）',
+      arrive: ['（睜開眼睛，周圍的樹、坡道、房子，都像是從課本裡長出來的。）',
+               '小墨：「別怕，這是「注音坡」——碎片留下的夢。」',
+               '小墨：「真正的小老師就在坡頂的道館裡，不過夢把門鎖上了。要先幫鎮上的人解決三件麻煩，夢才會鬆口。」',
+               '小墨：「想回教室的話，隨時可以從旋渦、或選單的「醒來」回去，進度都會留著。」'],
+      finish: ['（小老師身上的墨塵一點一點散開。整個小鎮的輪廓也像水彩一樣，慢慢淡去……）',
+               '小墨：「夢要醒了。你做得很好。」',
+               '小墨：「旋渦會留在教室裡。想念這裡的人，隨時可以回來看看。」'],
+      afterWake: ['（你回到了一年甲班。黑板上的錯字全都不見了，教室中央的旋渦還在，輕輕地轉著。）'] },
+  };
+  S.stages[0].roles = ['avatar1', 'boss1'];
   /* 教師版「直達」的分類 */
   S.travelGroups = [
     ['家．通學路', ['room', 'house1f', 's1', 'path1', 's2', 'pharmacy', 's3']],
     ['校園', ['front', 'hall', 'corridor1', 'stair1', 'corridor2', 'yard2', 'field', 'audyard']],
     ['道館', ['c1a', 'lib', 'yard', 'hist', 'aud']],
+    ['夢中小鎮', ['zy_town', 'zy_slope', 'zy_gym']],
     ['教室．其他', ['c8', 'clinic_h', 'store_c', 'forge', 'inkpool']],
   ];
   Object.assign(S.mapNames, {
@@ -699,6 +844,7 @@ function CAMPUS_PATCH(S) {
     field: '操場與跑道', audyard: '禮堂前廣場', room: '我的房間（2F）', house1f: '我家（1F）', c8: '自己的教室',
     c1a: '一年甲班', lib: '圖書館', yard: '文藝教室', hist: '校史室', aud: '大禮堂',
     clinic_h: '保健室', store_h: '便利商店', store_c: '福利社', forge: '工藝教室',
+    zy_town: '夢中小鎮．注音坡', zy_slope: '注音坡道', zy_gym: '夢中的一年甲班',
   });
 }
 
@@ -860,6 +1006,14 @@ const ROOM_REDO = {
     'w______rr______w',
     'wwwwwww__wwwwwww' ] },
 };
+/* 一年甲班：小老師是「碎片化身」，旋渦在打完化身之後留在原地（夢中小鎮的入口，詳見 W.dreams.zy） */
+ROOM_REDO.c1a.npcs = [
+  { role: 'avatar1',  x: 5, y: 2, dir: 'down', hideFlag: 'zyEntered' },
+  { role: 'zyPortal', x: 5, y: 2, dir: 'down', needFlag: 'zyEntered' },
+  { role: 'gy1a',   x: 3, y: 4, dir: 'right', sight: 3 },
+  { role: 'gy1b',   x: 8, y: 4, dir: 'left',  sight: 3 },
+  { role: 'c1aTip', x: 2, y: 7, dir: 'right' },
+];
 for (const [id, patch] of Object.entries(ROOM_REDO)) {
   const base = LAYOUTS[id]; if (!base) continue;
   CAMPUS_MAPS[id] = Object.assign({}, base, patch);

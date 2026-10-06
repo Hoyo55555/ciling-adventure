@@ -33,7 +33,7 @@ const GFX = (() => {
     /* 水池：3×3 岸邊拼塊；fr 的第 2–5 位是鄰格遮罩 */
     { themes: '*', code: '~', custom: 'set9', shift: 2, pick: SET9([2, 3, 4, 59, 60, 61, 116, 117, 118]) },
     /* 校園的石板路：3×3 拼塊 */
-    { themes: ['t_campus', 't_oldwing'], code: ',', custom: 'set9', shift: 2, under: '.', pick: SET9([862, 863, 864, 919, 920, 921, 976, 977, 978]) },
+    { themes: ['t_campus', 't_oldwing', 't_slope'], code: ',', custom: 'set9', shift: 2, under: '.', pick: SET9([862, 863, 864, 919, 920, 921, 976, 977, 978]) },
     /* 草叢：RPG Pack 的配色自己畫（這套沒有現成的高草） */
     { themes: '*', code: 'g', custom: 'kgrass', pick: [{ im: { complete: true, naturalWidth: 1 } }] },
     { themes: GREEN, code: 'F', under: '.', pick: [RPG(542), RPG(541), RPG(542), RPG(541)] },       // 花圃
@@ -1133,7 +1133,21 @@ const GFX = (() => {
   const SHEETS = {
     xiaomo: { big: [img('../sprites/xiaomo_big.png'), 64, 60], map: [img('../sprites/xiaomo_map.png'), 24, 24] },
   };
+  /* 旋渦（夢中小鎮的入口）：24×24，八格旋轉，三條螺旋臂＋中心亮點 */
+  function vortexFrame(f) {
+    const key = 'vortex:' + f; if (cache.has(key)) return cache.get(key);
+    const cv = document.createElement('canvas'); cv.width = 24; cv.height = 24; const g = cv.getContext('2d');
+    const rg = g.createRadialGradient(12, 12, 1, 12, 12, 12); rg.addColorStop(0, 'rgba(232,220,255,.55)'); rg.addColorStop(1, 'rgba(120,90,220,0)'); g.fillStyle = rg; g.fillRect(0, 0, 24, 24);
+    for (let arm = 0; arm < 3; arm++) for (let j = 0; j < 20; j++) {
+      const r = .6 + j * .55, a = j * .5 + f * (Math.PI / 12) + arm * 2.094;
+      g.fillStyle = j > 15 ? '#f4efff' : j > 9 ? '#b89cff' : j > 4 ? '#8a6af0' : '#5a3ab8';
+      g.fillRect(Math.round(11 + Math.cos(a) * r), Math.round(11 + Math.sin(a) * r * .9), 2, 2);
+    }
+    g.fillStyle = '#ffffff'; g.fillRect(11, 11, 2, 2);
+    cache.set(key, cv); return cv;
+  }
   function anim(kind, size, now) {
+    if (kind === 'vortex') return vortexFrame(Math.floor(now / 90) % 8);
     const s = SHEETS[kind] && SHEETS[kind][size]; if (!s) return null;
     const [im, w, h] = s; if (!(im.complete && im.naturalWidth)) return null;
     const t = Math.floor(now / 170);
@@ -1885,6 +1899,11 @@ const GFX = (() => {
       kPut(G, C.door[0], 8, KP.doorGray2); return G; },
   };
   /* 素材拼不出來的小東西：招牌上的字樣、十字 */
+  /* 夢中小鎮的道館：8 格寬的小教學樓 */
+  KITS.block8 = C => { const G = [...kRoof('grayb', C.w, 3), ...kWall('red', C.w, [0, 1, 2, 3])];
+    for (let x = 1; x < C.w - 1; x++) { kPut(G, x, 3, KP.winBig); kPut(G, x, 5, KP.winBig); if (x !== C.door[0]) kPut(G, x, 6, KP.win); }
+    kPut(G, 2, 1, KP.ac); kPut(G, 5, 1, KP.vent);
+    kPut(G, C.door[0], 6, KP.doorGray2); return G; };
   const KPOST = {
     clinic: (R, C) => { R(0, 0, C.w * 16, 1, '#5a3a3a'); R(0, 0, 1, 32, '#5a3a3a'); R(C.w * 16 - 1, 0, 1, 32, '#5a3a3a');   // 屋頂描邊，跟其他建築的外框一致
       const sx = C.door[0] * 16 - 4, sy = 2 * 16 + 2;   // 門的正上方：白底紅十字
@@ -1894,6 +1913,7 @@ const GFX = (() => {
     audi: (R, C) => { const sx = C.door[0] * 16 - 12, sy = 5 * 16 + 3;   // 大門上方的布條
       R(sx, sy, 40, 9, '#a8322a'); R(sx, sy, 40, 1, '#d84a3a'); for (let i = 0; i < 5; i++) R(sx + 4 + i * 7, sy + 3, 4, 3, '#f8e8b0'); },
   };
+  KPOST.block8 = KPOST.block;
   function kitBuild(kind, C) {
     const G = KITS[kind](C), W = C.w * 16, H = G.length * 16, SH = 8;
     if (G.some(row => row.some(ps => ps.some(p => !(p.im.complete && p.im.naturalWidth))))) return null;   // 還沒載入
