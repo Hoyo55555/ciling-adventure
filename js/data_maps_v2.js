@@ -1314,7 +1314,7 @@ MAPS.zhongta = {
 /* ============================================================
    ㉖ 鐘塔台道館 aud　16×13　大禮堂（最終戰）
    中央一條紅毯直通講台，三位天王視線很長（14 格）會主動攔人；
-   三位都打倒之後，大魔王才會從天而降（cut: 'bossDrop'）。
+   三位都打倒、聽完小墨的叮嚀之後，走到講台前的紅毯（7,6／8,6），大魔王才會從天而降（cut: 'bossDrop'）。
    三座准考證感應台答對可讓下場戰鬥文氣 +1。
    ============================================================ */
 MAPS.aud = {
@@ -1344,11 +1344,13 @@ MAPS.aud = {
     { role: 'e1',      x: 1,  y: 10, dir: 'right', sight: 14 },
     { role: 'e2',      x: 14, y: 8,  dir: 'left',  sight: 14 },
     { role: 'e3',      x: 1,  y: 6,  dir: 'right', sight: 14 },
-    { role: 'moGuard', x: 4,  y: 12, dir: 'right' },
+    { role: 'moGuard', x: 4,  y: 12, dir: 'right', after: ['aud:e1', 'aud:e2', 'aud:e3'] },   // 三位菁英倒下之後才出現（最後的叮嚀）
     /* 三位天王都倒下之後，大魔王才登場（bossEntrance 會播從天而降的動畫） */
     { role: 'boss5',   x: 7,  y: 2,  dir: 'down', cut: 'bossDrop',
-      after: ['aud:e1', 'aud:e2', 'aud:e3'] },
+      after: ['aud:e1', 'aud:e2', 'aud:e3'], needFlag: 'cut:aud:boss5' },     // 大魔王不會自己冒出來：要走到講台前的紅毯（cuts），從天而降之後才站在這裡
   ],
+  /* 三位天王都倒下、聽完小墨最後的叮嚀之後，走到講台前的紅毯，大魔王才會從天而降（CUT_READY.bossDrop） */
+  cuts: { '7,6': 'bossDrop', '8,6': 'bossDrop' },
   chests: [
     { x: 1,  y: 2, id: 'aud1', items: { heal2: 2, cure: 2, dodgeup: 1 } },
     { x: 14, y: 2, id: 'aud2', items: { atkup: 2, defup: 2 } },

@@ -171,11 +171,11 @@ function teacherKit() {
   const mk = a => { const w = newWeapon(a, isGuard(a) ? GUARD : TOP); w.mastery = 99; w.bond = 99; return w; };
   for (const a of FIRST) { const w = mk(a); G.weapons.push(w); if (G.equip.length < 3) G.equip.push(w.id); }
   for (const a of rest) G.storage.push(mk(a));
-  /* 劇情視為跑完、五片碎片全給（不然後面的道館進不去），但館主沒有被打倒過 */
-  /* 只把序幕標成跑完；不設 cleared——那會換成通關後的 NPC 配置，
-     老師看到的就不是學生會看到的世界了。 */
+  /* 只把序幕標成跑完；不設 cleared——那會換成通關後的 NPC 配置，老師看到的就不是學生會看到的世界了。
+     碎片不再一次給滿：前面章節的人物是靠「拿到幾片碎片」決定登場與離開的，一次給滿會讓他們全部消失，
+     後面的化身又要先打倒他們，劇情就卡死了（2026-10-06 圖書館）。老師從第一章照劇情走，對戰一律略過（battle.js）；
+     想看後面的章節，用選單的「📖 劇情進度」跳過去（會把前面章節的進度一起補齊）。 */
   Object.assign(G.flags, { prologue: true, tut: 'skip' });
-  G.badges = ['准考證碎片（一）', '准考證碎片（二）', '准考證碎片（三）', '准考證碎片（四）', '准考證碎片（五）'];
   for (const k of Object.keys(G.bag)) G.bag[k] = 20;
   G.money = 99999; G.lv = Math.max(G.lv, 30);
   /* 地圖全開：所有城鎮與道路都算「去過」，公車站直接列出全部目的地 */
@@ -183,6 +183,35 @@ function teacherKit() {
   for (const id of Object.keys(LAYOUTS)) if (!LAYOUTS[id].indoor) G.visited[id] = 1;
   playerStats(); G.hp = G.maxhp;
   showTeacherBadge();
+}
+
+/* 教師版：把劇情進度直接設到第 n 章開頭（0＝第一章）。前面章節：碎片、打倒的人、夢中小鎮與機關的旗標都補齊；
+   這一章以後：全部清掉重來。人會回到校門前庭，離開夢中小鎮。 */
+function setStoryStage(n) {
+  const stages = W.stages, names = ['准考證碎片（一）', '准考證碎片（二）', '准考證碎片（三）', '准考證碎片（四）', '准考證碎片（五）'];
+  G.badges = names.slice(0, n); G.chapter = n + 1;
+  stages.forEach((st, i) => {
+    const done = i < n;
+    for (const r of (st.roles || [])) {
+      const R = W.roles[r], at = Guide.where(r); if (!R) continue;
+      if (at) { if (done) G.defeated[at.key] = true; else delete G.defeated[at.key]; }
+      if (R.kind === 'avatar' && R.gateFlag && at) {                       // 化身的機關：這一章以後要重解
+        for (const d of Object.values((LAYOUTS[at.map] || {}).devices || {})) { if (done) G.flags[d.flag] = true; else delete G.flags[d.flag]; }
+        if (done) G.flags[R.gateFlag] = true; else delete G.flags[R.gateFlag];
+      }
+      if (R.dream && W.dreams[R.dream]) {
+        const D = W.dreams[R.dream];
+        for (const f of [D.enteredFlag, D.openFlag, D.doneFlag, D.seenFlag]) { if (done && R.kind === 'gym') G.flags[f] = true; else if (!done) delete G.flags[f]; }
+        if (!done) for (const k of Object.keys(G.flags)) if (/^sq:/.test(k) && (LAYOUTS[k.split(':')[1]] || {}).dream === R.dream) delete G.flags[k];
+        if (!done) for (const m of Object.entries(LAYOUTS).filter(([, l]) => l.dream === R.dream)) for (const d of Object.values(m[1].devices || {})) delete G.flags[d.flag];
+        if (!done) for (const m of Object.values(LAYOUTS).filter(l => l.dream === R.dream)) for (const c of (m.chests || [])) delete G.chests[c.id];
+      }
+    }
+  });
+  G.flags.dream = null; G.flags.cleared = false; G.flags.dreamPrevHeal = G.flags.dreamPrevRet = null;
+  const H = W.startHeal || W.homeTown;
+  G.lastHeal = Object.assign({}, { map: 'front', x: 4, y: 8 }); G.ret = { map: 'front', x: 4, y: 8 };
+  return { map: 'front', x: 4, y: 8 };
 }
 
 /* ---------- 迴圈 ---------- */
@@ -234,7 +263,7 @@ async function titleScreen() {
   if (Cloud.enabled && !Cloud.user && !Cloud.skipped && !TeacherAuth.on) { logo.style.display = 'none'; const r = await LoginPanel.open(); if (r === 'skip' || r === null) Cloud.skipped = true; if (r === 'created') await say('帳號建立完成！之後請用同一組班級、座號和密碼登入。'); if (r === 'teacher') await say('教師登入成功！標題選單已出現「教師設定」。'); logo.style.display = ''; paintLink(); Cloud.paint(); }
   while (true) {
     // 只有「新的冒險」與「設定」一定出現；其他選項要有理由才出現
-    const labels = [].concat(Slots.any() ? ['繼續冒險'] : [], ['新的冒險'], Meta.hasAny() ? ['紀錄館'] : [], ['設定', '製作名單'], TeacherAuth.on ? ['教師設定', '教師登出'] : Cloud.enabled ? [Cloud.user ? '登出' : '登入帳號'] : []);
+    const labels = [].concat(Slots.any() ? ['繼續冒險'] : [], ['新的冒險'], Meta.hasAny() ? ['紀錄館'] : [], ['設定'], TeacherAuth.on ? ['教師設定', '教師登出'] : Cloud.enabled ? [Cloud.user ? '登出' : '登入帳號'] : []);
     const i = await UI.choose(labels, { pos: { left: '50%', bottom: U(6), transform: 'translateX(-50%)' }, cancel: false, start: Math.min(sel, labels.length - 1), cls: 'titlemenu', cols: labels.length > 3 ? 2 : 1 });
     sel = i; const L = labels[i];
     logo.style.display = 'none';
@@ -253,7 +282,6 @@ async function titleScreen() {
     if (L === '教師登出') { if (await UI.yesno('要登出教師模式嗎？')) { TeacherAuth.logout(); Cloud.skipped = false; paintLink(); Cloud.paint(); await say('已登出教師模式。'); logo.remove(); tlink.remove(); return titleScreen(); } }
     if (L === '紀錄館') await RecordHall.open();
     if (L === '設定') await SettingsPanel.open();
-    if (L === '製作名單') await CreditsPanel.open();
     logo.style.display = '';
   }
 }
@@ -300,17 +328,24 @@ const Flow = {
     G.titles = (G.titles || []).filter(id => ALL_TITLES().some(t => t.id === id));
     playerStats();
     teacherKit();
+    /* 舊的教師存檔：以前一次給滿五片碎片，前面章節的人物全消失、化身擋在那裡過不去。整理成「第五章開頭、前四章都做完」 */
+    if (G.teacher && G.flags.teacherKit && !G.flags.teacherKit2) {
+      G.flags.teacherKit2 = 1;
+      if (G.badges.length === 5 && !G.flags.cleared && !G.defeated['aud:boss5']) { const at = setStoryStage(4); G.map = at.map; G.x = at.x; G.y = at.y; G.flags.teacherFixNote = 1; }
+    }
     if (W.story && !G.flags.prologue) { const S0 = W.start; G.map = S0.map; G.x = S0.x; G.y = S0.y; G.weapons = []; G.equip = []; }
     await fade(1, 0.3); UI.clear(); Game.scene = 'overworld'; OW.load(G.map, G.x, G.y, 'down'); await fade(0, 0.3);
     if (W.story && !G.flags.prologue) OW.run(() => storyPrologue());
+    if (G.flags.teacherFixNote) { delete G.flags.teacherFixNote; OW.run(() => say('（教師版更新：劇情進度已整理成正常順序——第五章開頭，前四章都算做完。想看其他章節，可以從選單的「📖 劇情進度」跳過去。）')); }
     else if (movedCampus) OW.run(() => say('（……回過神來，你站在學校的保健室門口。\n學校好像跟你記得的不太一樣，不過你的冒險紀錄都還在。）'));
   },
   async newGame(slot, preset) {
+    /* 目前只有「國中生涯」：不再選世界（其他世界觀的預告放在遊戲結尾的跑馬燈） */
+    const wid = STORY_WORLD;
     while (true) {
       UI.clear(); setWorldClass(null); Game.scene = 'title';
-      const wid = await WorldPick.open(); if (!wid) return false;
       W = WORLDS[wid]; setWorldClass(wid); Game.scene = 'title'; G = freshState(wid, { name: '', title: '', look: {} }, slot);
-      const pl = await CharCreate.open(wid, preset); if (!pl) { G = null; W = null; continue; }
+      const pl = await CharCreate.open(wid, preset); if (!pl) { G = null; W = null; return false; }
       G.player = pl; playerStats();
       await Flow.start(); return true;
     }

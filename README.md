@@ -111,7 +111,7 @@ gas/Code.gs             雲端存檔用的 Google Apps Script
 
 ## 素材與授權
 
-遊戲內的「製作名單」（標題選單、設定面板）有完整標示，新增素材時請同步更新 `js/menus.js` 的 `CREDITS` 與 `assets/kenney/README.txt`。
+遊戲內的「製作名單」（通關後的跑馬燈）有完整標示，新增素材時請同步更新 `js/menus.js` 的 `CREDITS` 與 `assets/kenney/README.txt`。
 
 - Pixel Book (Animated)：Gokhan Solak（hansolo），CC BY 3.0，<https://opengameart.org/content/pixel-book-animated>
 - Free Pixelart Chests/Boxes Pack 16-16px：IbinGames，CC BY-SA 4.0，<https://ibingames.itch.io/free-pixelart-chestsboxes-pack-16-16px>（修改後的圖同樣以 CC BY-SA 4.0 公開）

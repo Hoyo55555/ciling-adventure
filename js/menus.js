@@ -103,7 +103,7 @@ const BookMenu = {
     let sel = 0;
     while (true) {
       const opts = ['角色', '地圖', '武器', '電腦', '鍛造', '道具', '兵器譜', '妖怪圖鑑', '稱號', '任務', '存檔', '設定']
-        .concat(OW.L && OW.L.dream && G.flags.dream ? ['醒來'] : [], G && G.teacher ? ['🚌 直達'] : [], Cloud.user ? ['登出'] : [], ['回到主畫面', '關閉']);
+        .concat(OW.L && OW.L.dream && G.flags.dream ? ['醒來'] : [], G && G.teacher ? ['🚌 直達', '📖 劇情進度'] : [], Cloud.user ? ['登出'] : [], ['回到主畫面', '關閉']);
       const i = await UI.choose(opts, { pos: {}, cls: 'bookmenu', start: sel });
       const L = opts[i]; if (i < 0 || L === '關閉') return; sel = i;
       if (L === '角色') await CharPanel.open();
@@ -121,6 +121,7 @@ const BookMenu = {
       if (L === '醒來') {                                    // 夢中小鎮：隨時可以醒來（進度保留）
         if (await UI.yesno(`要醒來、回到${(W.dreams[G.flags.dream] || {}).homeName || '教室'}嗎？\n（進度都會保留，之後可以從${(W.dreams[G.flags.dream] || {}).homeName || '教室'}的入口再進來）`)) { await dreamWake(G.flags.dream); return; } }
       if (L === '🚌 直達') { if (await TeacherTravel.open()) return; }
+      if (L === '📖 劇情進度') { if (await TeacherStage.open()) return; }
       if (L === '登出') { if (await Cloud.logoutFlow()) { await fade(1, 0.3); titleScreen(); await fade(0, 0.3); return; } }
       if (L === '回到主畫面') { await goHome(); if (Game.scene === 'title') return; }
     }
@@ -194,6 +195,22 @@ const TeacherTravel = {
       autosave();
       return true;
     }
+  },
+};
+
+/* ============ 教師測試版：跳到某一章的開頭 ============
+   前面章節的進度會自動補齊（碎片、打倒的人、夢中小鎮、機關），這一章以後全部重來，劇情不會因為少做了什麼而卡住。 */
+const TeacherStage = {
+  async open() {
+    const names = W.stages.slice(0, 5).map(s => s.name);
+    const k = await UI.ask('教師測試版：要把劇情進度設到哪一章的開頭？\n（前面章節自動算做完；這一章以後會重來）', names.concat(['取消']), {});
+    if (k < 0 || k >= names.length) return false;
+    if (!(await UI.yesno(`確定設到「${names[k]}」嗎？\n目前的劇情進度會被改寫，人會回到校門前庭。`))) return false;
+    UI.clear(); Sound.sfx('door');
+    const at = setStoryStage(k);
+    await warpTo(at.map, at.x, at.y, 'down'); autosave();
+    await say(`（劇情進度已設到「${names[k]}」。看地圖左下角的目標，或選單的「任務」，就知道下一步去哪。）`);
+    return true;
   },
 };
 
@@ -553,7 +570,10 @@ const Shop = {
 /* ---------- 任務 ---------- */
 const Quests = {
   main() {
-    if (W.story) return !G.flags.prologue ? '和小墨談談。' : W.stages[Math.min(G.badges.length, 5)].text;
+    if (W.story) {
+      const o = typeof Guide !== 'undefined' && Guide.objective();
+      return o ? o.text : (!G.flags.prologue ? '和小墨談談。' : W.stages[Math.min(G.badges.length, 5)].text);
+    }
     if (!G.equip.length) return `去找${W.roles.mentor.name}領取武器。`;
     if (!G.badges.length) return `穿過${W.mapNames.route1}，到${W.mapNames.town2}挑戰關主「${W.roles.gym1.name}」。`;
     return '第一章完成！（試玩版內容到此為止）';
@@ -580,6 +600,8 @@ const Quests = {
         const n4 = GUARDIAN_KEYS.filter(k => ownsArch(k)).length;
         out.push(n4 >= 4 ? '<s>集齊文房四寶</s>　<b class="good">已完成</b>' : `集齊文房四寶（${n4} / 4）<span class="muted">．每一週目可獲得一隻</span>`);
       }
+      const gq = G.flags.guardianQuest;                                       // 小墨在禮堂前交代的器靈（不再有人守在台階旁提醒，改放在這裡）
+      if (gq && !G.flags.guardianDone && typeof gqClue === 'function') { const C = gqClue(gq); out.push(`到「${esc(C.place)}」找「${esc(weaponName(gq))}」<span class="muted">．${esc(C.clue)}</span>`); }
       const wn = G.wrong.length;
       out.push(wn ? `複習錯題本（目前 ${wn} 題）<span class="muted">．答對就會從錯題本消失</span>` : `<s>複習錯題本</s>　<b class="good">目前沒有錯題</b>`);
       return out;
@@ -591,7 +613,7 @@ const Quests = {
   },
   open() {
     return UI.panel(ctl => {
-      ctl.box.innerHTML = `<h2>任務</h2><div class="scroll"><div class="qsec">主線．${esc(W.chapterName)}</div><div class="qitem">◆ ${esc(Quests.main())}</div>
+      ctl.box.innerHTML = `<h2>任務</h2><div class="scroll"><div class="qsec">主線．${esc(W.chapterName)}</div><div class="qitem">◆ ${esc(Quests.main()).replace(/\n/g, "<br>")}</div>
         <div class="qsec">支線</div>${Quests.sides().map(t => `<div class="qitem">◆ ${t}</div>`).join('')}</div>` + footKeys('↑↓ 捲動　B 返回');
       const sc = $('.scroll', ctl.box);
       ctl.update = () => { const d = Input.dir(); if (d === 'down') sc.scrollTop += 40; if (d === 'up') sc.scrollTop -= 40; if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } };
@@ -651,23 +673,23 @@ const Records = {
 const SettingsPanel = {
   open() {
     return UI.panel(ctl => {
-      const F = [{ k: 'music', label: '音樂音量' }, { k: 'sfx', label: '音效音量' }, { k: 'speed', label: '文字速度' }, { k: 'hud', label: '地圖狀態列' }, { k: 'fill', label: '畫面縮放' }, { k: 'help', label: '遊戲說明' }, { k: 'credits', label: '製作名單' }];
+      const F = [{ k: 'music', label: '音樂音量' }, { k: 'sfx', label: '音效音量' }, { k: 'speed', label: '文字速度' }, { k: 'hud', label: '地圖狀態列' }, { k: 'fill', label: '畫面縮放' }, { k: 'help', label: '遊戲說明' }];
       ctl.box.innerHTML = `<h2>設定</h2><div class="fields"></div>` + footKeys('↑↓ 選擇　←→ 調整　B 返回');
       const wrap = $('.fields', ctl.box); const els = F.map(() => { const d = h('div', 'field'); wrap.appendChild(d); return d; });
       let sel = 0;
-      const val = k => k === 'help' || k === 'credits' ? '<span class="muted">按 A 查看</span>' : k === 'speed' ? ['慢', '中', '快'][Settings.speed] : k === 'hud' ? (Settings.hud ? '顯示' : '隱藏')
+      const val = k => k === 'help' ? '<span class="muted">按 A 查看</span>' : k === 'speed' ? ['慢', '中', '快'][Settings.speed] : k === 'hud' ? (Settings.hud ? '顯示' : '隱藏')
         : k === 'fill' ? (Settings.fill ? '填滿畫面<span class="muted">（像素會忽粗忽細）</span>' : '銳利<span class="muted">（整數倍，畫面略小）</span>')
         : '■'.repeat(Settings[k]) + '<span class="muted">' + '□'.repeat(10 - Settings[k]) + '</span>';
       const paint = () => F.forEach((f, i) => { els[i].classList.toggle('sel', i === sel); els[i].innerHTML = `<label>${f.label}</label><div class="val"><span class="arrow">◀</span>${val(f.k)}<span class="arrow">▶</span></div>`; });
-      const change = (k, d) => { if (k === 'help' || k === 'credits') return;
+      const change = (k, d) => { if (k === 'help') return;
         if (k === 'speed') Settings.speed = clamp(Settings.speed + d, 0, 2);
         else if (k === 'hud') Settings.hud = !Settings.hud;
         else if (k === 'fill') { Settings.fill = !Settings.fill; resize(); }
         else Settings[k] = clamp(Settings[k] + d, 0, 10);
         Sound.applyVol(); saveSettings(); Sound.sfx('cursor'); paint(); };
-      els.forEach((d, i) => d.addEventListener('pointerdown', e => { e.preventDefault(); sel = i; if (F[i].k === 'help') { Help.open(); return; } if (F[i].k === 'credits') { CreditsPanel.open(); return; } change(F[i].k, e.target === d.querySelector('.arrow') ? -1 : 1); }));
+      els.forEach((d, i) => d.addEventListener('pointerdown', e => { e.preventDefault(); sel = i; if (F[i].k === 'help') { Help.open(); return; } change(F[i].k, e.target === d.querySelector('.arrow') ? -1 : 1); }));
       ctl.update = () => { const d = Input.dir(); if (d === 'up' && sel > 0) { sel--; paint(); } if (d === 'down' && sel < F.length - 1) { sel++; paint(); } if (d === 'left' || d === 'right') change(F[sel].k, d === 'left' ? -1 : 1);
-        if (Input.p('A') && F[sel].k === 'help') { Sound.sfx('ok'); Help.open(); return; } if (Input.p('A') && F[sel].k === 'credits') { Sound.sfx('ok'); CreditsPanel.open(); return; } if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } };
+        if (Input.p('A') && F[sel].k === 'help') { Sound.sfx('ok'); Help.open(); return; } if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } };
       paint();
     });
   },
@@ -848,7 +870,7 @@ const StoryEnding = {
         ? '（筆、紙、墨、硯——文房四寶都在你手上了。這一次，你是真的把整座校園都讀懂了。）'
         : '（二週目的挑戰完成了。不過墨池深處的硯海龍君，還在等你。）');
     }
-    await Credits.play();
+    await Credits.play({ end: ng > 0 });
     const first = !G.flags.cleared; G.flags.cleared = true;
     const T = totals(G);
     if (first || ng > 0) { Meta.clear(G.world); Meta.addReport({ world: G.world, name: G.player.name, title: rankTitle(T.pct), pct: T.pct, total: T.t, time: G.time, lv: G.lv, ng, at: Date.now() }); }
@@ -871,7 +893,6 @@ const StoryEnding = {
     s_flash();
     await say('（筆、紙、墨、硯——文房四寶四隻器靈同時亮了起來。）');
     await say('小墨：「你看，牠們本來就不是武器。」\n「牠們只是在等一個，願意好好讀、好好寫的人。」');
-    await Credits.play();
     await say('★ 全部挑戰完成！\n\n感謝遊玩《詞靈冒險．翡翠之卷》。\n願你在每一次考試之外，都還記得文字原本的溫度。');
     autosave();
     const k2 = await UI.ask('接下來要做什麼呢？', ['留在校園繼續探索', '返回標題畫面'], { cancel: false });
@@ -884,7 +905,7 @@ const Ending = {
     Sound.play('ending');
     for (const t of W.ending) await say(t);
     if (G.route) await say(W.routeEnd[G.route]);
-    await Credits.play();
+    await Credits.play({ end: ng > 0 });
     const first = !G.flags.cleared; G.flags.cleared = true;
     const T = totals(G);
     const rep = { world: G.world, name: G.player.name, title: rankTitle(T.pct), pct: T.pct, total: T.t, time: G.time, lv: G.lv, ng: G.ng || 0, at: Date.now() };
@@ -898,13 +919,44 @@ const Ending = {
     else Sound.play(W.music[OW.L.music]);
   },
 };
+/* ============ 製作名單（遊戲結束時的跑馬燈用，選單裡不再有入口） ============
+   使用到的外部素材一律在這裡標示作者、來源、授權（CC BY／CC BY-SA 要求標示；CC0 不要求，但一併感謝）。
+   新增素材時，在 CREDITS 補一筆，並更新 assets/kenney/README.txt。 */
+const CREDITS = [
+  { head: '企劃', lines: ['國文科教師'] },
+  { head: '程式・像素美術・音樂', lines: ['Claude（Anthropic）'] },
+  { head: '國文內容', lines: ['國中國文課程'] },
+  { head: '外部素材', items: [
+    { name: 'Pixel Book (Animated)', by: 'Gokhan Solak（hansolo）', lic: 'CC BY 3.0', url: 'opengameart.org/content/pixel-book-animated', use: '書海港的入口「攤開的書」' },
+    { name: 'Free Pixelart Chests/Boxes Pack 16-16px', by: 'IbinGames', lic: 'CC BY-SA 4.0', url: 'ibingames.itch.io/free-pixelart-chestsboxes-pack-16-16px', use: '寶箱（修改後的圖同樣以 CC BY-SA 4.0 公開）' },
+    { name: 'Roguelike RPG Pack、Indoors、Caves & Dungeons、Modern City、RPG Urban Pack', by: 'Kenney', lic: 'CC0', url: 'kenney.nl', use: '地圖、建築、室內與道具的像素圖' }] },
+  { head: '授權條款', lines: ['CC BY 3.0：creativecommons.org/licenses/by/3.0', 'CC BY-SA 4.0：creativecommons.org/licenses/by-sa/4.0', 'CC0：creativecommons.org/publicdomain/zero/1.0'] },
+  { head: '感謝', lines: ['所有一起練習國文的同學與老師'] },
+];
+/* 結尾的預告：其他世界觀的製作進度（取代原本新遊戲時的世界選擇畫面） */
+const DLC_NOTICE = ['🖌️ 文人墨客生涯', '⚔️ 俠客生涯', '正在製作中', '敬請期待 DLC！'];
 const Credits = {
-  play() {
+  html(end) {
+    return `<h2>詞靈冒險．翡翠之卷</h2><p>試玩版</p>` +
+      CREDITS.map(c => `<p><b>${esc(c.head)}</b>` + (c.lines || []).map(l => `<br>${esc(l)}`).join('') +
+        (c.items || []).map(it => `<br><br><b>${esc(it.name)}</b><br><span class="cs">作者：${esc(it.by)}　授權：${esc(it.lic)}<br>${esc(it.url)}<br>用途：${esc(it.use)}</span>`).join('') + `</p>`).join('') +
+      `<p class="dlc"><b>${esc(DLC_NOTICE[0])}　${esc(DLC_NOTICE[1])}</b><br>${esc(DLC_NOTICE[2])}<br><b>${esc(DLC_NOTICE[3])}</b></p><p><b>感謝遊玩</b></p>` +
+      (end ? `<div class="theend">END</div>` : '');
+  },
+  /* opts.end：二週目的結尾，跑馬燈停在大大的 END，按 A 才結束 */
+  play(opts = {}) {
     return UI.panel(ctl => {
       ctl.box.classList.add('credits');
-      ctl.box.innerHTML = `<div class="roll"><h2>詞靈冒險．翡翠之卷</h2><p>試玩版</p><p><b>企劃</b><br>國文科教師</p><p><b>程式・像素美術・音樂</b><br>Claude</p><p><b>國文內容</b><br>國中國文課程</p><p><b>感謝遊玩</b></p></div>` + footKeys('A 跳過');
-      const roll = $('.roll', ctl.box); let y = 0; const t0 = performance.now();
-      ctl.update = () => { y = (performance.now() - t0) / 40; roll.style.transform = `translateY(${-y}px)`; if (Input.p('A') || Input.p('B') || y > roll.offsetHeight + 40) ctl.done(); };
+      ctl.box.innerHTML = `<div class="roll">${this.html(!!opts.end)}</div>` + footKeys('A 跳過');
+      const roll = $('.roll', ctl.box); let y = 0; const t0 = performance.now(); let held = false;
+      ctl.update = () => {
+        y = (performance.now() - t0) / 40;
+        const endEl = $('.theend', roll), stop = endEl ? endEl.offsetTop + endEl.offsetHeight / 2 - ctl.box.clientHeight / 2 : Infinity;
+        if (endEl && y >= stop) { y = stop; if (!held) { held = true; const f = $('.foot', ctl.box); if (f) f.textContent = 'A 結束'; } }
+        roll.style.transform = `translateY(${-y}px)`;
+        if (Input.p('A') || Input.p('B')) { if (endEl && !held) { y = stop; held = true; const f = $('.foot', ctl.box); if (f) f.textContent = 'A 結束'; } else { ctl.done(); return; } }
+        if (!endEl && y > roll.offsetHeight + 40) ctl.done();
+      };
     });
   },
 };
@@ -1027,37 +1079,6 @@ const Help = {
         <b>💾 存檔</b>：共 3 個欄位，切換地圖、戰鬥後會自動存檔；也能匯出存檔檔案帶到其他電腦。<br>
         <b>📖 錯題本</b>：答錯的題目會自動收錄，隨時可以複習。</div>` + footKeys('B 返回');
       closeOnAB(ctl);
-    });
-  },
-};
-
-/* ============ 製作名單 ============
-   使用到的外部素材一律在這裡標示作者、來源、授權（CC BY／CC BY-SA 要求標示；CC0 不要求，但一併感謝）。
-   新增素材時，在 CREDITS 補一筆，並更新 assets/kenney/README.txt。 */
-const CREDITS = [
-  { head: '詞靈冒險．翡翠之卷', lines: ['國中國文 × 像素冒險'] },
-  { head: '企劃・題庫・劇情', lines: ['詞靈冒險 製作團隊'] },
-  { head: '程式設計', lines: ['Claude（Anthropic）協助製作'] },
-  { head: '原創圖像', lines: ['小墨、武器妖與場景概念圖：詞靈冒險 製作團隊'] },
-  { head: '音樂與音效', lines: ['遊戲內即時合成（原創）'] },
-  { head: '外部素材（需標示作者）', items: [
-    { name: 'Pixel Book (Animated)', by: 'Gokhan Solak（hansolo）', lic: 'CC BY 3.0', url: 'opengameart.org/content/pixel-book-animated', use: '書海港的入口「攤開的書」' },
-    { name: 'Free Pixelart Chests/Boxes Pack 16-16px', by: 'IbinGames', lic: 'CC BY-SA 4.0', url: 'ibingames.itch.io/free-pixelart-chestsboxes-pack-16-16px', use: '寶箱（若修改，修改後的圖同樣以 CC BY-SA 4.0 公開）' }] },
-  { head: '外部素材（CC0，感謝）', items: [
-    { name: 'Roguelike / RPG Pack、Roguelike Indoors、Roguelike Caves & Dungeons、Roguelike Modern City、RPG Urban Pack', by: 'Kenney', lic: 'CC0', url: 'kenney.nl', use: '地圖、建築、室內與道具的像素圖' }] },
-  { head: '授權條款', lines: ['CC BY 3.0：creativecommons.org/licenses/by/3.0', 'CC BY-SA 4.0：creativecommons.org/licenses/by-sa/4.0', 'CC0：creativecommons.org/publicdomain/zero/1.0'] },
-  { head: '感謝', lines: ['所有一起練習國文的同學與老師'] },
-];
-const CreditsPanel = {
-  html() {
-    return CREDITS.map(c => `<div class="qsec">${esc(c.head)}</div>` + (c.lines || []).map(l => `<div>${esc(l)}</div>`).join('') +
-      (c.items || []).map(it => `<div style="margin:2px 0 4px"><b>${esc(it.name)}</b><br><span class="muted">作者：${esc(it.by)}　授權：${esc(it.lic)}<br>${esc(it.url)}<br>用途：${esc(it.use)}</span></div>`).join('')).join('');
-  },
-  open() {
-    return UI.panel(ctl => {
-      ctl.box.innerHTML = `<h2>製作名單</h2><div class="scroll small" style="line-height:1.6">${this.html()}</div>` + footKeys('↑↓ 捲動　B 返回');
-      const sc = $('.scroll', ctl.box);
-      ctl.update = () => { const d = Input.dir(); if (d === 'up') sc.scrollTop -= 24; if (d === 'down') sc.scrollTop += 24; if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } };
     });
   },
 };

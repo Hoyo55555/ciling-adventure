@@ -1119,15 +1119,24 @@ const CAMPUS_NPCS = {
     { role: 't_bl_a',     x: 6,  y: 19, dir: 'down' },
   ],
   audyard: [
-    { role: 'moGuard', x: 13, y: 9,  dir: 'left', needFlag: 'guardianQuest' },   // 交代完之後守在台階旁
     { role: 'gymTip5', x: 9,  y: 10, dir: 'right' },
     { role: 't_zt_a',  x: 4,  y: 13, dir: 'down' },
     { role: 't_zt_b',  x: 17, y: 13, dir: 'down', wander: 1 },
     { role: 'townTip6', x: 19, y: 10, dir: 'down', wander: 1 },
-    { role: 'ngHint',  x: 6,  y: 12, dir: 'down' },
   ],
 };
 for (const [id, list] of Object.entries(CAMPUS_NPCS)) CAMPUS_MAPS[id].npcs = list;
+
+/* 小墨出現的地方（主線引導）：走到這些格子，如果「現在該做的事」換了新的，小墨會跳出來說接下來要做什麼，說完就走；
+   做完之後走到下一個點，他會再出現一次（見 overworld.js 的 moGuide、guide.js 的 shouldTell）。
+   沿著主要動線擺在校門前庭、穿堂、走廊、樓梯間、中庭；禮堂前有自己的小墨過場（moIntro），所以那裡不放。 */
+const col = (xs, ys) => xs.flatMap(x => ys.map(y => x + ',' + y));
+CAMPUS_MAPS.front.guideTiles = [...col([12, 13, 14, 15], [8]), ...col([12, 13], [12])];
+CAMPUS_MAPS.hall.guideTiles = col([11, 12], [5, 6]);
+CAMPUS_MAPS.corridor1.guideTiles = col([6, 14, 22, 29], [2, 3, 4]);
+CAMPUS_MAPS.stair1.guideTiles = col([4, 5, 6], [3]);
+CAMPUS_MAPS.corridor2.guideTiles = col([6, 14, 22, 29], [2, 3, 4]);
+CAMPUS_MAPS.yard2.guideTiles = [...col([10, 11, 12, 13], [8]), ...col([11, 12], [9])];
 
 /* 操場：學弟的三張准考證碎紙（支線Ｂ） */
 CAMPUS_MAPS.field.devices = {

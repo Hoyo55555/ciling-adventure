@@ -8,12 +8,10 @@ const OW = {
   p: { x: 0, y: 0, dir: 'down', moving: false, t: 0, tx: 0, ty: 0, dur: 0.22, step: 0, turnWait: 0, cont: false },
 
   shake: 0, dark: 0, flash: 0, fx: [],
-  load(id, x, y, dir) {
-    if (!LAYOUTS[id]) { const H0 = (W && W.homeTown) || { map: 'chendu', x: 11, y: 7 }; id = H0.map; x = H0.x; y = H0.y; }   // 防呆：地圖不存在就回起點城鎮
-    this.id = id; this.L = LAYOUTS[id];
-    if (G && G.defeated && W.dreams) for (const D of Object.values(W.dreams)) if (D.legacyKey && G.defeated[D.legacyKey] && !G.flags[D.enteredFlag]) { G.flags[D.enteredFlag] = G.flags[D.openFlag] = G.flags[D.doneFlag] = G.flags[D.seenFlag] = true; }   // 舊存檔：夢中小鎮出現之前就打過了
-    Object.assign(this.p, { x, y, dir: dir || this.p.dir, moving: false, t: 0 });
-    this.npcs = (this.L.npcs || []).concat((G.flags.cleared && W.postNpcs && W.postNpcs[id]) || []).map(s => {
+  /* 這張地圖「此刻」該出現的人（依碎片數、旗標、打倒了誰決定） */
+  spawnList() {
+    const id = this.id;
+    return (this.L.npcs || []).concat((G.flags.cleared && W.postNpcs && W.postNpcs[id]) || []).map(s => {
       const role = W.roles[s.role]; if (!role) return null;
       if (s.route && G.route !== s.route) return null;                 // 依劇情路線出現的 NPC
       if (s.role === 'rival' && G.flags.rivalGone) return null;        // 勁敵離開步道
@@ -30,8 +28,21 @@ const OW = {
       /* 校園版所有地方一開始就走得到，所以用「拿到幾片碎片」決定人物什麼時候登場、什麼時候離開 */
       if (s.minBadges != null && G.badges.length < s.minBadges) return null;
       if (s.maxBadges != null && G.badges.length > s.maxBadges) return null;
-      return { key: s.key || (id + ':' + s.role + (s.retry ? ':retry' : '')), retry: !!s.retry, role, x: s.x, y: s.y, dir: s.dir, home: s.dir, sight: s.sight || 0, wander: s.wander, ox: 0, oy: 0, fr: 0, look: role.look };
+      return { key: s.key || (this.id + ':' + s.role + (s.retry ? ':retry' : '')), retry: !!s.retry, role, x: s.x, y: s.y, dir: s.dir, home: s.dir, sight: s.sight || 0, wander: s.wander, ox: 0, oy: 0, fr: 0, look: role.look };
     }).filter(Boolean);
+  },
+  /* 劇情進行中補上「剛達成條件」的人（例如三位菁英倒下後小墨走進禮堂）；回傳新出現的人 */
+  syncNpcs() {
+    const have = new Set(this.npcs.map(n => n.key)), add = this.spawnList().filter(n => !have.has(n.key));
+    for (const n of add) this.npcs.push(n);
+    return add;
+  },
+  load(id, x, y, dir) {
+    if (!LAYOUTS[id]) { const H0 = (W && W.homeTown) || { map: 'chendu', x: 11, y: 7 }; id = H0.map; x = H0.x; y = H0.y; }   // 防呆：地圖不存在就回起點城鎮
+    this.id = id; this.L = LAYOUTS[id];
+    if (G && G.defeated && W.dreams) for (const D of Object.values(W.dreams)) if (D.legacyKey && G.defeated[D.legacyKey] && !G.flags[D.enteredFlag]) { G.flags[D.enteredFlag] = G.flags[D.openFlag] = G.flags[D.doneFlag] = G.flags[D.seenFlag] = true; }   // 舊存檔：夢中小鎮出現之前就打過了
+    Object.assign(this.p, { x, y, dir: dir || this.p.dir, moving: false, t: 0 });
+    this.npcs = this.spawnList();
     this.resetEncounter();
     if (id === 'inkpool') this.spawnSpirit();
     else this.spawnRoamer();
@@ -140,10 +151,12 @@ const OW = {
     /* 過場觸發格：踩上去播一次就不再播 */
     const cutName = this.L.cuts && this.L.cuts[p.x + ',' + p.y];
     if (cutName && !G.flags['cut:' + this.id + ':' + cutName] && CUTS[cutName]
-        && G.badges.length >= (CUT_NEED[cutName] || 0)) {        // 校園裡禮堂一開始就到得了，碎片不夠時不播
+        && G.badges.length >= (CUT_NEED[cutName] || 0) && (!CUT_READY[cutName] || CUT_READY[cutName]())) {        // 校園裡禮堂一開始就到得了，碎片不夠時不播
       G.flags['cut:' + this.id + ':' + cutName] = true;
       this.run(() => CUTS[cutName]()); return true;
     }
+    const gt = this.L.guideTiles;                                       // 小墨出現的點：目標換了新的才會跳出來
+    if (gt && gt.includes(p.x + ',' + p.y) && typeof Guide !== 'undefined' && Guide.shouldTell()) { p.cont = false; this.run(() => moGuide()); return true; }
     const w = (this.L.warps || []).find(w => w.x === p.x && w.y === p.y);
     if (w) { this.run(() => w.to === '@ret' ? warpTo(G.ret.map, G.ret.x, G.ret.y, 'down') : warpTo(w.to, w.tx, w.ty, w.dir)); return true; }
     for (const n of this.npcs) if (n.sight && !G.defeated[n.key] && this.sees(n)) { p.cont = false; this.run(() => spotted(n)); return true; }
@@ -554,10 +567,27 @@ async function portalTalk(n) {
   if (!(await UI.yesno(R.ask))) return;
   await dreamEnter(R.dream);
 }
+/* 還差什麼才能繼續：機關還沒解開、要先打倒的人還沒打倒。回傳白話提示（沒有缺的就是空陣列），讓玩家知道下一步去哪 */
+function gateLack(R) {
+  const out = [];
+  if (R.gateFlag && !G.flags[R.gateFlag] && typeof Guide !== 'undefined') {
+    const at = Guide.where(Object.keys(W.roles).find(k => W.roles[k] === R)); const d = at ? Guide.devices(at.map, R.gateFlag) : null;
+    if (d) out.push(`（還差一步：${d.text}。）`);
+  }
+  for (const k of (R.needDefeated || [])) if (!G.defeated[k] && typeof Guide !== 'undefined') {
+    const role = k.split(':')[1], st = Guide.step(role) || Guide.go(role);
+    if (st) { out.push(`（還差一步：${st.text}。）`); break; }
+  }
+  return out;
+}
 /* 小老師的「碎片化身」：解完謎才出現；打贏只拿到紙屑，旋渦把玩家吸進夢中小鎮 */
 async function avatarTalk(n) {
   const R = n.role;
-  if ((R.gateFlag && !G.flags[R.gateFlag]) || (R.needDefeated && !R.needDefeated.every(k => G.defeated[k]))) { await say(R.gateText); return; }
+  const lack = gateLack(R);
+  if (lack.length) {
+    const devicesPending = R.gateFlag && !G.flags[R.gateFlag];       // 機關還沒解開才講原本的「怎麼了」；機關都解開了就只說還差什麼，免得誤導
+    await say([devicesPending || !R.gateFlag ? R.gateText : '（現在還不能繼續……）', ...lack].filter(Boolean).join('\n\n')); return;
+  }
   if (R.noFight) {                                  // 不戰鬥的入口（④ 讀歷屆榜）：讀完就被寫進夢裡
     for (const t of R.lines) await say(t, t.startsWith('（') || t.includes('：') ? undefined : R.name);
     for (const t of R.afterWin) await say(t, t.startsWith('（') || t.includes('：') ? undefined : R.name);
@@ -796,9 +826,40 @@ function stagedRole(R) {
 }
 /* 一段話可以是一個字串，也可以是一串字串（一句一個對話框） */
 const sayEach = async (t, name) => { for (const x of [].concat(t)) await say(x, name); };
+/* 會「開口指路」的人：小墨（guide）、道館守門人、路上聊天的同學與工友（tip 開頭或結尾的角色）。
+   聊完原本的話之後，補一句現在該做什麼、往哪走；目標不直接顯示在遊戲畫面上，要問人或看選單「任務」才知道。 */
+const GUIDE_ROLE = /^(c1aTip|inkTip|tipInk|tip[A-Z]\w*|townTip\d+|gymTip\d+)$/;
+const isGuideNpc = R => R.kind === 'guide' || R.guide === true || GUIDE_ROLE.test(Object.keys(W.roles).find(k => W.roles[k] === R) || '');
+async function guideHint(R) {
+  const o = typeof Guide !== 'undefined' && Guide.objective(); if (!o) return;
+  if (R.kind === 'guide') await say(`「對了，現在該做的是——\n${o.text}」`, R.name);
+  else await say(`（你想起現在該做的事：\n${o.text}）`);
+}
+/* 小墨出現，說接下來主線要做什麼，說完跳走。第一次會自我介紹；之後每次目標換新，走到下一個點再出現。 */
+async function moGuide() {
+  const o = Guide.shouldTell(); if (!o) return;
+  const first = !G.flags.moTold, M = '小墨', p = OW.p;
+  G.flags.moTold = Guide.key(o);
+  const [dx, dy] = DIRS[p.dir] || [0, 1];
+  const cand = [[p.x + dx, p.y + dy], [p.x - dx, p.y - dy], [p.x + dy, p.y + dx], [p.x - dy, p.y - dx]]
+    .find(([x, y]) => !OW.solid(x, y) && !(OW.L.warps || []).some(w => w.x === x && w.y === y) && !OW.npcAt(x, y)) || [p.x, p.y];
+  const mo = { key: 'cut:xiaomoGuide', role: { name: M }, x: cand[0], y: cand[1], dir: 'down', home: 'down', sight: 0, ox: 0, oy: -26, fr: 0, look: { sprite: 'xiaomo' } };
+  OW.npcs.push(mo);
+  try {
+    Sound.sfx('alert');
+    await Anim.run(0.35, k => { mo.oy = Math.round(-26 * (1 - k * k)); });
+    Sound.sfx('bump'); await Anim.run(0.18, k => { mo.oy = -Math.round(Math.sin(k * Math.PI) * 4); }); mo.oy = 0;
+    const lead = first ? ['等一下！我是小墨，這一路上，下一步要做什麼，由我來告訴你。']
+      : [['做得好！接下來——'], ['對了，下一步是——'], ['我又來啦。接下來——']][(G.badges.length + (o.text.length % 3)) % 3];
+    await say(`「${lead[0]}\n${o.text}」`, M);
+    if (first) await say('「迷路或忘記的話，隨時打開選單的「任務」看，或找路上的人問問。我會在你做完這一步、走到下一個路口的時候再出現。」', M);
+    await Anim.run(0.28, k => { mo.oy = -Math.round(k * k * 26); });
+  } finally { OW.npcs = OW.npcs.filter(n => n !== mo); }
+  autosave();
+}
 async function talkTo(n) {
   const base = n.role; n.role = stagedRole(base);
-  try { await talkToInner(n); } finally { n.role = base; }
+  try { await talkToInner(n); if (isGuideNpc(base)) await guideHint(base); } finally { n.role = base; }
 }
 async function talkToInner(n) {
   const R = n.role; n.dir = OPP[OW.p.dir];
@@ -974,8 +1035,12 @@ const GQ_CLUE = {
 const gqClue = arch => (W.gqClue && W.gqClue[arch]) || GQ_CLUE[arch];
 /* 過場要幾片碎片才會播 */
 const CUT_NEED = { moIntro: 4 };
+/* 過場觸發的其他條件（沒達成就算走過去也不會播，也不會被記成「播過了」） */
+const CUT_READY = { bossDrop: () => ['aud:e1', 'aud:e2', 'aud:e3', 'aud:moGuard'].every(k => G.defeated[k]) };
 const CUTS = {
   /* 鐘塔台道館門口：小墨從道館裡面跑出來擋住你 */
+  /* 最後的大魔王：走到講台前的紅毯才從天而降（不再是打完菁英的當下直接出現） */
+  async bossDrop() { await bossEntrance(); },
   async moIntro() {
     const M = '小墨';
     const L = OW.L;
@@ -1199,11 +1264,13 @@ async function trainerTalk(n) {
   const R = n.role;
   if (G.defeated[n.key]) { await say(G.route && R.afterA ? (G.route === 'a' ? R.afterA : R.afterB) : R.after, R.name); return; }
   if (!G.equip.length) { await say('……你手上沒有武器？', R.name); return; }
-  if (R.needDefeated && !R.needDefeated.every(k => G.defeated[k])) { await say(R.gateText || '……', R.gateText && R.gateText.startsWith('（') ? undefined : R.name); return; }
+  if (R.needDefeated && !R.needDefeated.every(k => G.defeated[k])) { await say([R.gateText || '……', ...gateLack(R)].join('\n\n'), R.gateText && R.gateText.startsWith('（') ? undefined : R.name); return; }
   await say(R.intro, R.name);
   const res = await Battle.start({ kind: R.kind, foe: makePersonFoe(R), role: R, cats: R.foe.cats });
   if (res !== 'win') return;
   G.defeated[n.key] = true;
+  const arrived = OW.syncNpcs();                        // 這一場打完，剛好達成條件的人現身（三位菁英倒下 → 小墨走進禮堂）
+  if (arrived.some(a => a.role.name === '小墨')) await say('（三位菁英倒下了。禮堂的角落，一個小小的身影慢慢走了過來。）');
   let grant = false;
   if (R.choice && !G.route) {   // 劇情分支：兩個回答，走向不同
     const k = await UI.ask(R.choice.q, R.choice.opts, { name: R.name, cancel: false });
@@ -1217,7 +1284,6 @@ async function trainerTalk(n) {
   /* 器靈現身放在對方把話說完之後：輸了會被送回休息處，對方的台詞不能在那邊才講 */
   if (grant) await Guardian.grant(true);
   if (((R.kind === 'rival' && !R.choice) || R.leaves) && W.story) { G.flags['gone:' + n.key] = true; await Anim.run(0.4, k2 => n.oy = -8 * k2); OW.npcs = OW.npcs.filter(x => x !== n); }
-  if (R.kind === 'trainer') await bossEntrance();      // 菁英全滅 → 大魔王登場
   if (R.kind === 'gym') {
     G.badges.push(R.badge); Sound.play('victory'); Sound.sfx('badge');
     if (G.ng > 0 && W.ngLines && W.ngLines[G.badges.length]) for (const t of W.ngLines[G.badges.length]) await say(t);

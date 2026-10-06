@@ -380,3 +380,8 @@ body{ background:#16120e radial-gradient(ellipse at top,#3a3026 0%,#16120e 70%);
 .clockp .cf b{ font-size:calc(var(--u)*6); color:#6a6a74; cursor:pointer; line-height:1.1; padding:0 calc(var(--u)*3); }
 .clockp .ch{ font-size:calc(var(--u)*6.5); color:#6a6a74; margin-top:calc(var(--u)*1); }
 .clockp .ok{ display:inline-block; margin-top:calc(var(--u)*2); padding:0 calc(var(--u)*8); border-radius:calc(var(--u)*2); background:#3a4c78; color:#fff; text-shadow:none; cursor:pointer; font-size:calc(var(--u)*8); }
+
+
+.credits .cs{ font-size:calc(var(--u)*6.2); opacity:.85; line-height:1.7; }
+.credits .dlc{ margin:calc(var(--u)*10) 0; padding:calc(var(--u)*5) 0; border-top:calc(var(--u)*.5) solid #8a7c68; border-bottom:calc(var(--u)*.5) solid #8a7c68; font-size:calc(var(--u)*8.5); }
+.credits .theend{ font-size:calc(var(--u)*30); font-weight:900; letter-spacing:.3em; padding:calc(var(--u)*30) 0 calc(var(--u)*60); }
