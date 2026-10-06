@@ -748,6 +748,11 @@ async function goHome() {
 async function useDevice(d) {
   if (G.flags[d.flag]) { await say(d.doneText || '（這裡的機關已經解開了。）'); return; }
   await say(d.text);
+  if (G.teacher) {                                         // 教師版只要過劇情：機關直接解開，不出題
+    G.flags[d.flag] = true; Sound.sfx('ok');
+    await say('（教師測試版：略過機關的題目，直接解開。）');
+    await say(d.ok); await afterDevice(d); return;
+  }
   const q = QB.draw([d.cat], clamp((OW.L.qlv || 1) + (G.ng || 0), 1, 3), clamp(1 + (G.ng || 0), 1, 3));   // 二週目機關題也變難
   if (!q) { await say('（題庫裡還沒有這類題目，機關自行解開了。）'); G.flags[d.flag] = true; await afterDevice(d); return; }
   const tries = (G.devTry = G.devTry || {});

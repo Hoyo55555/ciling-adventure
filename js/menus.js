@@ -103,7 +103,7 @@ const BookMenu = {
     let sel = 0;
     while (true) {
       const opts = ['角色', '地圖', '武器', '電腦', '鍛造', '道具', '兵器譜', '妖怪圖鑑', '稱號', '任務', '存檔', '設定']
-        .concat(OW.L && OW.L.dream && G.flags.dream ? ['醒來'] : [], G && G.teacher ? ['🚌 直達', '📖 劇情進度'] : [], Cloud.user ? ['登出'] : [], ['回到主畫面', '關閉']);
+        .concat(OW.L && OW.L.dream && G.flags.dream ? ['醒來'] : [], G && G.teacher ? ['🚌 直達', '📖 劇情進度', '🎬 轉場展示'] : [], Cloud.user ? ['登出'] : [], ['回到主畫面', '關閉']);
       const i = await UI.choose(opts, { pos: {}, cls: 'bookmenu', start: sel });
       const L = opts[i]; if (i < 0 || L === '關閉') return; sel = i;
       if (L === '角色') await CharPanel.open();
@@ -122,6 +122,7 @@ const BookMenu = {
         if (await UI.yesno(`要醒來、回到${(W.dreams[G.flags.dream] || {}).homeName || '教室'}嗎？\n（進度都會保留，之後可以從${(W.dreams[G.flags.dream] || {}).homeName || '教室'}的入口再進來）`)) { await dreamWake(G.flags.dream); return; } }
       if (L === '🚌 直達') { if (await TeacherTravel.open()) return; }
       if (L === '📖 劇情進度') { if (await TeacherStage.open()) return; }
+      if (L === '🎬 轉場展示') { if (await TeacherDemo.open()) return; }
       if (L === '登出') { if (await Cloud.logoutFlow()) { await fade(1, 0.3); titleScreen(); await fade(0, 0.3); return; } }
       if (L === '回到主畫面') { await goHome(); if (Game.scene === 'title') return; }
     }
@@ -211,6 +212,26 @@ const TeacherStage = {
     await warpTo(at.map, at.x, at.y, 'down'); autosave();
     await say(`（劇情進度已設到「${names[k]}」。看地圖左下角的目標，或選單的「任務」，就知道下一步去哪。）`);
     return true;
+  },
+};
+
+/* ============ 教師測試版：轉場展示 ============
+   四座夢中小鎮各有一種進夢／醒來的動畫，加上小墨在路口出現。原地播放，不換地圖、不改進度。 */
+const TeacherDemo = {
+  async open() {
+    const items = [['① 旋渦（注音坡）', 'zy'], ['② 書頁翻飛（書海港）', 'dj'], ['③ 花雨（花南街）', 'hn'], ['④ 墨暈（碑林關）', 'pl'], ['小墨在路口出現', 'mo']];
+    while (true) {
+      const k = await UI.ask('教師測試版：要看哪一個轉場？\n（原地播放，不換地圖、不改進度）', items.map(i => i[0]).concat(['返回']), {});
+      if (k < 0 || k >= items.length) return false;
+      UI.clear(); Sound.sfx('ok');
+      const id = items[k][1];
+      if (id === 'mo') { const keep = G.flags.moTold; delete G.flags.moTold; const o = Guide.objective(); if (o) await moGuide(); else await say('（現在沒有主線目標，小墨沒有要說的。）'); G.flags.moTold = keep; }
+      else if (W.dreams[id]) {
+        const D = W.dreams[id], FX = dreamFx(D);
+        await FX.out(D); OW.hidePlayer = true; await FX.in(D);                    // 進夢 → 醒來（跟真的一樣的動畫）
+      }
+      return true;
+    }
   },
 };
 
@@ -919,7 +940,7 @@ const Ending = {
     else Sound.play(W.music[OW.L.music]);
   },
 };
-/* ============ 製作名單（遊戲結束時的跑馬燈用，選單裡不再有入口） ============
+/* ============ 感謝名單（遊戲結束時的跑馬燈用，選單裡不再有入口） ============
    使用到的外部素材一律在這裡標示作者、來源、授權（CC BY／CC BY-SA 要求標示；CC0 不要求，但一併感謝）。
    新增素材時，在 CREDITS 補一筆，並更新 assets/kenney/README.txt。 */
 const CREDITS = [
@@ -937,7 +958,7 @@ const CREDITS = [
 const DLC_NOTICE = ['🖌️ 文人墨客生涯', '⚔️ 俠客生涯', '正在製作中', '敬請期待 DLC！'];
 const Credits = {
   html(end) {
-    return `<h2>詞靈冒險．翡翠之卷</h2><p>試玩版</p>` +
+    return `<h2>感謝名單</h2><p>詞靈冒險．翡翠之卷<br>試玩版</p>` +
       CREDITS.map(c => `<p><b>${esc(c.head)}</b>` + (c.lines || []).map(l => `<br>${esc(l)}`).join('') +
         (c.items || []).map(it => `<br><br><b>${esc(it.name)}</b><br><span class="cs">作者：${esc(it.by)}　授權：${esc(it.lic)}<br>${esc(it.url)}<br>用途：${esc(it.use)}</span>`).join('') + `</p>`).join('') +
       `<p class="dlc"><b>${esc(DLC_NOTICE[0])}　${esc(DLC_NOTICE[1])}</b><br>${esc(DLC_NOTICE[2])}<br><b>${esc(DLC_NOTICE[3])}</b></p><p><b>感謝遊玩</b></p>` +
