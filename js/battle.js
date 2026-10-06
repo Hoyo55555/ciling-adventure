@@ -296,6 +296,11 @@ async function endOfRound(s) {
     }
   }
   await tickStatus(s, 'foe'); if (s.foe.hp <= 0) return 'win';
+  /* 對手血量降到一半時插一段話（role.half），每場只講一次 */
+  if (s.cfg.role && s.cfg.role.half && !s.halfSaid && s.foe.hp <= s.foe.maxhp / 2) {
+    s.halfSaid = true;
+    for (const t of s.cfg.role.half) await msg(t, /^[^：「（\s]{1,6}：/.test(t) || t.startsWith('（') ? {} : { name: s.foe.name });
+  }
   await tickStatus(s, 'me'); if (G.hp <= 0) return 'lose';
   return null;
 }

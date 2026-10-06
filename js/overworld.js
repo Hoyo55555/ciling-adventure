@@ -376,7 +376,7 @@ async function dreamEnter(id) {
   await vortexIn();
   if (!G.flags[id + 'Seen']) {
     G.flags[id + 'Seen'] = true;
-    for (const t of D.arrive) await say(t, t.startsWith('（') ? undefined : '小墨');
+    for (const t of D.arrive) await say(t, t.startsWith('（') || t.includes('：') ? undefined : '小墨');
   }
   autosave();
 }
@@ -412,9 +412,9 @@ async function avatarTalk(n) {
 /* 委託做到第幾件：夠了就開道館的門 */
 async function dreamProgress(id) {
   const D = W.dreams[id];
-  const n = Object.keys(G.flags).filter(k => /^sq:/.test(k) && !k.endsWith(':got') && (W.roles[k.split(':').pop()] || {}).dream === id).length;
+  const n = dreamDoneCount(id);
   if (G.flags[D.openFlag]) return;
-  if (n >= D.need) { G.flags[D.openFlag] = true; Sound.sfx('badge'); autosave(); await say(D.openText); }
+  if (n >= D.need) { G.flags[D.openFlag] = true; Sound.sfx('badge'); autosave(); await sayEach(D.openText); }
   else { await say(`（夢鬆動了一點……還差 ${D.need - n} 件。）`); }
 }
 /* 真正的小老師倒下之後：夢開始淡去，回到教室 */
@@ -605,7 +605,23 @@ async function afterDevice(d) {
   if (last.onAll) { G.flags[last.onAll] = true; autosave(); }
   if (last.onAll === 'shardsAll' && OW.id === 'inkpool') await spiritRise();   // 硯海龍君現身
 }
+/* 夢中居民依進度換台詞：role.stages 裡 { min: 夢裡已做完幾件委託 } 或 { done: true（夢結束後） }，取最後一個符合的，欄位蓋過原本的 */
+function dreamDoneCount(id) {
+  return Object.keys(G.flags).filter(k => /^sq:/.test(k) && !k.endsWith(':got') && (W.roles[k.split(':').pop()] || {}).dream === id).length;
+}
+function stagedRole(R) {
+  if (!R.stages || !R.sd) return R;
+  const D = W.dreams[R.sd], cnt = dreamDoneCount(R.sd); let pick = null;
+  for (const st of R.stages) { if (st.done ? !!G.flags[D.doneFlag] : cnt >= (st.min || 0)) pick = Object.assign({}, pick || {}, st); }
+  return pick ? Object.assign({}, R, pick) : R;
+}
+/* 一段話可以是一個字串，也可以是一串字串（一句一個對話框） */
+const sayEach = async (t, name) => { for (const x of [].concat(t)) await say(x, name); };
 async function talkTo(n) {
+  const base = n.role; n.role = stagedRole(base);
+  try { await talkToInner(n); } finally { n.role = base; }
+}
+async function talkToInner(n) {
   const R = n.role; n.dir = OPP[OW.p.dir];
   switch (R.kind) {
     case 'mentor': return mentorTalk(n);
@@ -627,7 +643,7 @@ async function talkTo(n) {
       Sound.sfx('door'); await say(R.text); G.hp = G.maxhp;
       if (OW.L.dream) G.lastHeal = { map: OW.id, x: OW.p.x, y: OW.p.y };      // 夢裡的休息處就在茶棚旁，倒下了不會被丟回現實
       else if (G.ret) G.lastHeal = { map: G.ret.map, x: G.ret.x, y: G.ret.y };
-      Sound.sfx('heal'); await say('（氣血全滿了！）'); autosave(); n.dir = n.home; return; }
+      Sound.sfx('heal'); await say('（氣血全滿了！）'); if (R.extra) await sayEach(R.extra); autosave(); n.dir = n.home; return; }
     case 'shop': await say(R.text); await Shop.open((G.ret && LAYOUTS[G.ret.map].shop) || ['heal', 'hint']); n.dir = n.home; return;
     case 'smith': await say(R.lines.join('\n\n'), R.name); await Forge.open(); n.dir = n.home; return;
     case 'gift': {                                   // 送禮物（只送一次）
@@ -685,10 +701,10 @@ async function busTalk(n) {
 async function sideQuestTalk(n) {
   const R = n.role, key = 'sq:' + n.key;
   const done = R.need ? R.need.every(k => G.defeated[k]) : R.needChests ? R.needChests.every(id => G.chests[id]) : !!G.flags[R.needFlag];
-  if (G.flags[key]) { await say(R.after, R.name); return; }
-  if (!done) { await say(G.flags[key + ':got'] ? R.progress : R.offer, R.name); G.flags[key + ':got'] = true; autosave(); return; }
+  if (G.flags[key]) { await sayEach(R.after, R.name); return; }
+  if (!done) { await sayEach(G.flags[key + ':got'] ? R.progress : R.offer, R.name); G.flags[key + ':got'] = true; autosave(); return; }
   G.flags[key] = true; Sound.sfx('badge');
-  await say(R.done, R.name);
+  await sayEach(R.done, R.name);
   const P = R.prize || {};
   if (P.money) G.money += P.money;
   if (P.items) for (const id in P.items) G.bag[id] += P.items[id];
@@ -1018,7 +1034,7 @@ async function trainerTalk(n) {
     await say(G.route === 'a' ? R.afterA : R.afterB, R.name);
     if (!W.story) { await say(`（你選擇了「${W.routeNames[G.route]}」，之後的劇情會跟著改變。）`); G.flags.rivalGone = true; await Anim.run(0.4, k2 => n.oy = -6 * k2); OW.npcs = OW.npcs.filter(x => x !== n); }
   }
-  if (R.afterWin && R.afterWin.length) for (const t of R.afterWin) await say(t, t.startsWith('（') ? undefined : R.name);
+  if (R.afterWin && R.afterWin.length) for (const t of R.afterWin) await say(t, t.startsWith('（') || /^[^：「（\s]{1,6}：/.test(t) ? undefined : R.name);
   /* 器靈現身放在對方把話說完之後：輸了會被送回休息處，對方的台詞不能在那邊才講 */
   if (grant) await Guardian.grant(true);
   if (((R.kind === 'rival' && !R.choice) || R.leaves) && W.story) { G.flags['gone:' + n.key] = true; await Anim.run(0.4, k2 => n.oy = -8 * k2); OW.npcs = OW.npcs.filter(x => x !== n); }
