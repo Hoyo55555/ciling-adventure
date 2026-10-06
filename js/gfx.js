@@ -1066,6 +1066,22 @@ const GFX = (() => {
     const cv = toCanvas(32, 32, raster(32, 32, P, Object.assign({}, WPAL[theme] || WPAL.school, { a: M.col })));
     cache.set(key, cv); return cv;
   }
+  /* 有動畫的劇情角色（使用者提供的造型，assets/sprites/）：
+     big ＝ 戰鬥／過場用，每格 64×60；map ＝ 地圖用，每格 32×30（照大圖縮小、五官重點）。
+     四格：0 原位、1 下沉、2 上浮、3 閉眼。圖還沒載入完回傳 null，呼叫端改用 special() 的舊圖。 */
+  const SHEETS = {
+    xiaomo: { big: [img('../sprites/xiaomo_big.png'), 64, 60], map: [img('../sprites/xiaomo_map.png'), 32, 30] },
+  };
+  function anim(kind, size, now) {
+    const s = SHEETS[kind] && SHEETS[kind][size]; if (!s) return null;
+    const [im, w, h] = s; if (!(im.complete && im.naturalWidth)) return null;
+    const t = Math.floor(now / 170);
+    const f = t % 28 >= 26 ? 3 : [0, 1, 0, 2][t % 4];            // 大約每 5 秒眨一次眼
+    const key = 'anim:' + kind + size + f; if (cache.has(key)) return cache.get(key);
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    cv.getContext('2d').drawImage(im, f * w, 0, w, h, 0, 0, w, h);
+    cache.set(key, cv); return cv;
+  }
   /* 劇情角色：小墨（水墨小精靈）、總複習大魔王（考卷與黑墨揉成的怪獸） */
   function special(kind) {
     const key = 'sp:' + kind; if (cache.has(key)) return cache.get(key);
@@ -1972,5 +1988,5 @@ const GFX = (() => {
     g.fillStyle = 'rgba(255,248,220,.9)'; g.fill(); g.lineWidth = 1.2; g.strokeStyle = 'rgba(60,40,20,.75)'; g.stroke();
     cache.set(key, cv); return cv;
   }
-  return { person, tile, setIndoor, clockHands, doormat, exitArrow, skinsReady, SKINS, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
+  return { anim, person, tile, setIndoor, clockHands, doormat, exitArrow, skinsReady, SKINS, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
 })();

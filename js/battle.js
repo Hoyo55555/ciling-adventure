@@ -57,7 +57,11 @@ const Battle = {
     if (s.fo.vis && !s.fo.blink) {
       g.globalAlpha = s.fo.a; const f = s.foe;
       if (f.kind === 'mon') g.drawImage(GFX.weaponMon(f.sp, W.theme), 146 + s.fo.x, 40 + s.fo.dy, 64, 64);
-      else if (f.look.sprite) g.drawImage(GFX.special(f.look.sprite), 138 + s.fo.x, 22 + s.fo.dy + Math.round(Math.sin(performance.now() / 300) * 2), 80, 80);
+      else if (f.look.sprite) {
+        const now = performance.now(), bob = Math.round(Math.sin(now / 300) * 2), big = GFX.anim(f.look.sprite, 'big', now);
+        if (big) g.drawImage(big, 138 + s.fo.x, 22 + s.fo.dy + 5 + bob, 80, 75);          // 64×60 的大圖放大 1.25 倍，跟其他對手一樣寬、底部對齊
+        else g.drawImage(GFX.special(f.look.sprite), 138 + s.fo.x, 22 + s.fo.dy + bob, 80, 80);
+      }
       else g.drawImage(GFX.person(f.look, 'left', 0), 154 + s.fo.x, 56 + s.fo.dy, 48, 48);
       g.globalAlpha = 1;
     }
