@@ -356,7 +356,7 @@ const AREA_POOLS = {
 };
 const AREA_RARE = new Set(["umbrella", "paper_exam", "twins", "ink_white", "turtle", "pen_black", "couplet", "lantern", "jade", "pen_fountain", "trophy", "sound_triangle"]);
 /* 已經換成新畫風的妖怪（assets/monsters/<id>.png＋<id>_icon.png）。處理圖的流程見 妖怪設計.md，處理完會把 id 加在這裡。 */
-const MON_ART = [];
+const MON_ART = ['pen_auto', 'paper_text', 'paper_exam', 'sound_bell'];
 const MON_KEYS = Object.keys(MONSTERS);
 const monDef = k => { const m = MONSTERS[k]; return { name: m[0], race: m[1], el: m[2], shape: m[3], col: m[4], drop: m[5], stage: m[6] }; };
 const monsAtStage = st => MON_KEYS.filter(k => MONSTERS[k][6] <= st);
