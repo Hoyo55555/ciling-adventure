@@ -331,7 +331,7 @@ const Flow = {
     /* 舊的教師存檔：以前一次給滿五片碎片，前面章節的人物全消失、化身擋在那裡過不去。整理成「第五章開頭、前四章都做完」 */
     if (G.teacher && G.flags.teacherKit && !G.flags.teacherKit2) {
       G.flags.teacherKit2 = 1;
-      if (G.badges.length === 5 && !G.flags.cleared && !G.defeated['aud:boss5']) { const at = setStoryStage(4); G.map = at.map; G.x = at.x; G.y = at.y; G.flags.teacherFixNote = 1; }
+      if (G.badges.length >= 5 && !G.flags.cleared && !G.defeated['aud:boss5']) { const at = setStoryStage(4); G.map = at.map; G.x = at.x; G.y = at.y; G.flags.teacherFixNote = 1; }
     }
     if (W.story && !G.flags.prologue) { const S0 = W.start; G.map = S0.map; G.x = S0.x; G.y = S0.y; G.weapons = []; G.equip = []; }
     await fade(1, 0.3); UI.clear(); Game.scene = 'overworld'; OW.load(G.map, G.x, G.y, 'down'); await fade(0, 0.3);
