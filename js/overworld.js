@@ -282,7 +282,7 @@ const OW = {
       if (!solved) { const rg = g.createRadialGradient(px + 8, py + 6, 1, px + 8, py + 6, 11); rg.addColorStop(0, `rgba(160,215,255,${.38 + .18 * Math.sin(now / 300)})`); rg.addColorStop(1, 'rgba(160,215,255,0)'); g.fillStyle = rg; g.fillRect(px - 4, py - 6, 24, 24); }
       g.drawImage(GFX.devProp(solved), px, py);
     }
-    for (const c of L.chests || []) g.drawImage(GFX.chest(!!G.chests[c.id]), c.x * 16 - cx, c.y * 16 - cy);
+    for (const c of L.chests || []) g.drawImage(GFX.chest(!!G.chests[c.id]), c.x * 16 - cx - 2, c.y * 16 - cy - 16);
     const actors = this.npcs.map(n => ({ y: n.y * 16 + n.oy, draw: () => {
       if (n.look.sprite) { const sp = GFX.anim(n.look.sprite, n.look.size || 'map', now) || GFX.special(n.look.sprite), sw = sp.width, sh = sp.height; const bob = Math.round(Math.sin(now / 300) * 1.5);
         g.drawImage(sp, n.x * 16 + n.ox - cx - (sw - 16) / 2, n.y * 16 + n.oy - cy - (sh - 16) - 3 + bob); }   // 依圖原尺寸畫，不拉伸；有動畫的（小墨）播四格

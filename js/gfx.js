@@ -1246,21 +1246,17 @@ const GFX = (() => {
     R(10, 5, 3, 3, solved ? '#2f7a4a' : '#c83830'); R(11, 6, 1, 1, solved ? '#9be8b0' : '#e8827a');     // 印
     cache.set(key, cv); return cv;
   }
+  /* 寶箱：IbinGames「Free Pixelart Chests/Boxes Pack 16-16px」的木箱 1（CC BY-SA 4.0，assets/chests/）。
+     回傳 20×32 的畫布：箱子畫在底部（左 2、下 16），打開時箱蓋往上掀。畫到地圖上時要往左 2、往上 16（overworld 照這個畫）。 */
+  const CHEST_IMG = [img('../chests/chest1_wood.png'), img('../chests/chest1_wood_open.png')];
   function chest(open) {
     const key = 'chest' + open; if (cache.has(key)) return cache.get(key);
-    const S = RPG(550);                                              // Kenney 的鐵箍木箱；沒有打開的版本，開啟時把箱蓋換成黑色箱內
-    if (!(S.im.complete && S.im.naturalWidth)) {                      // 圖還沒載入：先畫舊的，不快取
-      const P = [{ t: 'r', v: [2, 6, 12, 8], c: '#8a5a2a' }, { t: 'r', v: [2, 4, 12, 4], c: '#a86a32' }, { t: 'r', v: [7, 7, 2, 3], c: '#f0d060' }];
-      return toCanvas(16, 16, raster(16, 16, P, null));
+    const cv = document.createElement('canvas'); cv.width = 20; cv.height = 32; const g = cv.getContext('2d');
+    const im = CHEST_IMG[open ? 1 : 0];
+    if (!(im.complete && im.naturalWidth)) {                          // 圖還沒載入：先畫簡單的箱子，不快取
+      g.fillStyle = '#8f673f'; g.fillRect(2, 22, 16, 10); g.fillStyle = '#b98b5e'; g.fillRect(3, 23, 14, 8); return cv;
     }
-    const cv = document.createElement('canvas'); cv.width = cv.height = 16; const g = cv.getContext('2d');
-    g.drawImage(S.im, S.sx, S.sy, 16, 16, 0, 0, 16, 16);
-    if (open) {
-      g.clearRect(0, 0, 16, 8);                                                       // 上半（箱蓋）拿掉
-      g.drawImage(S.im, S.sx, S.sy + 8, 16, 8, 0, 8, 16, 8);                           // 下半原樣
-      g.fillStyle = '#9aa0a4'; g.fillRect(1, 5, 14, 3); g.fillStyle = '#2a1c12'; g.fillRect(2, 6, 12, 2);   // 敞開的箱口
-      g.fillStyle = '#c9a050'; g.fillRect(4, 7, 3, 1); g.fillRect(9, 7, 2, 1);        // 底下一點點金色
-    }
+    if (open) g.drawImage(im, 0, 0); else g.drawImage(im, 2, 16);
     cache.set(key, cv); return cv;
   }
 
