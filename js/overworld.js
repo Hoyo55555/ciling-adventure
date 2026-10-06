@@ -295,7 +295,7 @@ const OW = {
     // 任務提示：該對話的對象頭上閃爍
     const marks = questMarks();
     for (const n of this.npcs) { const m = marks[n.role === W.roles.questGiver ? 'questGiver' : n.key.split(':')[1]]; if (m) drawMark(g, n.x * 16 + n.ox - cx + 3, n.y * 16 + n.oy - cy - (n.look.sprite === 'boss' ? 28 : 15), m, now); }
-    for (const [k, d] of Object.entries(this.L.devices || {})) if (!G.flags[d.flag]) { const [dx2, dy2] = k.split(',').map(Number); drawMark(g, dx2 * 16 - cx + 4, Math.max(2, dy2 * 16 - cy - 9), 'side', now); }
+    for (const [k, d] of Object.entries(this.L.devices || {})) if (!G.flags[d.flag]) { const [dx2, dy2] = k.split(',').map(Number); drawDevMark(g, dx2 * 16 - cx, dy2 * 16 - cy, now); }
     for (const f of this.fx || []) f(g, cx, cy);
     /* 夢中小鎮：整張圖蒙一層淡淡的顏色、飄著字（讓玩家一眼知道這裡不是現實）。顏色與字由 W.dreams[id] 決定 */
     if (L.dream && W.dreams && W.dreams[L.dream]) {
@@ -508,16 +508,34 @@ function questMarks() {
 const GLYPH = { '!': ['..#..', '..#..', '..#..', '..#..', '.....', '..#..'], '?': ['.###.', '#...#', '...#.', '..#..', '.....', '..#..'] };
 /* 只在人物頭上標示：黃「！」主線、藍「！」支線、黃「？」可回報。
    地圖上的出入口不再標箭頭（玩家說看不懂，而且路本身就看得出來）。 */
-function drawMark(g, x, y, type, now, dir) {
-  const blink = (Math.sin(now / 180) + 1) / 2; if (blink < 0.15) return;
-  const bob = Math.round(Math.sin(now / 250) * 1.2); y += bob;
-  g.globalAlpha = 0.6 + 0.4 * blink;
-  const col = type === 'side' ? '#4aa0f0' : '#f8c830';
-  g.fillStyle = '#2a2018'; g.fillRect(x, y, 8, 8); g.fillRect(x + 3, y + 8, 2, 2);
-  g.fillStyle = col; g.fillRect(x + 1, y + 1, 6, 6); g.fillRect(x + 3, y + 7, 1, 2);
-  g.fillStyle = '#2a2018'; g.fillRect(x + 3, y + 2, 2, 3); g.fillRect(x + 3, y + 6, 2, 1);
-  if (type === 'report') { g.fillStyle = col; g.fillRect(x + 3, y + 2, 2, 3); g.fillStyle = '#2a2018'; g.fillRect(x + 2, y + 2, 3, 1); g.fillRect(x + 4, y + 3, 1, 1); g.fillRect(x + 3, y + 4, 1, 1); g.fillRect(x + 3, y + 6, 1, 1); }
-  g.globalAlpha = 1;
+/* 頭上的提示符號（2026-10-06 換新）：沒有框，一個深色描邊的大「！」或「？」漂在頭上，地上有小影子。
+   黃＝主線！、藍＝支線！、黃＝可回報？。圖案做成小畫布存起來（描邊算一次就好）。 */
+const MARK_FILL = { '!': ['yyy', 'yyy', 'yyy', 'yyy', '.y.', '...', 'yyy', 'yyy'], '?': ['.yyy.', 'yyyyy', 'yy.yy', '...yy', '..yy.', '.yy..', '.yy..', '.....', '.yy..', '.yy..'] };
+const MARK_COL = { main: ['#f2b01e', '#fff0a0', '#a8700a'], side: ['#4a9af0', '#cfe8ff', '#1f5aa8'], report: ['#f2b01e', '#fff0a0', '#a8700a'] };
+const markCache = {};
+function markGlyph(type) {
+  if (markCache[type]) return markCache[type];
+  const rows = MARK_FILL[type === 'report' ? '?' : '!'], [c, hi, lo] = MARK_COL[type], H = rows.length, W0 = rows[0].length;
+  const cv = document.createElement('canvas'); cv.width = W0 + 2; cv.height = H + 2; const g = cv.getContext('2d');
+  const on = (i, j) => j >= 0 && j < H && i >= 0 && i < W0 && rows[j][i] === 'y';
+  for (let j = -1; j <= H; j++) for (let i = -1; i <= W0; i++) {
+    if (on(i, j)) { g.fillStyle = i === 0 && j <= 2 ? hi : i === W0 - 1 && j >= H - 3 ? lo : c; g.fillRect(i + 1, j + 1, 1, 1); }
+    else if (on(i - 1, j) || on(i + 1, j) || on(i, j - 1) || on(i, j + 1)) { g.fillStyle = '#2a2018'; g.fillRect(i + 1, j + 1, 1, 1); }
+  }
+  return (markCache[type] = cv);
+}
+function drawMark(g, x, y, type, now) {
+  const gl = markGlyph(type), bob = Math.round(Math.sin(now / 240) * 1.5), cxm = x + 4;       // x、y 沿用舊的位置（8 寬的方塊左上角）
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(cxm - 2, y + 9, 5, 1);                          // 地上的小影子，浮的感覺
+  g.drawImage(gl, cxm - (gl.width >> 1), y - 2 + bob);
+}
+/* 機關上的標記：還沒解開的機關上方閃一顆藍白色的四角星（tx、ty：機關那一格在畫面上的左上角） */
+function drawDevMark(g, tx, ty, now) {
+  const k = Math.floor(now / 150) % 6, s = [1, 2, 3, 4, 3, 2][k], cx = tx + 8, cy = Math.max(ty - 2, s + 2) + Math.round(Math.sin(now / 300));   // 最上面一排的機關：星星不要被畫面邊緣切掉
+  g.fillStyle = '#2a2018'; for (let i = -s - 1; i <= s + 1; i++) { g.fillRect(cx + i, cy - 1, 1, 3); g.fillRect(cx - 1, cy + i, 3, 1); }
+  g.fillStyle = '#bfe8ff'; for (let i = -s; i <= s; i++) { g.fillRect(cx + i, cy, 1, 1); g.fillRect(cx, cy + i, 1, 1); }
+  g.fillStyle = 'rgba(160,220,255,.55)'; g.fillRect(cx - 1, cy - 1, 3, 3);
+  g.fillStyle = '#fff'; g.fillRect(cx, cy, 1, 1);
 }
 const wenqiDots = () => `<span class="wq">${Array.from({ length: ULT_COST }, (_, i) => `<i class="${i < G.wenqi ? 'on' : ''}"></i>`).join('')}</span>`;
 /* 支線Ａ要點醒的三個人：以任務人物的資料為準，換地圖時只要改一個地方 */
