@@ -818,7 +818,9 @@ function CAMPUS_PATCH(S) {
   /* 夢中小鎮（2026-10-06）：進夢、醒來、休息處、開門條件、劇情台詞 */
   S.dreams = {
     zy: { name: '注音坡', home: { map: 'c1a', x: 5, y: 3, dir: 'down' }, town: { map: 'zy_town', x: 11, y: 10, dir: 'down' },
-      heal: { map: 'zy_town', x: 11, y: 10 }, need: 3, openFlag: 'zyOpen', doneFlag: 'zyDone',
+      heal: { map: 'zy_town', x: 11, y: 10 }, need: 3, openFlag: 'zyOpen', doneFlag: 'zyDone', enteredFlag: 'zyEntered', seenFlag: 'zySeen',
+      legacyKey: 'c1a:boss1', homeName: '教室', fx: 'vortex', tint: [140, 110, 230, .09],
+      glyphs: ['字', '音', '形', 'ㄅ', '注', 'ㄆ', '錯', '對', 'ㄇ', '夢', '筆', 'ㄈ', '墨', '紙'],
       openText: ['（遠處傳來一聲清脆的鐘響——坡頂道館的大門，開了。）', '（你想起老爺爺說的話：「你替她說一句：寫錯，沒關係。」）'],
       arrive: ['（睜開眼睛，周圍的樹、坡道、房子，都像是從課本裡長出來的。）',
                '小墨：「別怕，這是「注音坡」——碎片留下的夢。」',

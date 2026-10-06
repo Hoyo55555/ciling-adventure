@@ -119,7 +119,7 @@ const BookMenu = {
       if (L === '存檔') { autosave(); Sound.sfx('badge'); await say(`已儲存到欄位 ${G.slot}！（${fmtDate(G.savedAt)}）`); }
       if (L === '設定') await SettingsPanel.open();
       if (L === '醒來') {                                    // 夢中小鎮：隨時可以醒來（進度保留）
-        if (await UI.yesno('要醒來、回到教室嗎？\n（進度都會保留，之後可以從教室的旋渦再進來）')) { await dreamWake(G.flags.dream); return; } }
+        if (await UI.yesno(`要醒來、回到${(W.dreams[G.flags.dream] || {}).homeName || '教室'}嗎？\n（進度都會保留，之後可以從${(W.dreams[G.flags.dream] || {}).homeName || '教室'}的入口再進來）`)) { await dreamWake(G.flags.dream); return; } }
       if (L === '🚌 直達') { if (await TeacherTravel.open()) return; }
       if (L === '登出') { if (await Cloud.logoutFlow()) { await fade(1, 0.3); titleScreen(); await fade(0, 0.3); return; } }
       if (L === '回到主畫面') { await goHome(); if (Game.scene === 'title') return; }
