@@ -7,7 +7,8 @@
 ## 目前版本：國中生涯．獨立劇情試玩版
 
 依〈國中生涯劇情〉製作：打倒五位被「升學焦慮（墨塵）」附身的館主，找回五片會考准考證碎片。
-序幕（八年級教室、小墨登場）→ 一年甲班（字音字形小老師）→ 圖書館（學霸勁敵、成語圖書股長）→ 文學中庭（分組報告組員、現代文青助教）→ 校史室（勁敵分歧、守護神器、古典研究助教）→ 大禮堂（三位菁英考生、總複習大魔王）→ 結局與成績單。
+從家裡出發，走通學路進校園：一年甲班（字音字形小老師）→ 圖書館（學霸勁敵、成語圖書股長）→ 文藝教室（分組報告組員、現代文青助教）→ 校史室（勁敵分歧、守護神器、古典研究助教）→ 大禮堂（三位菁英考生、總複習大魔王）→ 結局與成績單。
+前四座道館各有一座**夢中小鎮**：解開教室裡的謎題後，被老師的「碎片」帶進夢裡（注音坡、書海港、花南街、碑林關），幫居民解決麻煩、聽出老師的心結，才見得到真正的館主。碑林關整座都是文言文，題目也只考文言。
 世界觀選擇暫時關閉（js/main.js 的 STORY_WORLD），文人墨客、俠客兩個世界之後開放。
 
 ## 遊戲特色
@@ -107,3 +108,11 @@ gas/Code.gs             雲端存檔用的 Google Apps Script
 
 ---
 所有圖像與音樂皆為程式原創生成；本作為教育用途的同人風格創作，與任天堂及 The Pokémon Company 無關。
+
+## 素材與授權
+
+遊戲內的「製作名單」（標題選單、設定面板）有完整標示，新增素材時請同步更新 `js/menus.js` 的 `CREDITS` 與 `assets/kenney/README.txt`。
+
+- Pixel Book (Animated)：Gokhan Solak（hansolo），CC BY 3.0，<https://opengameart.org/content/pixel-book-animated>
+- Free Pixelart Chests/Boxes Pack 16-16px：IbinGames，CC BY-SA 4.0，<https://ibingames.itch.io/free-pixelart-chestsboxes-pack-16-16px>（修改後的圖同樣以 CC BY-SA 4.0 公開）
+- Kenney（Roguelike RPG Pack、Indoors、Caves & Dungeons、Modern City、RPG Urban Pack）：CC0，<https://kenney.nl>
