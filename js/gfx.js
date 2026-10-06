@@ -1149,7 +1149,7 @@ const GFX = (() => {
   }
   /* 攤開的書（圖書館夢中小鎮的入口）：Pixel Book (Animated)，Gokhan Solak，CC-BY 3.0（assets/book/LICENSE_pixel_book.txt）
      9 格 64×64：第 0 格靜止、1～8 格翻一頁。地圖上用 32×32（2×2 取一格，深色線條優先，才不會把外框吃掉）。 */
-  const BOOK = img('../book/book_sheet.png'), BOOK_MAP = 24;                           // 地圖上的書：24×24（跟旋渦、小墨一樣大）
+  const BOOK = img('../book/book_sheet.png'), BOOK_MAP = 24;                           // 地圖上的書預設 24×24（跟旋渦、小墨一樣大）；角色可用 look.size 指定
   /* 縮小到 n×n（n 可以不是整除）：每個目標點看原圖對應的一塊，有足夠深色就留深色線條，否則取最多的顏色 */
   function shrinkTo(src, n) {
     const out = document.createElement('canvas'); out.width = out.height = n;
@@ -1180,7 +1180,7 @@ const GFX = (() => {
     if (kind === 'vortex') return vortexFrame(Math.floor(now / 90) % 8);
     if (kind === 'book') {                                                              // 靜止約 1.2 秒，再翻一頁（8 格 × 110ms）
       const t = now % 2080, f = t < 1200 ? 0 : Math.min(8, 1 + Math.floor((t - 1200) / 110));
-      const N = size === 'big' ? 64 : (typeof window !== 'undefined' && window.BOOK_MAP_SIZE) || BOOK_MAP;
+      const N = size === 'big' ? 64 : typeof size === 'number' ? size : BOOK_MAP;                // size 可以直接給像素（入口 20、醒來 24）
       return bookFrame(f, N) || (cache.get('book:blank') || (cache.set('book:blank', Object.assign(document.createElement('canvas'), { width: 24, height: 24 })), cache.get('book:blank')));
     }
     const s = SHEETS[kind] && SHEETS[kind][size]; if (!s) return null;
