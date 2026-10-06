@@ -1073,10 +1073,24 @@ const GFX = (() => {
   }
   /* 武器妖：把武器圖示放大成 32×32，加上眼睛、腳、腮紅 */
   const qart = k => (typeof QART !== 'undefined') && QART[k];
+  /* 新畫風的妖怪圖（使用者生圖 → 處理，見 妖怪設計.md）：
+     assets/monsters/<id>.png ＝ 戰鬥用 64×64、<id>_icon.png ＝ 圖鑑／標題用 32×32。
+     哪些妖怪已經有新圖，寫在 data_game.js 的 MON_ART。圖還沒載入完就先畫舊的、不快取，載入後下一格自然換上。 */
+  const MONIMG = {};
+  const monImg = (k, icon) => { const f = k + (icon ? '_icon' : '') + '.png'; return MONIMG[f] || (MONIMG[f] = Object.assign(new Image(), { src: ASSET + '../monsters/' + f })); };
+  const hasArt = k => typeof MON_ART !== 'undefined' && MON_ART.includes(k);
+  const loaded = im => im.complete && im.naturalWidth > 0;
+  function monBig(k) { if (!hasArt(k)) return null; const im = monImg(k, false); return loaded(im) ? im : null; }
   function weaponMon(monKey, theme) {
     const key = 'm:' + monKey; if (cache.has(key)) return cache.get(key);
+    let pend = false;
+    if (hasArt(monKey)) {
+      const im = monImg(monKey, true);
+      if (loaded(im)) { const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; c.getContext('2d').drawImage(im, 0, 0); cache.set(key, c); return c; }
+      pend = true;
+    }
     const q = qart(monKey);
-    if (q) { const cv0 = toCanvas(q.size || 32, q.size || 32, raster(q.size || 32, q.size || 32, q.parts, null)); cache.set(key, cv0); return cv0; }
+    if (q) { const cv0 = toCanvas(q.size || 32, q.size || 32, raster(q.size || 32, q.size || 32, q.parts, null)); if (!pend) cache.set(key, cv0); return cv0; }
     const M = monDef(monKey); const k = 1.6, ox = 16 - 8 * k, oy = 0;
     const src = SHAPES[M.shape] || SHAPES.pen; const P = [];
     for (const q of src) {
@@ -1090,7 +1104,7 @@ const GFX = (() => {
     P.push({ t: 'r', v: [12, 14, 2, 3], c: OUT }, { t: 'r', v: [19, 14, 2, 3], c: OUT }, { t: 'd', v: [[12, 14], [19, 14]], c: '#ffffff' });
     P.push({ t: 'r', v: [9, 18, 2, 1], c: '#f08080' }, { t: 'r', v: [21, 18, 2, 1], c: '#f08080' }, { t: 'r', v: [15, 19, 2, 1], c: OUT });
     const cv = toCanvas(32, 32, raster(32, 32, P, Object.assign({}, WPAL[theme] || WPAL.school, { a: M.col })));
-    cache.set(key, cv); return cv;
+    if (!pend) cache.set(key, cv); return cv;
   }
   /* 有動畫的劇情角色（使用者提供的造型，assets/sprites/）：
      big ＝ 戰鬥／過場用，每格 64×60；map ＝ 地圖用，每格 24×24（左右對稱、手點）。
@@ -2014,5 +2028,5 @@ const GFX = (() => {
     g.fillStyle = 'rgba(255,248,220,.9)'; g.fill(); g.lineWidth = 1.2; g.strokeStyle = 'rgba(60,40,20,.75)'; g.stroke();
     cache.set(key, cv); return cv;
   }
-  return { anim, person, tile, setIndoor, clockHands, doormat, exitArrow, skinsReady, SKINS, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
+  return { anim, monBig, person, tile, setIndoor, clockHands, doormat, exitArrow, skinsReady, SKINS, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
 })();

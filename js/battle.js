@@ -56,7 +56,11 @@ const Battle = {
     // 敵人
     if (s.fo.vis && !s.fo.blink) {
       g.globalAlpha = s.fo.a; const f = s.foe;
-      if (f.kind === 'mon') g.drawImage(GFX.weaponMon(f.sp, W.theme), 146 + s.fo.x, 40 + s.fo.dy, 64, 64);
+      if (f.kind === 'mon') {
+        const big = GFX.monBig(f.sp);                                                  // 新畫風：64×64 原尺寸（1 倍，不放大）
+        if (big) g.drawImage(big, 146 + s.fo.x, 40 + s.fo.dy);
+        else g.drawImage(GFX.weaponMon(f.sp, W.theme), 146 + s.fo.x, 40 + s.fo.dy, 64, 64);
+      }
       else if (f.look.sprite) {
         const now = performance.now(), bob = Math.round(Math.sin(now / 300) * 2), big = GFX.anim(f.look.sprite, 'big', now);
         if (big) g.drawImage(big, 138 + s.fo.x, 22 + s.fo.dy + 5 + bob, 80, 75);          // 64×60 的大圖放大 1.25 倍，跟其他對手一樣寬、底部對齊
