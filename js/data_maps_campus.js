@@ -636,6 +636,119 @@ CAMPUS_MAPS.zy_gym = {
   signs: {},
 };
 
+/* ============================================================
+   夢中小鎮 ② 書海港（圖書館的夢，W.dreams.dj）
+   ------------------------------------------------------------
+   成語圖書股長怕被比較：居民是她「收藏卻沒讀懂」的成語。港口、棧橋、書箱。
+   進夢：現實的圖書館（lib）→ 書頁翻飛（pages）→ 這裡。
+   dj_town 書海港：攤開的書（醒來）、茶亭（休息）、4 位委託人、周以恆、3 塊成語石碑（機關）、道館大門
+   dj_pier 船埠：C 區妖怪、3 個寶箱（走失的借書證）、鈴鐺小偷、青蛙學弟
+   dj_gym 夢中的圖書館：真正的股長
+   ============================================================ */
+CAMPUS_MAPS.dj_town = {
+  music: 'town', theme: 't_port', chapter: 2, dream: 'dj',
+  rows: [
+    'TTTTTTTTTTTTTTTTTTTTTTTT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT,,,,,,,,,,,,,,,,,,,,TT',
+    'TT.....,S,,,,,,,S.....TT',
+    'TTO....,,,,,,,,,,....OTT',
+    'TT~~~~~~~~++++~~~~~~~~TT',
+    'TT~~~~~~~~Q+++~~~~~~~~TT',
+    'TT~~~~~~~~+++O~~~~~~~~TT',
+    'TT~~~~~~~~++++~~~~~~~~TT',
+    'TT~~~~~~~~+++Q~~~~~~~~TT',
+    'TT~~~~~~~~++++~~~~~~~~TT',
+    'TTTTTTTTTTT++TTTTTTTTTTT',
+  ],
+  props: [['shopx', 2, 2], ['lib8', 8, 1], ['flaty', 17, 2]],
+  doorWarps: {
+    '11,7': { plate: 'lib', label: '夢中的圖書館', to: 'dj_gym', tx: 7, ty: 10, dir: 'up', ret: { x: 11, y: 8 },
+              needFlag: 'djOpen', flagText: '（圖書館的大門被夢鎖著……先幫港口的人解決麻煩吧。）' },
+  },
+  warps: [
+    { x: 11, y: 17, to: 'dj_pier', tx: 9,  ty: 1, dir: 'down' },
+    { x: 12, y: 17, to: 'dj_pier', tx: 10, ty: 1, dir: 'down' },
+  ],
+  devices: {
+    '2,10':  { group: 'djstone', flag: 'ds1', cat: '成語', label: '成語石碑',
+      text: '石碑上刻著一個成語，缺了一個字。碑腳下坐著一隻兔子的石像……\n（把缺的字補回去，石碑就會亮起來。）',
+      ok: '缺的字回到了石碑上，石碑亮了起來！', allText: '三塊石碑都亮起來了！' },
+    '21,10': { group: 'djstone', flag: 'ds2', cat: '成語', label: '成語石碑',
+      text: '第二塊石碑被海風磨得看不清楚，只剩下半個字。', ok: '字跡清楚了，石碑也亮了！', allText: '三塊石碑都亮起來了！' },
+    '13,13': { group: 'djstone', flag: 'ds3', cat: '成語', label: '成語石碑',
+      text: '棧橋邊的最後一塊石碑，浪花打濕了一半的字。', ok: '最後一塊石碑也亮了——整座港口的石碑都連成了一句話！',
+      allText: '三塊石碑都亮起來了——港口的人不會再「守著樹墩等兔子」了！', onAll: 'dsAll' },
+  },
+  signs: { '8,9': 'dj_board1', '16,9': 'dj_board2' },
+};
+CAMPUS_MAPS.dj_pier = {
+  music: 'town', theme: 't_port', chapter: 2, dream: 'dj',
+  rows: [
+    'TTTTTTTTT++TTTTTTTTT',
+    'TT.......++.......TT',
+    'TT.......++.......TT',
+    'TT.......,,.......TT',
+    'TT.......,,.......TT',
+    'TT.ggggg.,,.......TT',
+    'TT.ggggg.,,.......TT',
+    'TT.ggggg.,,.ggggg.TT',
+    'TT.ggggg.,,.ggggg.TT',
+    'TT.......,,.ggggg.TT',
+    'TT~~~~...,,.ggggg.TT',
+    'TT~~~~...,,.......TT',
+    'TT~~~~...,,.......TT',
+    'TT~~~~...,,.......TT',
+    'TT.......,,.....O.TT',
+    'TT.ggggg.,,.......TT',
+    'TT.ggggg.,,.ggggg.TT',
+    'TT.ggggg.,,.ggggg.TT',
+    'TT.ggggg,,,,ggggg.TT',
+    'TT.ggggg,,,,ggggg.TT',
+    'TT......,,,,......TT',
+    'TTTTTTTTTTTTTTTTTTTT',
+  ],
+  foes: { lv: [9, 12], scale: 3, pool: 'C', rate: .17, safe: 2 },
+  warps: [
+    { x: 9,  y: 0, to: 'dj_town', tx: 11, ty: 16, dir: 'up' },
+    { x: 10, y: 0, to: 'dj_town', tx: 12, ty: 16, dir: 'up' },
+  ],
+  chests: [
+    { x: 3,  y: 2,  id: 'djb1', items: { hint: 1 } },
+    { x: 17, y: 12, id: 'djb2', items: { heal: 1 } },
+    { x: 10, y: 20, id: 'djb3', items: { hint: 1 } },
+  ],
+  signs: { '16,14': 'dj_well' },
+};
+CAMPUS_MAPS.dj_gym = {
+  music: 'hall', theme: 't_library', chapter: 2, indoor: 1, dream: 'dj',
+  rows: [
+    'wwww**wwww**wwww',
+    'wkk__________kkw',
+    'w______________w',
+    'w_kkkk____kkkk_w',
+    'w______________w',
+    'w_kkkk____kkkk_w',
+    'w______________w',
+    'wp____________pw',
+    'w______________w',
+    'w______________w',
+    'w______________w',
+    'wwwwwww__wwwwwww',
+  ],
+  warps: [
+    { x: 7, y: 11, to: 'dj_town', tx: 11, ty: 8, dir: 'down' },
+    { x: 8, y: 11, to: 'dj_town', tx: 12, ty: 8, dir: 'down' },
+  ],
+  signs: {},
+};
+
 const CAMPUS_NPCS = {
   s1: [
     { role: 't_cd_a', x: 7,  y: 7,  dir: 'right' },
@@ -671,6 +784,24 @@ const CAMPUS_NPCS = {
   ],
   zy_gym: [
     { role: 'boss1', x: 5, y: 2, dir: 'down', key: 'c1a:boss1' },   // 真正的小老師。打倒的紀錄沿用 c1a:boss1（舊存檔、測試都不用改）
+  ],
+  dj_town: [
+    { role: 'djWake',  x: 12, y: 9,  dir: 'down' },
+    { role: 'djTea',   x: 5,  y: 9,  dir: 'down' },
+    { role: 'djG2',    x: 3,  y: 9,  dir: 'right' },
+    { role: 'djG1',    x: 19, y: 9,  dir: 'down' },
+    { role: 'djG3',    x: 18, y: 10, dir: 'right' },
+    { role: 'djG4',    x: 8,  y: 10, dir: 'left' },
+    { role: 'djRival', x: 14, y: 10, dir: 'left' },
+    { role: 'djQuiz',  x: 16, y: 10, dir: 'down' },
+    { role: 'djDock',  x: 9,  y: 9,  dir: 'down' },
+  ],
+  dj_pier: [
+    { role: 'djBell', x: 13, y: 4,  dir: 'left', sight: 3 },
+    { role: 'djFrog', x: 15, y: 15, dir: 'left', sight: 3 },
+  ],
+  dj_gym: [
+    { role: 'boss2', x: 8, y: 2, dir: 'down', key: 'lib:boss2' },   // 真正的股長。打倒的紀錄沿用 lib:boss2（舊存檔、測試都不用改）
   ],
   hall: [
     { role: 'spar_h',  x: 12, y: 8,  dir: 'down' },
@@ -752,7 +883,7 @@ CAMPUS_MAPS.field.devices = {
    ============================================================ */
 function CAMPUS_PATCH(S) {
   const R = S.roles;
-  R.boss2.needDefeated = ['corridor2:rival1'];
+  R.avatar2.needDefeated = ['corridor2:rival1'];            // 圖書館的化身要先打倒周以恆；真正的股長在夢裡，不用再擋
   R.boss3.needDefeated = ['yard2:m1', 'yard2:m2', 'yard2:m3'];
   R.sideAGiver.need    = ['yard2:m1', 'yard2:m2', 'yard2:m3'];
   R.boss4.needDefeated = ['stair1:rival2'];
@@ -787,6 +918,9 @@ function CAMPUS_PATCH(S) {
     h1_tv: '（電視開著晨間新聞：「……今年會考倒數——」你把頻道轉掉了。）',
     h1_kitchen: '（瓦斯爐上還溫著一鍋粥。）',
     h1_table: '（餐桌上放著你的便當盒，還有一張紙條：「考試加油！」）',
+    dj_board1: '（排行榜上的名字一直在換，名次亂成一團，只有最上面兩行是固定的。）',
+    dj_board2: '（榜單最底下有一行小字：「借了幾本不重要，讀懂幾本才重要。」不知道是誰寫的。）',
+    dj_well: '（一口乾涸的老井。井口刻著：「天只有井口那麼大？」）',
     zy_rest: '（坡道盡頭有一張長椅，椅背上刻著：「讀得慢也沒關係，唸對才是真的。」下面還有一行很小的字：「——小老師」）',
   });
   S.campus = true;
@@ -835,14 +969,30 @@ function CAMPUS_PATCH(S) {
       afterWake: ['（你回到了一年甲班。黑板上的錯字全都不見了，教室中央的旋渦還在，輕輕地轉著。）',
                   '（講台上，小老師拿起粉筆，在黑板上寫下了很慢、很工整的兩個字：「注音」。）',
                   '小老師：「……這次，我自己寫的。」'] },
+    dj: { name: '書海港', home: { map: 'lib', x: 8, y: 3, dir: 'down' }, town: { map: 'dj_town', x: 11, y: 9, dir: 'down' },
+      heal: { map: 'dj_town', x: 5, y: 10 }, need: 3, openFlag: 'djOpen', doneFlag: 'djDone', enteredFlag: 'djEntered', seenFlag: 'djSeen',
+      legacyKey: 'lib:boss2', homeName: '圖書館', fx: 'pages', tint: [255, 196, 110, .10],
+      glyphs: ['守', '株', '待', '兔', '亡', '羊', '補', '牢', '掩', '耳', '盜', '鈴', '井', '蛙', '書', '頁'],
+      openText: ['（遠處傳來翻動書頁的聲音——港口盡頭，圖書館的大門開了。）', '（你想起老管理員說的話：「榜單可以換，讀懂的那一本不會。」）'],
+      arrive: ['（書頁停了下來。你站在一座港口的石板路上，海面上漂著一頁一頁的書。）',
+               '小墨：「別怕，這是「書海港」——圖書館碎片留下的夢。」',
+               '小墨：「這裡的居民，都是股長「收藏卻沒讀懂」的成語變出來的。」',
+               '小墨：「真正的股長在港口盡頭的圖書館裡，但夢把門鎖上了。幫港口的人解決三件麻煩，夢才會鬆口。」',
+               '小墨：「想回圖書館的話，隨時可以從攤開的書、或選單的「醒來」回去，進度都會留著。」'],
+      finish: ['（股長身上的書頁一頁一頁飛了起來。整座港口像被風翻過的書，慢慢闔上……）',
+               '小墨：「夢要醒了。你做得很好。」',
+               '小墨：「碎片，是一個人心裡最怕被看見的那一頁。」',
+               '小墨：「那本書會留在圖書館裡。想念這裡的人，隨時可以回來看看。」'],
+      afterWake: ['（你回到了圖書館。書架靜靜立著，中間那本攤開的書還在，輕輕地翻著頁。）'] },
   };
   S.stages[0].roles = ['avatar1', 'boss1'];
+  S.stages[1].roles = ['rival1', 'avatar2', 'boss2'];
   /* 教師版「直達」的分類 */
   S.travelGroups = [
     ['家．通學路', ['room', 'house1f', 's1', 'path1', 's2', 'pharmacy', 's3']],
     ['校園', ['front', 'hall', 'corridor1', 'stair1', 'corridor2', 'yard2', 'field', 'audyard']],
     ['道館', ['c1a', 'lib', 'yard', 'hist', 'aud']],
-    ['夢中小鎮', ['zy_town', 'zy_slope', 'zy_gym']],
+    ['夢中小鎮', ['zy_town', 'zy_slope', 'zy_gym', 'dj_town', 'dj_pier', 'dj_gym']],
     ['教室．其他', ['c8', 'clinic_h', 'store_c', 'forge', 'inkpool']],
   ];
   Object.assign(S.mapNames, {
@@ -852,6 +1002,7 @@ function CAMPUS_PATCH(S) {
     c1a: '一年甲班', lib: '圖書館', yard: '文藝教室', hist: '校史室', aud: '大禮堂',
     clinic_h: '保健室', store_h: '便利商店', store_c: '福利社', forge: '工藝教室',
     zy_town: '夢中小鎮．注音坡', zy_slope: '注音坡道', zy_gym: '夢中的一年甲班',
+    dj_town: '夢中小鎮．書海港', dj_pier: '船埠', dj_gym: '夢中的圖書館',
   });
 }
 
@@ -1020,6 +1171,11 @@ ROOM_REDO.c1a.npcs = [
   { role: 'gy1a',   x: 3, y: 4, dir: 'right', sight: 3 },
   { role: 'gy1b',   x: 8, y: 4, dir: 'left',  sight: 3 },
   { role: 'c1aTip', x: 2, y: 7, dir: 'right' },
+];
+/* 圖書館：股長是「碎片化身」，三本辭典歸位、書架讓開後才見得到；攤開的書在打完化身之後留在原地（書海港的入口，詳見 W.dreams.dj） */
+ROOM_REDO.lib.npcs = [
+  { role: 'avatar2', x: 8, y: 1, dir: 'down', hideFlag: 'djEntered' },
+  { role: 'djPortal', x: 8, y: 1, dir: 'down', needFlag: 'djEntered' },
 ];
 for (const [id, patch] of Object.entries(ROOM_REDO)) {
   const base = LAYOUTS[id]; if (!base) continue;

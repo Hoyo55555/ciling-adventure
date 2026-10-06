@@ -458,7 +458,7 @@ async function portalTalk(n) {
 /* 小老師的「碎片化身」：解完謎才出現；打贏只拿到紙屑，旋渦把玩家吸進夢中小鎮 */
 async function avatarTalk(n) {
   const R = n.role;
-  if (R.gateFlag && !G.flags[R.gateFlag]) { await say(R.gateText); return; }
+  if ((R.gateFlag && !G.flags[R.gateFlag]) || (R.needDefeated && !R.needDefeated.every(k => G.defeated[k]))) { await say(R.gateText); return; }
   if (!G.equip.length) { await say('……你手上沒有武器？', R.name); return; }
   for (const t of R.lines) await say(t, t.startsWith('（') || t.includes('：') ? undefined : R.name);
   const res = await Battle.start({ kind: 'gym', foe: makePersonFoe(R), role: R, cats: R.foe.cats });

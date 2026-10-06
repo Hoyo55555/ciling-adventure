@@ -1429,6 +1429,7 @@ const GFX = (() => {
     /* 教學樓：門在正中央那一跨，左右各排教室。w 可以改，長短都畫得出來 */
     block:   { style: 'block', w: 12, h: 7, door: [5, 6], name: '教學樓', band: '#c8443c' },
     block8:  { style: 'block', w: 8,  h: 7, door: [3, 6], name: '教學樓（短）', band: '#c8443c' },
+    lib8:    { style: 'block', w: 8,  h: 7, door: [3, 6], name: '圖書館', band: '#b8743c' },
     oldblock:{ style: 'block', w: 10, h: 7, door: [4, 6], name: '舊校舍', band: '#7a6a52', old: 1 },
     /* door: null ＝ 進不去的建築（警衛室、校門本來就不是給人進去的）。
        護欄會跳過門的檢查，stampProps 也不會蓋出 D。 */
@@ -1955,6 +1956,12 @@ const GFX = (() => {
       R(sx, sy, 40, 9, '#a8322a'); R(sx, sy, 40, 1, '#d84a3a'); for (let i = 0; i < 5; i++) R(sx + 4 + i * 7, sy + 3, 4, 3, '#f8e8b0'); },
   };
   KPOST.block8 = KPOST.block;
+  /* 夢中的圖書館（書海港的道館）：橘磚外牆的 8 格寬小樓，屋頂擺著書堆般的通風口 */
+  KITS.lib8 = C => { const G = [...kRoof('grayb', C.w, 3), ...kWall('orange', C.w, [0, 1, 2, 3])];
+    for (let x = 1; x < C.w - 1; x++) { kPut(G, x, 3, KP.winArch); kPut(G, x, 5, KP.winBig); if (x !== C.door[0]) kPut(G, x, 6, KP.win); }
+    kPut(G, 2, 1, KP.vent); kPut(G, 5, 1, KP.vent2);
+    kPut(G, C.door[0], 6, KP.doorWood); return G; };
+  KPOST.lib8 = KPOST.block;
   function kitBuild(kind, C) {
     const G = KITS[kind](C), W = C.w * 16, H = G.length * 16, SH = 8;
     if (G.some(row => row.some(ps => ps.some(p => !(p.im.complete && p.im.naturalWidth))))) return null;   // 還沒載入
