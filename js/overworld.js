@@ -368,8 +368,62 @@ async function vortexIn(D) {
   await Anim.run(0.25, k => { st.swirl = .1 * (1 - k); st.player = 1; });
   OW.fx.length = 0; OW.hidePlayer = false; OW.dark = 0; OW.flash = 0;
 }
+/* 書頁翻飛（圖書館夢中小鎮）：書頁從四周飛起、繞著玩家轉、越轉越緊；腳下的書攤開翻頁，玩家縮小被「吸進書裡」。
+   st：swirl 頁片強度、pull 收攏程度（0 在外圈、1 全收進書裡）、player 玩家大小、book 書的透明度、bookF 翻頁格（0～8） */
+function drawPagesFx(g, x, y, st, img) {
+  const t = performance.now() / 1000, I = st.swirl, GL = st.glyphs || DREAM_GLYPHS;
+  if (I > 0) {
+    const rg = g.createRadialGradient(x, y, 2, x, y, 50 * (.5 + I * .5)); rg.addColorStop(0, `rgba(255,236,176,${.5 * I})`); rg.addColorStop(1, 'rgba(255,220,140,0)');
+    g.fillStyle = rg; g.fillRect(x - 60, y - 60, 120, 120);
+  }
+  if (st.book > 0) {                                                                         // 攤開的書（原圖 64×64，以腳邊為中心）
+    const bk = GFX.bookFrame(Math.max(0, Math.min(8, Math.round(st.bookF))), 64);
+    if (bk) { g.globalAlpha = Math.min(1, st.book); g.drawImage(bk, Math.round(x - 32), Math.round(y - 30)); g.globalAlpha = 1; }
+  }
+  if (st.player > 0) {                                                                       // 玩家縮小、沉進書頁
+    g.save(); g.translate(x, y + (1 - st.player) * 8); g.scale(st.player, st.player); g.drawImage(img, -8, -12); g.restore();
+  }
+  if (I > 0) {
+    for (let i = 0; i < 26; i++) {                                                           // 繞著轉的書頁
+      const a = i * .2417 + t * (1.4 + 3.2 * I) * (i % 2 ? 1 : .8), R = (68 - 54 * st.pull) * (.75 + .25 * Math.sin(t * 2 + i * 1.7)) + 4;
+      const px = x + Math.cos(a) * R, py = y + Math.sin(a) * R * .7 - (1 - st.pull) * 14 * Math.abs(Math.sin(i * 2.3)) + st.pull * 4;
+      const flap = Math.abs(Math.cos(t * 6 + i)), w = 2 + 4 * flap, h = 6;                   // 頁片拍動：寬度忽大忽小
+      g.save(); g.translate(Math.round(px), Math.round(py)); g.rotate(a + Math.PI / 2 + Math.sin(t * 4 + i) * .4); g.globalAlpha = Math.min(1, I * 1.2);
+      g.fillStyle = '#5a4a38'; g.fillRect(-w / 2 - 1, -h / 2 - 1, w + 2, h + 2);
+      g.fillStyle = flap > .5 ? '#f6ecd2' : '#dccba0'; g.fillRect(-w / 2, -h / 2, w, h);
+      if (w > 4) { g.fillStyle = '#9a8660'; g.fillRect(-w / 2 + 1, -1, w - 2, 1); g.fillRect(-w / 2 + 1, 1, w - 3, 1); }
+      g.restore();
+    }
+    g.font = '9px sans-serif'; g.textAlign = 'center';
+    for (let i = 0; i < 8; i++) {                                                            // 夾在裡面的字
+      const a = i * .785 + t * (1 + 3 * I), R = (60 - 44 * st.pull) * (1 - .12 * Math.sin(t * 2 + i));
+      g.fillStyle = `rgba(255,246,214,${.4 + .5 * I})`; g.fillText(GL[i % GL.length], x + Math.cos(a) * R, y + Math.sin(a) * R * .7 + 3);
+    }
+    g.textAlign = 'start';
+  }
+}
+async function pagesOut(D) {
+  const p = OW.p, wx = p.x * 16 + 8, wy = p.y * 16 + 8, img = GFX.person(G.player.look, 'down', 0), st = { swirl: 0, pull: 0, player: 1, book: 0, bookF: 0, glyphs: D && D.glyphs };
+  OW.fx.push((g, cx, cy) => drawPagesFx(g, wx - cx, wy - cy, st, img));
+  OW.hidePlayer = true; Sound.sfx('encounter');
+  await Anim.run(1.0, k => { st.swirl = k; OW.dark = k * .25; OW.shake = k * .6; st.book = k * .6; });
+  Sound.sfx('hit');
+  await Anim.run(1.2, k => { st.pull = k; st.book = .6 + k * .4; st.bookF = k * 8; st.player = 1 - k * k; OW.dark = .25 + k * .35; OW.shake = .6; });
+  await Anim.run(0.35, k => OW.flash = k);
+  OW.shake = 0; OW.fx.length = 0;
+}
+async function pagesIn(D) {
+  const p = OW.p, wx = p.x * 16 + 8, wy = p.y * 16 + 8, img = GFX.person(G.player.look, 'down', 0), st = { swirl: 1, pull: 1, player: 0, book: 1, bookF: 8, glyphs: D && D.glyphs };
+  OW.hidePlayer = true; OW.flash = 1; OW.dark = .4;
+  OW.fx.push((g, cx, cy) => drawPagesFx(g, wx - cx, wy - cy, st, img));
+  Sound.sfx('heal');
+  await Anim.run(0.45, k => OW.flash = 1 - k);
+  await Anim.run(1.1, k => { st.pull = 1 - k; st.bookF = 8 * (1 - k); st.player = Math.sqrt(k); st.swirl = 1 - k * .6; OW.dark = .4 * (1 - k); });
+  await Anim.run(0.5, k => { st.swirl = .4 * (1 - k); st.book = 1 - k; st.player = 1; });
+  OW.fx.length = 0; OW.hidePlayer = false; OW.dark = 0; OW.flash = 0;
+}
 /* 進夢／醒來的轉場動畫：W.dreams[id].fx 選一種（預設旋渦）；每種是 { out: 吸進去／淡出, in: 淡入 } */
-const DREAM_FX = { vortex: { out: vortexOut, in: vortexIn } };
+const DREAM_FX = { vortex: { out: vortexOut, in: vortexIn }, pages: { out: pagesOut, in: pagesIn } };
 const dreamFx = D => DREAM_FX[D.fx] || DREAM_FX.vortex;
 async function dreamEnter(id) {
   const D = W.dreams[id], FX = dreamFx(D);

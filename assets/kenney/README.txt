@@ -12,3 +12,9 @@ caves_sheet    Kenney「Roguelike Caves & Dungeons」 https://kenney.nl/assets/r
 city_sheet     Kenney「Roguelike Modern City」（tilemap_packed：16×16、無間距、37 欄）https://kenney.nl/assets/roguelike-modern-city
 urban_sheet    Kenney「RPG Urban Pack」（Tilemap/tilemap_packed：16×16、無間距、27 欄）—— 建築外牆、門窗、屋頂
                建築怎麼拼：js/gfx.js 的 KITS（一棟一個函式，由上往下一列一列寫）
+
+----------------------------------------
+其他外部素材
+- assets/book/book_sheet.png：Pixel Book (Animated)，Gokhan Solak（hansolo），CC-BY 3.0。
+  來源 https://opengameart.org/content/pixel-book-animated
+  用途：圖書館夢中小鎮的入口（攤開的書）與「書頁翻飛」轉場。上線前要在遊戲內的製作名單標示作者。
