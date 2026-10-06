@@ -168,6 +168,16 @@ const OW = {
     const act = this.L.acts && this.L.acts[key]; if (act && ACTS[act]) { this.run(() => ACTS[act]()); return; }
     if (this.tile(tx, ty) === '~') this.run(() => say('水面波光粼粼，倒映著天空。'));
   },
+  /* 出口箭頭：玩家離這個出口只剩一步（含斜向以外的上下左右）才畫。
+     出口常常是並排好幾格（例如 4 格寬的路口），相連的算同一個出口，一起出現／一起消失。 */
+  arrowVisible(w) {
+    const L = this.L, p = this.p, spots = [[p.x, p.y]]; if (p.moving) spots.push([p.tx, p.ty]);
+    const ws = L.warps || [], seen = new Set([ws.indexOf(w)]), q = [w];
+    while (q.length) { const c = q.pop();
+      if (spots.some(([x, y]) => Math.abs(x - c.x) + Math.abs(y - c.y) <= 1)) return true;
+      ws.forEach((o, i) => { if (!seen.has(i) && Math.abs(o.x - c.x) + Math.abs(o.y - c.y) === 1 && o.to === c.to) { seen.add(i); q.push(o); } }); }
+    return false;
+  },
   /* 靠近門的時候，畫面上方顯示那間房間的名字（需要碎片、還不能進去的也會註明）。
      以前走廊上一排門長得都一樣，玩家分不清哪間是哪間（2026-10-06 回饋） */
   updateDoorTag() {
@@ -258,7 +268,7 @@ const OW = {
       const H2 = L.rows.length, W2 = L.rows[0].length, bob = Math.round(Math.sin(now / 260) * 1.5);
       for (const w of L.warps || []) {
         const dir = exitDir(L, w);
-        if (!dir) continue;
+        if (!dir || !this.arrowVisible(w)) continue;                   // 走到出口「前一步」才出現箭頭，不要一直顯示
         const [ax, ay] = DIRS[dir];
         g.drawImage(GFX.exitArrow(dir), w.x * 16 - cx + ax * bob, w.y * 16 - cy + ay * bob);
       }
