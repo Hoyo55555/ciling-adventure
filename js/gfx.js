@@ -78,6 +78,7 @@ const GFX = (() => {
     { themes: '*', code: 'r', indoor: 1, custom: 'set9', shift: 0, under: '_', pick: SET9([922, 923, 924, 979, 980, 981, 1036, 1037, 1038]) },   // 地毯（3×3）
     { themes: ['t_street'], code: 'T', under: '.', pick: [one('urban_0286.png')] },             // 行道樹（花台）
     { themes: '*', code: 'L', under: 'base', pick: [one('urban_0168.png')] },                  // 路燈
+    { themes: '*', code: 'S', under: 'base', pick: [RPG(19)] },                                // 木牌（Kenney 路標）
     { themes: '*', code: ':', under: '.', pick: [one('urban_0167.png')] },                     // 站牌
     { themes: '*', code: '4', under: ',', pick: [one('urban_0221.png')] },                     // 施工路障
     { themes: '*', code: '6', under: 'base', pick: [one('urban_0252.png')] },                  // 回收桶
@@ -1198,9 +1199,20 @@ const GFX = (() => {
   }
   function chest(open) {
     const key = 'chest' + open; if (cache.has(key)) return cache.get(key);
-    const P = open ? [{ t: 'r', v: [2, 7, 12, 7], c: '#8a5a2a' }, { t: 'r', v: [3, 8, 10, 2], c: '#3a2410' }, { t: 'r', v: [2, 3, 12, 3], c: '#a86a32' }]
-      : [{ t: 'r', v: [2, 6, 12, 8], c: '#8a5a2a' }, { t: 'r', v: [2, 4, 12, 4], c: '#a86a32' }, { t: 'r', v: [2, 8, 12, 1], c: '#d8b040' }, { t: 'r', v: [7, 7, 2, 3], c: '#f0d060' }];
-    const cv = toCanvas(16, 16, raster(16, 16, P, null)); cache.set(key, cv); return cv;
+    const S = RPG(550);                                              // Kenney 的鐵箍木箱；沒有打開的版本，開啟時把箱蓋換成黑色箱內
+    if (!(S.im.complete && S.im.naturalWidth)) {                      // 圖還沒載入：先畫舊的，不快取
+      const P = [{ t: 'r', v: [2, 6, 12, 8], c: '#8a5a2a' }, { t: 'r', v: [2, 4, 12, 4], c: '#a86a32' }, { t: 'r', v: [7, 7, 2, 3], c: '#f0d060' }];
+      return toCanvas(16, 16, raster(16, 16, P, null));
+    }
+    const cv = document.createElement('canvas'); cv.width = cv.height = 16; const g = cv.getContext('2d');
+    g.drawImage(S.im, S.sx, S.sy, 16, 16, 0, 0, 16, 16);
+    if (open) {
+      g.clearRect(0, 0, 16, 8);                                                       // 上半（箱蓋）拿掉
+      g.drawImage(S.im, S.sx, S.sy + 8, 16, 8, 0, 8, 16, 8);                           // 下半原樣
+      g.fillStyle = '#9aa0a4'; g.fillRect(1, 5, 14, 3); g.fillStyle = '#2a1c12'; g.fillRect(2, 6, 12, 2);   // 敞開的箱口
+      g.fillStyle = '#c9a050'; g.fillRect(4, 7, 3, 1); g.fillRect(9, 7, 2, 1);        // 底下一點點金色
+    }
+    cache.set(key, cv); return cv;
   }
 
 
