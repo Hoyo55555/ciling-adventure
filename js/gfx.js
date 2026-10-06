@@ -80,6 +80,7 @@ const GFX = (() => {
     { themes: '*', code: 'L', under: 'base', pick: [one('urban_0168.png')] },                  // 路燈
     { themes: '*', code: 'S', under: 'base', pick: [RPG(19)] },                                // 木牌（Kenney 路標）
     { themes: '*', code: ':', under: '.', pick: [one('urban_0167.png')] },                     // 站牌
+    { themes: '*', code: 'n', under: '.', pick: [URB(8, 11)] },                                // 信箱（原本的布招／旗幟像信箱，乾脆換成 Kenney 的藍色信箱）
     { themes: '*', code: '4', under: ',', pick: [one('urban_0221.png')] },                     // 施工路障
     { themes: '*', code: '6', under: 'base', pick: [one('urban_0252.png')] },                  // 回收桶
     { themes: '*', code: '!', under: '.', pick: [one('urban_0216.png')], post: 'wires' },      // 電線桿
