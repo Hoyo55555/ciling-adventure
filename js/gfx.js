@@ -1149,18 +1149,22 @@ const GFX = (() => {
   }
   /* 攤開的書（圖書館夢中小鎮的入口）：Pixel Book (Animated)，Gokhan Solak，CC-BY 3.0（assets/book/LICENSE_pixel_book.txt）
      9 格 64×64：第 0 格靜止、1～8 格翻一頁。地圖上用 32×32（2×2 取一格，深色線條優先，才不會把外框吃掉）。 */
-  const BOOK = img('../book/book_sheet.png');
-  function halve(src) {
-    const n = src.width / 2, out = document.createElement('canvas'); out.width = out.height = n;
-    const sg = src.getContext('2d').getImageData(0, 0, src.width, src.height).data, og = out.getContext('2d'), od = og.createImageData(n, n);
-    const px = (x, y) => { const i = (y * src.width + x) * 4; return sg[i + 3] > 40 ? [sg[i], sg[i + 1], sg[i + 2]] : null; };
+  const BOOK = img('../book/book_sheet.png'), BOOK_MAP = 24;                           // 地圖上的書：24×24（跟旋渦、小墨一樣大）
+  /* 縮小到 n×n（n 可以不是整除）：每個目標點看原圖對應的一塊，有足夠深色就留深色線條，否則取最多的顏色 */
+  function shrinkTo(src, n) {
+    const out = document.createElement('canvas'); out.width = out.height = n;
+    const W0 = src.width, sg = src.getContext('2d').getImageData(0, 0, W0, W0).data, og = out.getContext('2d'), od = og.createImageData(n, n), k = W0 / n;
+    const lum = q => q[0] * .3 + q[1] * .59 + q[2] * .11;
     for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
-      const c = [px(2 * x, 2 * y), px(2 * x + 1, 2 * y), px(2 * x, 2 * y + 1), px(2 * x + 1, 2 * y + 1)].filter(Boolean);
-      if (c.length < 2) continue;                                                      // 只剩一個點的邊角不要，輪廓才乾淨
-      const lum = q => q[0] * .3 + q[1] * .59 + q[2] * .11, dark = c.filter(q => lum(q) < 70);
+      const c = [];
+      for (let yy = Math.floor(y * k); yy < Math.ceil((y + 1) * k); yy++) for (let xx = Math.floor(x * k); xx < Math.ceil((x + 1) * k); xx++) {
+        const i = (yy * W0 + xx) * 4; if (sg[i + 3] > 40) c.push([sg[i], sg[i + 1], sg[i + 2]]); }
+      const total = (Math.ceil((y + 1) * k) - Math.floor(y * k)) * (Math.ceil((x + 1) * k) - Math.floor(x * k));
+      if (c.length < total * .45) continue;                                            // 邊角只沾到一點：不要，輪廓才乾淨
+      const dark = c.filter(q => lum(q) < 70);
       let pick;
-      if (dark.length) pick = dark[0];                                                 // 有深色線條就留深色
-      else { const cnt = new Map(); for (const q of c) { const k = q.join(','); cnt.set(k, (cnt.get(k) || 0) + 1); } pick = [...cnt.entries()].sort((a, b) => b[1] - a[1])[0][0].split(',').map(Number); }
+      if (dark.length >= Math.max(1, c.length * .3)) pick = dark.reduce((m, q) => lum(q) < lum(m) ? q : m);   // 有深色線條就留深色
+      else { const cnt = new Map(); for (const q of c) { const key = q.map(v => v >> 4).join(','); const e = cnt.get(key) || [0, q]; e[0]++; cnt.set(key, e); } pick = [...cnt.values()].sort((a1, b1) => b1[0] - a1[0])[0][1]; }
       const i = (y * n + x) * 4; od.data[i] = pick[0]; od.data[i + 1] = pick[1]; od.data[i + 2] = pick[2]; od.data[i + 3] = 255;
     }
     og.putImageData(od, 0, 0); return out;
@@ -1170,13 +1174,14 @@ const GFX = (() => {
     if (!(BOOK.complete && BOOK.naturalWidth)) return null;                           // 圖還沒載入：先不畫
     const full = document.createElement('canvas'); full.width = full.height = 64;
     full.getContext('2d').drawImage(BOOK, f * 64, 0, 64, 64, 0, 0, 64, 64);
-    const out = size === 32 ? halve(full) : full; cache.set(key, out); return out;
+    const out = size === 64 ? full : shrinkTo(full, size); cache.set(key, out); return out;
   }
   function anim(kind, size, now) {
     if (kind === 'vortex') return vortexFrame(Math.floor(now / 90) % 8);
     if (kind === 'book') {                                                              // 靜止約 1.2 秒，再翻一頁（8 格 × 110ms）
       const t = now % 2080, f = t < 1200 ? 0 : Math.min(8, 1 + Math.floor((t - 1200) / 110));
-      return bookFrame(f, size === 'big' ? 64 : 32) || (cache.get('book:blank') || (cache.set('book:blank', Object.assign(document.createElement('canvas'), { width: 32, height: 32 })), cache.get('book:blank')));
+      const N = size === 'big' ? 64 : (typeof window !== 'undefined' && window.BOOK_MAP_SIZE) || BOOK_MAP;
+      return bookFrame(f, N) || (cache.get('book:blank') || (cache.set('book:blank', Object.assign(document.createElement('canvas'), { width: 24, height: 24 })), cache.get('book:blank')));
     }
     const s = SHEETS[kind] && SHEETS[kind][size]; if (!s) return null;
     const [im, w, h] = s; if (!(im.complete && im.naturalWidth)) return null;
