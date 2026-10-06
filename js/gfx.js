@@ -1194,8 +1194,25 @@ const GFX = (() => {
     R(9, 12, 6, 1, '#7ac060'); R(10, 13, 4, 1, '#5a9a48');                                    // 萼片
     cache.set(key, N === 24 ? cv : shrinkTo(cv, N)); return cache.get(key);
   }
+  /* 歷屆榜碑（碑林關的入口）：24×24，Kenney 的灰（#a8b6b7／#757f7f／#b9c4c5），不加黑邊。
+     三行抄好的名字，最後一格空著、慢慢亮起一點金色（名字正在浮現）。f＝亮度 0～3 */
+  function boardFrame(f, N) {
+    const key = 'board:' + f + ':' + N; if (cache.has(key)) return cache.get(key);
+    const cv = document.createElement('canvas'); cv.width = cv.height = 24; const g = cv.getContext('2d'), R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+    R(4, 21, 17, 2, 'rgba(60,70,70,.28)');                                                    // 地上的影子
+    R(7, 1, 10, 1, '#a8b6b7'); R(6, 2, 12, 1, '#a8b6b7'); R(5, 3, 14, 17, '#a8b6b7');         // 碑身（上緣收圓）
+    R(5, 3, 1, 17, '#b9c4c5'); R(7, 1, 3, 1, '#b9c4c5'); R(6, 2, 2, 1, '#b9c4c5');            // 受光的左緣
+    R(17, 3, 2, 17, '#757f7f'); R(16, 2, 2, 1, '#757f7f'); R(14, 1, 3, 1, '#757f7f');         // 背光的右緣
+    R(4, 20, 16, 2, '#757f7f'); R(4, 20, 16, 1, '#8f9a9a');                                   // 碑座
+    for (const y of [5, 8, 11]) { R(8, y, 3, 1, '#757f7f'); R(12, y, 4, 1, '#757f7f'); R(8, y + 1, 2, 1, '#8f9a9a'); }   // 三行名字
+    R(8, 14, 8, 4, '#757f7f');                                                                // 最後一格的框
+    R(9, 15, 6, 2, ['#c8d2d2', '#dfe5d0', '#f3e7a8', '#dfe5d0'][f]);                          // 空格慢慢亮起來
+    if (f === 2) { R(10, 15, 1, 1, '#ffffff'); R(13, 16, 1, 1, '#fbf3c8'); }
+    cache.set(key, N === 24 ? cv : shrinkTo(cv, N)); return cache.get(key);
+  }
   function anim(kind, size, now) {
     if (kind === 'vortex') return vortexFrame(Math.floor(now / 90) % 8);
+    if (kind === 'board') return boardFrame([0, 1, 2, 3, 3, 2, 1, 0][Math.floor(now / 380) % 8], typeof size === 'number' ? size : 24);
     if (kind === 'bud') return budFrame(Math.floor(now / 450) % 4, typeof size === 'number' ? size : 24);
     if (kind === 'book') {                                                              // 靜止約 1.2 秒，再翻一頁（8 格 × 110ms）
       const t = now % 2080, f = t < 1200 ? 0 : Math.min(8, 1 + Math.floor((t - 1200) / 110));
@@ -2174,5 +2191,5 @@ const GFX = (() => {
     g.fillStyle = 'rgba(255,248,220,.9)'; g.fill(); g.lineWidth = 1.2; g.strokeStyle = 'rgba(60,40,20,.75)'; g.stroke();
     cache.set(key, cv); return cv;
   }
-  return { anim, bookFrame, budFrame, devProp, monBig, plate, person, tile, setIndoor, clockHands, doormat, exitArrow, skinsReady, SKINS, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
+  return { anim, bookFrame, budFrame, boardFrame, devProp, monBig, plate, person, tile, setIndoor, clockHands, doormat, exitArrow, skinsReady, SKINS, weapon, weaponMon, special, chest, draft, building, campus, CAMPUS, THEMES, adj, hue, star, pxEllipse, el, OUT };
 })();

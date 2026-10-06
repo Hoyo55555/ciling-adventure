@@ -862,6 +862,120 @@ CAMPUS_MAPS.hn_gym = {
   signs: {},
 };
 
+/* ============================================================
+   夢中小鎮 ④ 碑林關（校史室的夢，W.dreams.pl）
+   ------------------------------------------------------------
+   古典研究助教怕「被遺忘」：居民是刻在碑上、沒人再讀的古人話。夜裡的關隘書院，滿山遍野都是碑。
+   整座夢是文言文風格：居民說淺近文言（每句下面一行白話「譯」），夢裡所有戰鬥與題目都只考文言（W.dreams.pl.onlyCat）。
+   進夢：現實的校史室（hist）→ 讀歷屆榜（不戰鬥）→ 墨暈（ink）→ 這裡。
+   pl_town 碑林關：還鄉碑（醒來）、驛站老卒（休息）、4 位委託人、周以恆、3 座古文石碑（機關）、書院大門
+   pl_road 古碑小徑：E 區妖怪、3 個寶箱（走失的竹簡）、迂腐的書生、師兄弟、守碑老人
+   pl_gym 夢中的檔案室：真正的助教
+   ============================================================ */
+CAMPUS_MAPS.pl_town = {
+  music: 'town', theme: 't_stele', chapter: 4, dream: 'pl',
+  rows: [
+    'TTTTTTTTTTTTTTTTTTTTTTTT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT....................TT',
+    'TT,,,,,,,,,,,,,,,,,,,,TT',
+    'TT.......S,,,,S.......TT',
+    'TT........,,,,........TT',
+    'TT.O.O.O..,,,,..O.O.O.TT',
+    'TT........,,,,........TT',
+    'TT.O.O.O..,,,,..O.O.O.TT',
+    'TT........,,,,........TT',
+    'TT.O.O.O..,,,,..O.O.O.TT',
+    'TT........,,,,........TT',
+    'TTTTTTTTTTT,,TTTTTTTTTTT',
+  ],
+  props: [['oldblock', 7, 1]],
+  doorWarps: {
+    '11,7': { plate: 'hist', label: '夢中的檔案室', to: 'pl_gym', tx: 7, ty: 10, dir: 'up', ret: { x: 11, y: 8 },
+              needFlag: 'plOpen', flagText: '（書院的門被墨封著……先幫關裡的人解決麻煩吧。）' },
+  },
+  warps: [
+    { x: 11, y: 17, to: 'pl_road', tx: 9,  ty: 1, dir: 'down' },
+    { x: 12, y: 17, to: 'pl_road', tx: 10, ty: 1, dir: 'down' },
+  ],
+  devices: {
+    '3,11':  { group: 'plstone', flag: 'ps1', cat: '文言', label: '古文石碑',
+      text: '碑上刻著一句古文，缺了一個虛詞，墨痕尚濕。\n（把缺的字補回去，石碑就會亮起來。）',
+      ok: '缺字回到了碑上，石碑亮了起來！', allText: '三座石碑都亮起來了！' },
+    '20,13': { group: 'plstone', flag: 'ps2', cat: '文言', label: '古文石碑',
+      text: '第二座碑被風雨磨得看不清楚，只剩半句。', ok: '字跡清楚了，石碑也亮了！', allText: '三座石碑都亮起來了！' },
+    '7,15':  { group: 'plstone', flag: 'ps3', cat: '文言', label: '古文石碑',
+      text: '碑林深處的最後一座碑，字被青苔蓋住了一半。', ok: '最後一座碑也亮了——整片碑林連成了一篇文章！',
+      allText: '三座碑都亮起來了——關門前的碑，再沒有缺字了！', onAll: 'psAll' },
+  },
+  signs: { '9,9': 'pl_gate', '14,9': 'pl_board' },
+};
+CAMPUS_MAPS.pl_road = {
+  music: 'town', theme: 't_stele', chapter: 4, dream: 'pl',
+  rows: [
+    'TTTTTTTTT,,TTTTTTTTT',
+    'TT.......,,.......TT',
+    'TT.......,,.......TT',
+    'TT.ggggg.,,.ggggg.TT',
+    'TT.ggggg.,,.ggggg.TT',
+    'TT.ggggg.,,.ggggg.TT',
+    'TT.......,,.......TT',
+    'TT.......,,.......TT',
+    'TTOOOO...,,...OOOOTT',
+    'TTOOOO...,,...OOOOTT',
+    'TTOOOO...,,...OOOOTT',
+    'TT.......,,.......TT',
+    'TT.......,,.......TT',
+    'TT.ggggg.,,.ggggg.TT',
+    'TT.ggggg.,,.ggggg.TT',
+    'TT.ggggg.,,.ggggg.TT',
+    'TT.......,,.......TT',
+    'TT.......,,.......TT',
+    'TT.......,,S......TT',
+    'TT.......OO.......TT',
+    'TT.......OO.......TT',
+    'TTTTTTTTTTTTTTTTTTTT',
+  ],
+  foes: { lv: [14, 17], scale: 3, pool: 'E', rate: .17, safe: 2 },
+  warps: [
+    { x: 9,  y: 0, to: 'pl_town', tx: 11, ty: 16, dir: 'up' },
+    { x: 10, y: 0, to: 'pl_town', tx: 12, ty: 16, dir: 'up' },
+  ],
+  chests: [
+    { x: 3,  y: 2,  id: 'plb1', items: { hint: 1 } },
+    { x: 16, y: 12, id: 'plb2', items: { heal: 1 } },
+    { x: 3,  y: 17, id: 'plb3', items: { hint: 1 } },
+  ],
+  signs: { '11,18': 'pl_road' },
+};
+CAMPUS_MAPS.pl_gym = {
+  music: 'hall', theme: 't_stele', chapter: 4, indoor: 1, dream: 'pl',
+  rows: [
+    'wwwwwwwwwwwwwwww',
+    'wkk____tt____kkw',
+    'w______________w',
+    'wkkk__kkkk__kkkw',
+    'w______________w',
+    'w_p__________p_w',
+    'w______________w',
+    'wk__OO____OO__kw',
+    'w______________w',
+    'w______________w',
+    'w______________w',
+    'wwwwwww__wwwwwww',
+  ],
+  warps: [
+    { x: 7, y: 11, to: 'pl_town', tx: 11, ty: 8, dir: 'down' },
+    { x: 8, y: 11, to: 'pl_town', tx: 12, ty: 8, dir: 'down' },
+  ],
+  signs: {},
+};
+
 const CAMPUS_NPCS = {
   s1: [
     { role: 't_cd_a', x: 7,  y: 7,  dir: 'right' },
@@ -934,6 +1048,25 @@ const CAMPUS_NPCS = {
   ],
   hn_gym: [
     { role: 'boss3', x: 7, y: 1, dir: 'down', key: 'yard:boss3' },   // 真正的助教。打倒的紀錄沿用 yard:boss3（舊存檔、測試都不用改）
+  ],
+  pl_town: [
+    { role: 'plWake',  x: 12, y: 9,  dir: 'down' },
+    { role: 'plPost',  x: 4,  y: 10, dir: 'down' },
+    { role: 'plG1',    x: 8,  y: 10, dir: 'right' },
+    { role: 'plG2',    x: 19, y: 10, dir: 'down' },
+    { role: 'plG3',    x: 6,  y: 12, dir: 'down' },
+    { role: 'plG4',    x: 17, y: 12, dir: 'down' },
+    { role: 'plZhou',  x: 15, y: 10, dir: 'left' },
+    { role: 'plQuiz',  x: 17, y: 10, dir: 'down' },
+  ],
+  pl_road: [
+    { role: 'plPedant', x: 12, y: 9,  dir: 'left',  sight: 3 },
+    { role: 'plTwinA',  x: 8,  y: 16, dir: 'right', sight: 3 },
+    { role: 'plTwinB',  x: 11, y: 16, dir: 'left',  sight: 3 },
+    { role: 'plElder',  x: 10, y: 18, dir: 'left' },
+  ],
+  pl_gym: [
+    { role: 'boss4', x: 8, y: 2, dir: 'down', key: 'hist:boss4' },   // 真正的助教。打倒的紀錄沿用 hist:boss4（舊存檔、測試都不用改）
   ],
   hall: [
     { role: 'spar_h',  x: 12, y: 8,  dir: 'down' },
@@ -1018,7 +1151,7 @@ function CAMPUS_PATCH(S) {
   R.avatar2.needDefeated = ['corridor2:rival1'];            // 圖書館的化身要先打倒周以恆；真正的股長在夢裡，不用再擋
   R.avatar3.needDefeated = ['yard2:m1', 'yard2:m2', 'yard2:m3'];   // 文藝教室的助教要先點醒三位組員；真正的助教在夢裡，不用再擋
   R.sideAGiver.need    = ['yard2:m1', 'yard2:m2', 'yard2:m3'];
-  R.boss4.needDefeated = ['stair1:rival2'];
+  R.avatar4.needDefeated = ['stair1:rival2'];               // 校史室的歷屆榜要先安頓周以恆才讀得清；真正的助教在夢裡，不用再擋
   /* 器靈的地點：神器據點重做（待辦 1）之前先放在中庭 */
   S.gqClue = {
     g_pen:   { where: 'c8', place: '自己的教室',
@@ -1055,6 +1188,9 @@ function CAMPUS_PATCH(S) {
     hn_board1: '（花攤的招牌：「本店的花，每一朵都像……」後面被劃掉了，改寫成兩個小字：「很香。」）',
     hn_board2: '（告示板上的字寫得又小又密。最後一行被人用手指抹過，只剩下一個淡淡的「真」。）',
     hn_rain: '（聽雨亭的柱子上刻著：「雨聲不必翻譯，聽得見就好。」）',
+    pl_gate: '（關門上的橫匾：「碑林關」。匾下小字：「入此關者，先識字。」）\n（譯：進這座關的人，先要認得字。）',
+    pl_board: '（告示：「晨鐘暮鼓，書聲不輟。」）\n（譯：早晚鐘鼓，讀書聲不斷。）',
+    pl_road: '（碑上刻著：「學而時習之，不亦說乎？」）\n（譯：學了又時常溫習，不是很愉快嗎？）',
     dj_well: '（一口乾涸的老井。井口刻著：「天只有井口那麼大？」）',
     zy_rest: '（坡道盡頭有一張長椅，椅背上刻著：「讀得慢也沒關係，唸對才是真的。」下面還有一行很小的字：「——小老師」）',
   });
@@ -1141,16 +1277,37 @@ function CAMPUS_PATCH(S) {
       afterWake: ['（你回到了文藝教室。花圃裡的花都開著，溫室中央，含苞的花輕輕地合著。）',
                   '（助教站在窗邊，手裡捏著一片花瓣，花瓣上是一句很短的話。）',
                   '助教：「……給阿嬤的。這次，我想親口念給她聽。」'] },
+    pl: { name: '碑林關', home: { map: 'hist', x: 7, y: 2, dir: 'down' }, town: { map: 'pl_town', x: 11, y: 9, dir: 'down' },
+      heal: { map: 'pl_town', x: 5, y: 10 }, need: 3, openFlag: 'plOpen', doneFlag: 'plDone', enteredFlag: 'plEntered', seenFlag: 'plSeen',
+      legacyKey: 'hist:boss4', homeName: '校史室', fx: 'ink', tint: [200, 160, 90, .18], onlyCat: '文言',
+      glyphs: ['之', '乎', '者', '也', '矣', '焉', '哉', '曰', '而', '其', '以', '於'],
+      openText: ['（遠處傳來石門緩緩推開的聲音——書院的門，開了。）', '（你想起守碑老人說的話：「榜末空一格，非留與誰，乃未寫畢也。」）'],
+      arrive: ['（墨漫開，又慢慢退去。你站在一座夜裡的關隘前，月光下，滿山遍野都是碑。）',
+               '小墨：「別怕，這是「碑林關」——助教的碎片留下的夢。」',
+               '小墨：「這裡的居民，都是刻在碑上、沒人再讀的古人話變出來的，所以大家都說文言文。」',
+               '小墨：「別擔心，每句話下面，我都幫你譯成白話了。這座夢裡的題目，也全都是文言文喔。」',
+               '小墨：「真正的助教在書院的檔案室裡，但夢把門鎖上了。幫關裡的人解決三件麻煩，夢才會鬆口。」',
+               '小墨：「想回校史室的話，隨時可以從還鄉碑、或選單的「醒來」回去，進度都會留著。」'],
+      finish: ['（助教身上的墨一滴一滴落下，整座碑林在月光下，一塊一塊亮了起來……）',
+               '（老吏、書童、書生、師兄弟……每個人都朝你揮了揮手。）',
+               '小墨：「夢要醒了。你做得很好。」',
+               '小墨：「碎片，是一個人心裡最怕被看見的那一頁。」',
+               '小墨：「那塊榜會留在校史室裡。想念這裡的人，隨時可以回來看看。」'],
+      afterWake: ['（你回到了校史室。榜靜靜立著，最後一格裡，多了一個名字，墨還是新的。）',
+                  '（周以恆站在榜前，沒有背，只是一個字一個字地讀。）',
+                  '周以恆：「……原來，是這麼唸的。」',
+                  '（遠處，大禮堂傳來了沉重的鐘聲。）'] },
   };
   S.stages[0].roles = ['avatar1', 'boss1'];
   S.stages[1].roles = ['rival1', 'avatar2', 'boss2'];
   S.stages[2].roles = ['m1', 'm2', 'm3', 'avatar3', 'boss3'];
+  S.stages[3].roles = ['rival2', 'avatar4', 'boss4'];
   /* 教師版「直達」的分類 */
   S.travelGroups = [
     ['家．通學路', ['room', 'house1f', 's1', 'path1', 's2', 'pharmacy', 's3']],
     ['校園', ['front', 'hall', 'corridor1', 'stair1', 'corridor2', 'yard2', 'field', 'audyard']],
     ['道館', ['c1a', 'lib', 'yard', 'hist', 'aud']],
-    ['夢中小鎮', ['zy_town', 'zy_slope', 'zy_gym', 'dj_town', 'dj_pier', 'dj_gym', 'hn_town', 'hn_pavilion', 'hn_gym']],
+    ['夢中小鎮', ['zy_town', 'zy_slope', 'zy_gym', 'dj_town', 'dj_pier', 'dj_gym', 'hn_town', 'hn_pavilion', 'hn_gym', 'pl_town', 'pl_road', 'pl_gym']],
     ['教室．其他', ['c8', 'clinic_h', 'store_c', 'forge', 'inkpool']],
   ];
   Object.assign(S.mapNames, {
@@ -1162,6 +1319,7 @@ function CAMPUS_PATCH(S) {
     zy_town: '夢中小鎮．注音坡', zy_slope: '注音坡道', zy_gym: '夢中的一年甲班',
     dj_town: '夢中小鎮．書海港', dj_pier: '船埠', dj_gym: '夢中的圖書館',
     hn_town: '夢中小鎮．花南街', hn_pavilion: '聽雨亭', hn_gym: '夢中的花室',
+    pl_town: '夢中小鎮．碑林關', pl_road: '古碑小徑', pl_gym: '夢中的檔案室',
   });
 }
 
@@ -1335,6 +1493,12 @@ ROOM_REDO.c1a.npcs = [
 ROOM_REDO.yard.npcs = [
   { role: 'avatar3', x: 7, y: 1, dir: 'down', hideFlag: 'hnEntered' },
   { role: 'hnPortal', x: 7, y: 1, dir: 'down', needFlag: 'hnEntered' },
+];
+/* 校史室：沒有人邀你。三座古文石碑亮起、石碑牆沉下之後，檔案室裡只有一塊歷屆榜（最後一格空著，你的名字浮現）；
+   讀完被墨寫進夢裡，榜在進過夢之後留在原地當入口（碑林關，詳見 W.dreams.pl）。助教本人在夢裡。 */
+ROOM_REDO.hist.npcs = [
+  { role: 'avatar4', x: 7, y: 1, dir: 'down', hideFlag: 'plEntered' },
+  { role: 'plPortal', x: 7, y: 1, dir: 'down', needFlag: 'plEntered' },
 ];
 /* 圖書館：股長是「碎片化身」，三本辭典歸位、書架讓開後才見得到；攤開的書在打完化身之後留在原地（書海港的入口，詳見 W.dreams.dj） */
 ROOM_REDO.lib.npcs = [

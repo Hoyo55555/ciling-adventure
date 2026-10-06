@@ -482,8 +482,47 @@ async function petalsIn(D) {
   await Anim.run(1.0, k => { st.rain = 1 - k; });
   OW.fx.length = 0; OW.hidePlayer = false; OW.dark = 0; OW.flash = 0;
 }
+/* 墨暈（碑林關）：墨從腳邊慢慢漫開，一圈一圈染滿畫面（沒有吸力），字跡浮在墨裡；醒來時墨慢慢退去。
+   st：ink 墨漫開的程度 0～1、player 玩家的透明度、glyphs 浮在墨裡的字 */
+function drawInkFx(g, x, y, st, img) {
+  const t = performance.now() / 1000, I = st.ink, GL = st.glyphs || DREAM_GLYPHS;
+  if (I > 0) {
+    const R = 8 + I * 190;                                                                                  // 最大要蓋過整個 240×160 畫面
+    g.save(); g.beginPath();
+    for (let k = 0; k <= 36; k++) { const a = k / 36 * Math.PI * 2, w = 1 + .14 * Math.sin(a * 5 + t * 1.5) + .08 * Math.sin(a * 9 - t * 2.1); const px = x + Math.cos(a) * R * w, py = y + Math.sin(a) * R * w * .85; k ? g.lineTo(px, py) : g.moveTo(px, py); }
+    g.closePath(); g.fillStyle = `rgba(28,24,36,${.9 * Math.min(1, I * 1.4)})`; g.fill(); g.restore();      // 外圈的墨（形狀會慢慢晃）
+    const rg = g.createRadialGradient(x, y, 2, x, y, R * .7); rg.addColorStop(0, `rgba(70,62,86,${.6 * I})`); rg.addColorStop(1, 'rgba(28,24,36,0)'); g.fillStyle = rg; g.fillRect(x - 200, y - 160, 400, 320);
+  }
+  if (st.player > 0) { g.globalAlpha = st.player; g.drawImage(img, Math.round(x - 8), Math.round(y - 12)); g.globalAlpha = 1; }
+  if (I > .15) {
+    g.font = '10px sans-serif'; g.textAlign = 'center';
+    for (let i = 0; i < 14; i++) {                                                                           // 墨裡浮著的字：一個一個亮起來，再慢慢淡掉
+      const a = i * .449 + t * .35, R2 = 18 + (i % 5) * 16 * I, lit = .5 + .5 * Math.sin(t * 1.6 + i * 1.9);
+      g.fillStyle = `rgba(240,226,184,${Math.min(1, I * 1.2) * (.25 + .6 * lit)})`; g.fillText(GL[i % GL.length], x + Math.cos(a) * R2 * 1.5, y + Math.sin(a) * R2 + 3);
+    }
+    g.textAlign = 'start';
+  }
+}
+async function inkOut(D) {
+  const p = OW.p, wx = p.x * 16 + 8, wy = p.y * 16 + 8, img = GFX.person(G.player.look, 'down', 0), st = { ink: 0, player: 1, glyphs: D && D.glyphs };
+  OW.fx.push((g, cx, cy) => drawInkFx(g, wx - cx, wy - cy, st, img));
+  OW.hidePlayer = true; Sound.sfx('encounter');
+  await Anim.run(2.2, k => { st.ink = k * k * (3 - 2 * k); st.player = 1 - Math.min(1, k * 1.6); OW.dark = k * .2; });
+  Sound.sfx('hit');
+  await Anim.run(0.5, k => OW.flash = k);
+  OW.fx.length = 0;
+}
+async function inkIn(D) {
+  const p = OW.p, wx = p.x * 16 + 8, wy = p.y * 16 + 8, img = GFX.person(G.player.look, 'down', 0), st = { ink: 1, player: 0, glyphs: D && D.glyphs };
+  OW.hidePlayer = true; OW.flash = 1; OW.dark = .2;
+  OW.fx.push((g, cx, cy) => drawInkFx(g, wx - cx, wy - cy, st, img));
+  Sound.sfx('heal');
+  await Anim.run(0.5, k => { OW.flash = 1 - k; });
+  await Anim.run(2.0, k => { st.ink = 1 - k * k * (3 - 2 * k); st.player = Math.max(0, (k - .4) / .6); OW.dark = .2 * (1 - k); });
+  OW.fx.length = 0; OW.hidePlayer = false; OW.dark = 0; OW.flash = 0;
+}
 /* 進夢／醒來的轉場動畫：W.dreams[id].fx 選一種（預設旋渦）；每種是 { out: 吸進去／淡出, in: 淡入 } */
-const DREAM_FX = { vortex: { out: vortexOut, in: vortexIn }, pages: { out: pagesOut, in: pagesIn }, petals: { out: petalsOut, in: petalsIn } };
+const DREAM_FX = { vortex: { out: vortexOut, in: vortexIn }, pages: { out: pagesOut, in: pagesIn }, petals: { out: petalsOut, in: petalsIn }, ink: { out: inkOut, in: inkIn } };
 const dreamFx = D => DREAM_FX[D.fx] || DREAM_FX.vortex;
 async function dreamEnter(id) {
   const D = W.dreams[id], FX = dreamFx(D);
@@ -519,6 +558,11 @@ async function portalTalk(n) {
 async function avatarTalk(n) {
   const R = n.role;
   if ((R.gateFlag && !G.flags[R.gateFlag]) || (R.needDefeated && !R.needDefeated.every(k => G.defeated[k]))) { await say(R.gateText); return; }
+  if (R.noFight) {                                  // 不戰鬥的入口（④ 讀歷屆榜）：讀完就被寫進夢裡
+    for (const t of R.lines) await say(t, t.startsWith('（') || t.includes('：') ? undefined : R.name);
+    for (const t of R.afterWin) await say(t, t.startsWith('（') || t.includes('：') ? undefined : R.name);
+    await dreamEnter(R.dream); return;
+  }
   if (!G.equip.length) { await say('……你手上沒有武器？', R.name); return; }
   for (const t of R.lines) await say(t, t.startsWith('（') || t.includes('：') ? undefined : R.name);
   const res = await Battle.start({ kind: 'gym', foe: makePersonFoe(R), role: R, cats: R.foe.cats });

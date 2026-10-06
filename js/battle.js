@@ -224,8 +224,10 @@ function drawQ(cats, qtype) {
 }
 /* 攜帶中的守護神器能力 */
 const passives = () => new Set(G.equip.map(id => wById(id)).filter(Boolean).flatMap(w => passiveList(w.arch)));
+/* 夢中小鎮若設了 onlyCat（④ 碑林關＝文言），小鎮裡的戰鬥一律只出那一類題；道館主那一場照原本的題型 */
+const dreamCats = (s, cats) => { const D = G.flags.dream && W.dreams && W.dreams[G.flags.dream]; return D && D.onlyCat && !(s.cfg && s.cfg.kind === 'gym') ? [D.onlyCat] : cats; };
 async function askQ(s, cats, mode, move, qtype) {
-  const d = drawQ(cats, qtype); if (!d.q) return { correct: true };
+  const d = drawQ(dreamCats(s, cats), qtype); if (!d.q) return { correct: true };
   return UI.question(d.q, { mode, move, again: d.again, autoHint: s.pas.has('eye') || s.pas.has('po') });
 }
 
