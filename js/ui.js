@@ -54,13 +54,15 @@ UI.say = function (text, opt = {}) {
     if (opt.left) box.style.left = U(opt.left);
     const tx = h('div', 'tbtext'), ar = h('div', 'tbarrow', '▼'); box.append(tx, ar); ar.style.visibility = 'hidden';
     const pic = !opt.dark && opt.name ? portraitFor(fmt(opt.name)) : null;
-    const tag = opt.name ? UI.el('box nametag', esc(fmt(opt.name))) : null;
-    if (pic && tag) tag.style.left = U(52);                       // 名牌讓出頭像的位置
+    /* 有頭像的說話者（小墨）：背景壓暗、頭像放到畫面中央、名牌在頭像下面，玩家只看他一個人，不會和戰鬥或地圖上的人物疊在一起 */
+    const dim = pic ? UI.el('spotdim') : null; if (dim) UI.root.insertBefore(dim, box);
+    if (pic) { pic.classList.add('spot'); void dim.offsetWidth; dim.classList.add('on'); }
+    const tag = opt.name ? UI.el('box nametag' + (pic ? ' spot' : ''), esc(fmt(opt.name))) : null;
     let pi = 0, n = 0, acc = 0, full = pages[0], done = false, timer = 0, closed = false;
     const last = () => pi >= pages.length - 1;
-    const close = () => { if (closed) return; closed = true; UI.pop(m); if (tag) tag.remove(); if (pic) pic.remove(); res(); };
+    const close = () => { if (closed) return; closed = true; UI.pop(m); if (tag) tag.remove(); if (pic) pic.remove(); if (dim) dim.remove(); res(); };
     const finishTyping = () => { n = full.length; tx.textContent = full; done = true;
-      if (last() && opt.hold) { UI.pop(m, true); closed = true; res(() => { box.remove(); if (tag) tag.remove(); if (pic) pic.remove(); }); return; }
+      if (last() && opt.hold) { UI.pop(m, true); closed = true; res(() => { box.remove(); if (tag) tag.remove(); if (pic) pic.remove(); if (dim) dim.remove(); }); return; }
       ar.style.visibility = (last() && opt.auto) ? 'hidden' : 'visible'; timer = 0; };
     const next = () => {
       if (closed) return;

@@ -136,27 +136,29 @@ function resize() {
   document.documentElement.style.setProperty('--w', w + 'px'); document.documentElement.style.setProperty('--u', (w / 240) + 'px');
 }
 
-/* 教師測試版：網址加 ?teacher=1，或用教師帳號登入（班級 T、座號 0）都算 */
-const TEACHER_URL = /[?&]teacher=1/.test(location.search);
-const isTeacher = () => TEACHER_URL || (typeof TeacherAuth !== 'undefined' && TeacherAuth.on);
+/* 教師測試版：只有用教師帳號登入（班級 T、座號 0）才看得到，而且是「這一份存檔」的屬性：
+   登入後開新遊戲時選「教師測試版」，那份存檔才是教師版（G.teacher，存在存檔裡）；
+   一般版的存檔、學生的存檔，就算在教師登入的瀏覽器裡讀取，也還是一般版。網址參數不再能開啟教師版。 */
+const isTeacher = () => typeof TeacherAuth !== 'undefined' && TeacherAuth.on;
 function showTeacherBadge() {
   if (document.querySelector('.teacherbadge')) return;
   const b = document.createElement('div');
   b.className = 'teacherbadge';
-  b.textContent = '教師測試版：滿裝備・略過對戰・地圖全開';
+  b.textContent = '教師測試版：只跑劇情・略過對戰與機關題・地圖全開';
   b.style.cssText = 'position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:99;' +
     'background:#7a2a1e;color:#f0e0c0;font:600 12px system-ui,"Noto Sans TC",sans-serif;' +
     'padding:3px 12px;border-radius:10px;border:1px solid #c8a040;pointer-events:none;opacity:.92';
   document.body.appendChild(b);
 }
-if (TEACHER_URL) addEventListener('DOMContentLoaded', showTeacherBadge);
-function markTeacher() { if (G && isTeacher()) G.teacher = true; }
+/* 徽章跟著目前這份存檔：教師版存檔才顯示，回標題或讀一般存檔就收起來 */
+function paintTeacherBadge() { const b = document.querySelector('.teacherbadge'); if (G && G.teacher) showTeacherBadge(); else if (b) b.remove(); }
+function markTeacher() { if (G && isTeacher()) G.teacher = true; }       // 只在「新遊戲選了教師測試版」時呼叫
 
 /* ============ 教師測試版 ============
    老師要的是「劇情跑完之後」的狀態：電腦裡有全部武器與全部圖鑑，
    路上的 NPC 不會跟你打，但道館館主還是要真的打一場。 */
 function teacherKit() {
-  if (!G || !isTeacher() || G.flags.teacherKit) return;
+  if (!G || !G.teacher || G.flags.teacherKit) return;
   G.flags.teacherKit = 1;
   const TOP = RARITY.length - 2;                 // 神品
   const GUARD = RARITY.length - 1;               // 守護神器（彩色）
@@ -175,7 +177,7 @@ function teacherKit() {
      碎片不再一次給滿：前面章節的人物是靠「拿到幾片碎片」決定登場與離開的，一次給滿會讓他們全部消失，
      後面的化身又要先打倒他們，劇情就卡死了（2026-10-06 圖書館）。老師從第一章照劇情走，對戰一律略過（battle.js）；
      想看後面的章節，用選單的「📖 劇情進度」跳過去（會把前面章節的進度一起補齊）。 */
-  Object.assign(G.flags, { prologue: true, tut: 'skip' });
+  Object.assign(G.flags, { tut: 'skip' });                 // 序幕（從房間醒來、鬧鐘、書包、小墨）照常演；不再跳過（2026-10-06 老師說「開頭的故事沒有了嗎」）
   for (const k of Object.keys(G.bag)) G.bag[k] = 20;
   G.money = 99999; G.lv = Math.max(G.lv, 30);
   /* 地圖全開：所有城鎮與道路都算「去過」，公車站直接列出全部目的地 */
@@ -189,7 +191,7 @@ function teacherKit() {
    這一章以後：全部清掉重來。人會回到校門前庭，離開夢中小鎮。 */
 function setStoryStage(n) {
   const stages = W.stages, names = ['准考證碎片（一）', '准考證碎片（二）', '准考證碎片（三）', '准考證碎片（四）', '准考證碎片（五）'];
-  G.badges = names.slice(0, n); G.chapter = n + 1;
+  G.badges = names.slice(0, n); G.chapter = n + 1; Object.assign(G.flags, { prologue: true, tut: 'skip' }); delete G.flags.pro;
   stages.forEach((st, i) => {
     const done = i < n;
     for (const r of (st.roles || [])) {
@@ -253,6 +255,7 @@ async function opening() {
 /* ---------- 標題 ---------- */
 async function titleScreen() {
   UI.clear(); setWorldClass(null); Game.scene = 'title'; G = null; W = null; Sound.play('title');
+  paintTeacherBadge();
   const logo = UI.el('logo', `<div class="t1">詞靈冒險</div><div class="t2">翡翠之卷</div><div class="t3">國中國文 × 像素冒險　試玩版</div>`);
   // 右上角小連結：沒有雲端存檔時，教師從這裡登入；教師登入後才出現「教師設定」
   const tlink = UI.el('teacherlink', ''); const paintLink = () => { tlink.textContent = TeacherAuth.on ? '👩‍🏫 教師設定' : (Cloud.enabled ? '' : '🔑 教師登入'); tlink.style.display = tlink.textContent ? '' : 'none'; };
@@ -294,7 +297,7 @@ function freshState(world, player, slot) {
 }
 const Flow = {
   async load(n) {
-    G = Slots.read(n); if (!G) return titleScreen(); G.slot = n; markTeacher(); W = WORLDS[G.world]; setWorldClass(G.world);
+    G = Slots.read(n); if (!G) return titleScreen(); G.slot = n; W = WORLDS[G.world]; setWorldClass(G.world);
     const base = freshState(G.world, G.player, n); for (const k in base) if (G[k] == null) G[k] = base[k];
     if (!Array.isArray(G.weapons)) {   // 舊版存檔：武器由「每種一件」轉換為武器實體
       const old = G.weapons, map = {}; G.weapons = [];
@@ -328,12 +331,13 @@ const Flow = {
     G.titles = (G.titles || []).filter(id => ALL_TITLES().some(t => t.id === id));
     playerStats();
     teacherKit();
+    paintTeacherBadge();
     /* 舊的教師存檔：以前一次給滿五片碎片，前面章節的人物全消失、化身擋在那裡過不去。整理成「第五章開頭、前四章都做完」 */
     if (G.teacher && G.flags.teacherKit && !G.flags.teacherKit2) {
       G.flags.teacherKit2 = 1;
       if (G.badges.length >= 5 && !G.flags.cleared && !G.defeated['aud:boss5']) { const at = setStoryStage(4); G.map = at.map; G.x = at.x; G.y = at.y; G.flags.teacherFixNote = 1; }
     }
-    if (W.story && !G.flags.prologue) { const S0 = W.start; G.map = S0.map; G.x = S0.x; G.y = S0.y; G.weapons = []; G.equip = []; }
+    if (W.story && !G.flags.prologue) { const S0 = W.start; G.map = S0.map; G.x = S0.x; G.y = S0.y; if (!G.teacher) { G.weapons = []; G.equip = []; } }
     await fade(1, 0.3); UI.clear(); Game.scene = 'overworld'; OW.load(G.map, G.x, G.y, 'down'); await fade(0, 0.3);
     if (W.story && !G.flags.prologue) OW.run(() => storyPrologue());
     if (G.flags.teacherFixNote) { delete G.flags.teacherFixNote; OW.run(() => say('（教師版更新：劇情進度已整理成正常順序——第五章開頭，前四章都算做完。想看其他章節，可以從選單的「📖 劇情進度」跳過去。）')); }
@@ -347,6 +351,11 @@ const Flow = {
       W = WORLDS[wid]; setWorldClass(wid); Game.scene = 'title'; G = freshState(wid, { name: '', title: '', look: {} }, slot);
       const pl = await CharCreate.open(wid, preset); if (!pl) { G = null; W = null; return false; }
       G.player = pl; playerStats();
+      if (isTeacher()) {                                   // 教師帳號：這一份存檔要當教師測試版，還是跟學生一樣玩
+        const k = await UI.ask('教師帳號登入中。\n這一份存檔要用哪一種模式？', ['教師測試版（只跑劇情，不用對戰、不答機關題）', '一般版（跟學生一樣玩）'], { cancel: false });
+        if (k === 0) markTeacher();
+      }
+      paintTeacherBadge();
       await Flow.start(); return true;
     }
   },
@@ -379,7 +388,7 @@ const Flow = {
       const wid = await WorldPick.open({ title: '要轉生到哪一個世界？', exclude: old.world }); if (!wid) return false;
       W = WORLDS[wid]; setWorldClass(wid); Game.scene = 'title';
       const pl = await CharCreate.open(wid, old.player); if (!pl) continue;
-      G = freshState(wid, pl, slot); markTeacher();
+      G = freshState(wid, pl, slot); if (old.teacher) G.teacher = true;
       Object.assign(G, { lv: old.lv, exp: old.exp, weapons: JSON.parse(JSON.stringify(old.weapons)), equip: old.equip.slice(), frags: old.frags || {}, stats: old.stats, wrong: old.wrong,
         bestStreak: old.bestStreak, answered: old.answered, weakKnown: old.weakKnown, bag: old.bag, money: Math.floor(old.money / 2), ng: (old.ng || 0) + 1,
         history: (old.history || []).concat([{ world: old.world, time: old.time, at: Date.now() }]) });
@@ -391,7 +400,7 @@ const Flow = {
     }
   },
   async start() {
-    teacherKit();                                   // 教師版：直接給滿，並跳過序幕
+    teacherKit();                                   // 教師版：先給整套武器與圖鑑（序幕照常演）
     const S0 = W.story ? (G.flags.prologue ? Object.assign({ dir: 'down' }, W.homeTown) : W.start)
                        : { map: 'chendu', x: 11, y: 7, dir: 'down' };
     /* 新遊戲的休息處：校園版是家裡（還沒去過學校，不能在保健室醒來） */

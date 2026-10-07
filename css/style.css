@@ -385,3 +385,8 @@ body{ background:#16120e radial-gradient(ellipse at top,#3a3026 0%,#16120e 70%);
 .credits .cs{ font-size:calc(var(--u)*6.2); opacity:.85; line-height:1.7; }
 .credits .dlc{ margin:calc(var(--u)*10) 0; padding:calc(var(--u)*5) 0; border-top:calc(var(--u)*.5) solid #8a7c68; border-bottom:calc(var(--u)*.5) solid #8a7c68; font-size:calc(var(--u)*8.5); }
 .credits .theend{ font-size:calc(var(--u)*30); font-weight:900; letter-spacing:.3em; padding:calc(var(--u)*30) 0 calc(var(--u)*60); }
+
+/* 小墨說話：聚光燈（背景壓暗，頭像在畫面中央，名牌在頭像下面） */
+.spotdim{ position:absolute; left:0; top:0; right:0; bottom:0; background:rgba(14,10,26,.6); pointer-events:none; }
+canvas.portrait.spot{ left:50%; right:auto; transform:translateX(-50%); bottom:calc(var(--u)*58); width:calc(var(--u)*72); height:calc(var(--u)*67.5); z-index:2; filter:drop-shadow(0 0 calc(var(--u)*6) rgba(255,240,200,.55)); }
+.nametag.spot{ left:50%; right:auto; transform:translateX(-50%); bottom:calc(var(--u)*47); }

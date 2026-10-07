@@ -897,8 +897,13 @@ const StoryEnding = {
     if (first || ng > 0) { Meta.clear(G.world); Meta.addReport({ world: G.world, name: G.player.name, title: rankTitle(T.pct), pct: T.pct, total: T.t, time: G.time, lv: G.lv, ng, at: Date.now() }); }
     autosave();
     await Report.open(G);
-    if (ng > 0 && gotStone) { await StoryEnding.allDone(); return; }
-    const opts = [].concat(ng > 0 ? [] : ['進入二週目（難度提升，可再挑戰所有道館）'], ['留在校園繼續探索', '重新開始（全新冒險）', '返回標題畫面']);
+    if (ng > 0) {                                           // 二週目通關：紀錄（存檔、成績單、紀錄館）都留著，接著自由探索，不再有劇情，也不會問「要不要重新開始」
+      G.flags.ngDone = true; autosave();
+      if (gotStone) { await StoryEnding.allDone(); return; }
+      await say('（紀錄已經保存。故事到這裡就結束了——接下來可以自由地在校園裡走走、挑戰、收集，不會再有劇情。）');
+      Sound.play(W.music[OW.L.music] || OW.L.music); return;
+    }
+    const opts = ['進入二週目（難度提升，可再挑戰所有道館）', '留在校園繼續探索', '重新開始（全新冒險）', '返回標題畫面'];
     const k = await UI.ask('恭喜通關國中生涯！接下來要做什麼呢？', opts, { cancel: false });
     const L = opts[k];
     if (L && L.startsWith('進入二週目')) { await Flow.newGamePlus(); return; }
@@ -915,9 +920,9 @@ const StoryEnding = {
     await say('（筆、紙、墨、硯——文房四寶四隻器靈同時亮了起來。）');
     await say('小墨：「你看，牠們本來就不是武器。」\n「牠們只是在等一個，願意好好讀、好好寫的人。」');
     await say('★ 全部挑戰完成！\n\n感謝遊玩《詞靈冒險．翡翠之卷》。\n願你在每一次考試之外，都還記得文字原本的溫度。');
-    autosave();
-    const k2 = await UI.ask('接下來要做什麼呢？', ['留在校園繼續探索', '返回標題畫面'], { cancel: false });
-    if (k2 === 1) { Game.scene = 'blank'; titleScreen(); } else Sound.play(W.music[OW.L.music] || OW.L.music);
+    G.flags.ngDone = true; autosave();                      // 紀錄留著，接著自由探索（沒有劇情了）；要回標題從選單的「回到主畫面」
+    await say('（紀錄已經保存。接下來可以自由地在校園裡走走、挑戰、收集，不會再有劇情。）');
+    Sound.play(W.music[OW.L.music] || OW.L.music);
   },
 };
 function rankTitle(p) { return p >= 90 ? '文曲下凡' : p >= 80 ? '博學鴻儒' : p >= 65 ? '飽讀詩書' : p >= 50 ? '勤學書生' : '初出茅廬'; }

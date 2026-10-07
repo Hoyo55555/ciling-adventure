@@ -42,6 +42,7 @@ const OW = {
     this.id = id; this.L = LAYOUTS[id];
     if (G && G.defeated && W.dreams) for (const D of Object.values(W.dreams)) if (D.legacyKey && G.defeated[D.legacyKey] && !G.flags[D.enteredFlag]) { G.flags[D.enteredFlag] = G.flags[D.openFlag] = G.flags[D.doneFlag] = G.flags[D.seenFlag] = true; }   // 舊存檔：夢中小鎮出現之前就打過了
     Object.assign(this.p, { x, y, dir: dir || this.p.dir, moving: false, t: 0 });
+    settleGyms();
     this.npcs = this.spawnList();
     this.resetEncounter();
     if (id === 'inkpool') this.spawnSpirit();
@@ -159,7 +160,7 @@ const OW = {
     if (gt && gt.includes(p.x + ',' + p.y) && typeof Guide !== 'undefined' && Guide.shouldTell()) { p.cont = false; this.run(() => moGuide()); return true; }
     const w = (this.L.warps || []).find(w => w.x === p.x && w.y === p.y);
     if (w) { this.run(() => w.to === '@ret' ? warpTo(G.ret.map, G.ret.x, G.ret.y, 'down') : warpTo(w.to, w.tx, w.ty, w.dir)); return true; }
-    for (const n of this.npcs) if (n.sight && !G.defeated[n.key] && this.sees(n)) { p.cont = false; this.run(() => spotted(n)); return true; }
+    if (!G.teacher) for (const n of this.npcs) if (n.sight && !G.defeated[n.key] && this.sees(n)) { p.cont = false; this.run(() => spotted(n)); return true; }   // 教師版：路上的人不會攔人（只跑劇情）
     if (this.tile(p.x, p.y) === 'g' || this.tile(p.x, p.y) === '&') Sound.sfx('grass');
     /* 草叢隨機遇敵：擺在最後，出口與被發現都優先於遇敵 */
     if (this.rollEncounter()) return true;
@@ -566,6 +567,22 @@ async function portalTalk(n) {
   await say(G.flags[D.doneFlag] ? R.done : R.first);
   if (!(await UI.yesno(R.ask))) return;
   await dreamEnter(R.dream);
+}
+/* 道館館主倒了之後，這間道館裡的對手都算打完：沒去打的不會再來攔人，講話也是「已經打完」的樣子。
+   （夢中小鎮的道館：館主在夢裡，對手在現實的教室，所以連夢的出發地圖一起算。最終戰不算。） */
+function settleGyms() {
+  if (!W || !W.story || !G) return 0;
+  const M = W.campus && typeof CAMPUS_MAPS !== 'undefined' ? CAMPUS_MAPS : LAYOUTS; let n = 0;
+  for (const [id, R] of Object.entries(W.roles)) {
+    if (R.kind !== 'gym' || R.final) continue;
+    const at = Guide.where(id); if (!at || !G.defeated[at.key]) continue;
+    const maps = [at.map]; if (R.dream && W.dreams && W.dreams[R.dream]) maps.push(W.dreams[R.dream].home.map);
+    for (const m of maps) for (const sp of ((M[m] || {}).npcs || [])) {
+      const r = W.roles[sp.role]; if (!r || r.kind !== 'trainer') continue;
+      const k = sp.key || m + ':' + sp.role; if (!G.defeated[k]) { G.defeated[k] = true; n++; }
+    }
+  }
+  return n;
 }
 /* 還差什麼才能繼續：機關還沒解開、要先打倒的人還沒打倒。回傳白話提示（沒有缺的就是空陣列），讓玩家知道下一步去哪 */
 function gateLack(R) {
@@ -1273,7 +1290,7 @@ async function trainerTalk(n) {
   await say(R.intro, R.name);
   const res = await Battle.start({ kind: R.kind, foe: makePersonFoe(R), role: R, cats: R.foe.cats });
   if (res !== 'win') return;
-  G.defeated[n.key] = true;
+  G.defeated[n.key] = true; settleGyms();
   const arrived = OW.syncNpcs();                        // 這一場打完，剛好達成條件的人現身（三位菁英倒下 → 小墨走進禮堂）
   if (arrived.some(a => a.role.name === '小墨')) await say('（三位菁英倒下了。禮堂的角落，一個小小的身影慢慢走了過來。）');
   let grant = false;
@@ -1365,12 +1382,16 @@ async function roomXiaomo() {
   await Anim.run(0.35, k => mo.oy = -12 * (1 - k) - Math.sin(k * Math.PI) * 6); mo.oy = 0;
   await sleep(200);
   for (const t of W.xiaomoHome) await say(t, M);
-  giveWeapon('brush', 0); G.cur = 0; playerStats(); G.hp = G.maxhp;
+  const kit = G.teacher && G.weapons.length > 0;       // 教師版一開始就有整套武器：序幕照常演，但不再多發一把鉛筆、也不會把整套武器的第一把降級
+  if (!kit) giveWeapon('brush', 0);
+  G.cur = 0; playerStats(); G.hp = G.maxhp;
   await Battle.start({ kind: 'wild', foe: makeFoe('tool_eraser', 2), tutorial: true, mentor: M });
   await say(W.xiaomoAfter[0], M);
-  const w = G.weapons[0]; w.r = 1; G.frags.eraser = Math.max(0, (G.frags.eraser || 0) - 1); Meta.seeWeapon(G.world, 'brush', 1); playerStats();
-  Sound.sfx('badge'); s_flash(); await say(`2B 鉛筆吸收了碎片，化成了「良品．${weaponName(w)}」！`);
-  G.bag.heal += 3; G.bag.hint += 2; await say(`小墨還給了你「${itemName('heal')}」×3、「${itemName('hint')}」×2！`);
+  if (!kit) {
+    const w = G.weapons[0]; w.r = 1; G.frags.eraser = Math.max(0, (G.frags.eraser || 0) - 1); Meta.seeWeapon(G.world, 'brush', 1); playerStats();
+    Sound.sfx('badge'); s_flash(); await say(`2B 鉛筆吸收了碎片，化成了「良品．${weaponName(w)}」！`);
+    G.bag.heal += 3; G.bag.hint += 2; await say(`小墨還給了你「${itemName('heal')}」×3、「${itemName('hint')}」×2！`);
+  }
   await say(W.xiaomoAfter[1], M);
   for (const t of W.xiaomoGo) await say(t, M);
   OW.npcs = OW.npcs.filter(n => n !== mo);

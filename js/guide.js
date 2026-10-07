@@ -69,7 +69,12 @@ const Guide = {
   },
   objective() {
     if (!W || !W.story || !G || !G.flags) return null;
-    if (!G.flags.prologue) return { text: '和小墨談談。', short: '和小墨談談' };
+    if (!G.flags.prologue) {                                                   // 序幕：房間裡 鬧鐘 → 書包 → 小墨
+      const where = this.mapName('room');
+      return G.flags.pro === 2 || G.flags.dreamClock != null
+        ? { map: 'room', text: `在「${where}」檢查書包，確認准考證`, short: `檢查書包（${where}）` }
+        : { map: 'room', text: `在「${where}」確認床頭的鬧鐘`, short: `確認鬧鐘（${where}）` };
+    }
     if (G.flags.cleared) return null;
     const st = W.stages[Math.min(G.badges.length, W.stages.length - 1)];
     const gd = this.guardianStep(st); if (gd) return this.withRoute(gd);

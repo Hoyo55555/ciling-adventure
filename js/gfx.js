@@ -80,6 +80,10 @@ const GFX = (() => {
     { themes: '*', code: 'L', under: 'base', pick: [one('urban_0168.png')] },                  // 路燈
     { themes: '*', code: 'S', under: 'base', pick: [RPG(19)] },                                // 木牌（Kenney 路標）
     { themes: '*', code: ':', under: '.', pick: [one('urban_0167.png')] },                     // 站牌
+    /* 路邊擺件（取代前庭、校門前像墓碑的石碑，2026-10-07）：花箱、長椅、盆栽小樹，Kenney RPG Urban Pack 的單格街景圖塊 */
+    { themes: '*', code: '-', under: 'base', pick: [URB(5, 11)] },                              // 花箱
+    { themes: '*', code: '`', under: 'base', pick: [URB(7, 9)] },                               // 長椅
+    { themes: '*', code: '{', under: 'base', pick: [URB(17, 10)] },                             // 盆栽小樹
     { themes: '*', code: 'n', under: '.', pick: [URB(8, 11)] },                                // 信箱（原本的布招／旗幟像信箱，乾脆換成 Kenney 的藍色信箱）
     { themes: '*', code: '4', under: ',', pick: [one('urban_0221.png')] },                     // 施工路障
     { themes: '*', code: '6', under: 'base', pick: [one('urban_0252.png')] },                  // 回收桶
@@ -723,14 +727,13 @@ const GFX = (() => {
         R(1, 2, 14, 2, '#c4c4cc'); R(1, 2, 14, 1, '#e4e4ec');
         R(1, 14, 3, 2, '#4a4a52'); R(12, 14, 3, 2, '#4a4a52');
         break;
-      case 'l': R(0, 0, 16, 16, '#b4aea2');       // 觀眾席：一階一排座位
-        for (let y = 0; y < 16; y += 5) {
-          R(0, y, 16, 1, '#87826f');                                  // 階的陰影
-          R(0, y + 1, 16, 1, '#c9c3b5');                              // 階的受光邊
-          R(0, y + 2, 16, 3, '#aaa497');                              // 座位面
-          for (let x = 3; x < 16; x += 5) R(x, y + 2, 1, 3, '#8f8a7c');  // 座位分隔
+      case 'l': R(0, 0, 16, 16, '#757f7f');       // 觀眾席：簡易木板看台（深木階板＋淺木座板＋灰色鐵架）
+        for (const y of [0, 8]) {
+          R(0, y, 16, 7, '#8f673f'); R(0, y + 1, 16, 3, '#c8a480'); R(0, y + 4, 16, 1, '#b98b5e'); R(0, y + 5, 16, 1, '#6f4e2e');
+          R(7, y + 1, 1, 3, '#b98b5e'); R(15, y + 1, 1, 3, '#b98b5e');   // 座位分隔（一格兩個座位）
+          R(0, y + 7, 16, 1, '#a8b6b7');
+          if ((fr & 3) === 0) R(0, y, 2, 8, '#a8b6b7');             // 每四格一根鐵架
         }
-        for (let i = 0; i < 4; i++) { const v = hash(i + (fr & 3) * 5, 13); R(v % 15, (v >>> 4) % 15, 2, 1, '#a79e90'); }
         break;
       case 'o': base();                         // 停好的腳踏車（正面看的一排車頭）
         R(0, 13, 16, 2, '#9a968c');                                   // 停車格的地面標線
