@@ -390,7 +390,15 @@ const GFX = (() => {
       for (const [x, y] of TUFT) { R(x, y, 1, 2, drk2); R(x + 1, y + 1, 1, 1, drk2); R(x - 1, y + 1, 1, 1, drk); }
     };
     /* 設施磚塊的底：室內鋪地板、室外鋪地面 */
-    const base = () => { if (INDOOR) g.drawImage(tile(theme, '_'), 0, 0); else ground(); };
+    /* 擺件底下鋪什麼（2026-10-07，使用者說路燈、告示牌、信箱、盆栽「背景突兀」）：
+       以前擺件底下一律畫一小塊草（或街道的米色），可是擺件常站在灰色石板路上，就變成路上一塊綠色方塊。
+       現在：街道＝人行道；其他室外＝依 fr 第 16 位（地圖畫的時候看四周是路還是草決定）鋪石板路或這個主題的草地。 */
+    const base = () => {
+      if (INDOOR) { g.drawImage(tile(theme, '_'), 0, 0); return; }
+      if (theme === 't_street') { g.drawImage(tile(theme, '.', 0), 0, 0); return; }
+      if (fr & 16) { g.drawImage(tile(theme, ',', 0), 0, 0); return; }
+      if (SKIN_IDX[theme + '.'] || SKIN_IDX['*.']) g.drawImage(tile(theme, '.', fr & 3), 0, 0); else ground();
+    };
     /* 條紋棚（Kenney 的棚子配色：四格寬的條紋，上下各有一圈深邊）。cols = [條紋色, 條紋深色, 深邊, 米色, 米色深, 米色邊] */
     const awning = (y0, h, C) => { for (let y = 0; y < h; y++) { const edge = y === h - 1, mid = y === h - 2;
       for (let x = 0; x < 16; x++) { const o = ((x >> 2) & 1) === 0; R(x, y0 + y, 1, 1, o ? (edge ? C[2] : mid ? C[1] : C[0]) : (edge ? C[5] : mid ? '#e0d1af' : C[3])); } } };
@@ -437,7 +445,7 @@ const GFX = (() => {
           else if (lower) p = sk.pick[round ? 3 : 1];                  // 高樹的下半（樹幹）
           else if (below) p = sk.pick[round ? 2 : 0];                  // 高樹的上半（樹冠）
           else p = sk.pick[4];                                         // 落單的一格：單格小松
-          g.drawImage(tile(theme, '.', 0), 0, 0);
+          g.drawImage(tile(theme, (fr & 128) ? ',' : '.', 0), 0, 0);       // 落單的樹站在石板路上（第 7 位）：底下鋪石板路
         } else {                                                       // 3×3 拼塊（邊緣那幾塊是半透明的，底下先鋪地面）
           if (sk.under) g.drawImage(tile(theme, sk.under, 0), 0, 0);
           const m = (fr >> sk.shift) & 15, top = m & 1, right = m & 2, bot = m & 4, left = m & 8;
@@ -466,7 +474,7 @@ const GFX = (() => {
     } else if (sk) {
       const p = sk.pick[fr % sk.pick.length];
       if (p.im.complete && p.im.naturalWidth) {
-        if (sk.under === 'base') base(); else if (sk.under === '_') g.drawImage(tile(theme, '_'), 0, 0);
+        if (sk.under === 'base' || (sk.under === '.' && !INDOOR)) base(); else if (sk.under === '_') g.drawImage(tile(theme, '_'), 0, 0);
         else if (sk.under) g.drawImage(tile(theme, sk.under, sk.under === 'w' ? 0 : fr & 3), 0, 0);   // 牆的 fr 是護牆板旗標，不是雜訊
         g.imageSmoothingEnabled = false; g.drawImage(p.im, p.sx, p.sy, 16, 16, 0, 0, 16, 16);
         if (sk.post === 'wires') {                                   // 電線桿：橫擔、礙子、兩條電線
@@ -1508,6 +1516,13 @@ const GFX = (() => {
       awn: '#8a8a92', awn2: '#62626a', sign: null, floors: 2, ground: 'home' },
     flaty:   { style: 'shopfront', w: 5, h: 5, over: 1, door: null, name: '公寓',
       awn: '#8a8a92', awn2: '#62626a', sign: null, floors: 2, ground: 'home' },
+    /* 進得去的居民樓（2026-10-07）：跟 flatx／flaty 同一種外觀，一樓多一扇門 */
+    flatd:   { style: 'shopfront', w: 5, h: 5, over: 1, door: [2, 4], name: '公寓',
+      awn: '#8a8a92', awn2: '#62626a', sign: null, floors: 2, ground: 'home' },
+    flatyd:  { style: 'shopfront', w: 5, h: 5, over: 1, door: [2, 4], name: '公寓',
+      awn: '#8a8a92', awn2: '#62626a', sign: null, floors: 2, ground: 'home' },
+    bkfast:  { style: 'shopfront', w: 5, h: 4, over: 1, door: [2, 3], name: '早餐店',
+      awn: '#e8a030', awn2: '#b87818', sign: '#f4f0e4', signInk: '#8a4a20' },
     /* 打烊的小店（進不去）：讓街景不要每棟都長一樣 */
     shopx:   { style: 'shopfront', w: 5, h: 5, over: 1, door: null, name: '小店（打烊）',
       awn: '#d85a4a', awn2: '#a03a2e', sign: '#f4f0e4', signInk: '#a03a2e', floors: 2, ground: 'closed' },
@@ -1965,6 +1980,17 @@ const GFX = (() => {
       for (const x of [1, 3]) { kPut(G, x, 2, KP.win); kPut(G, x, 4, KP.win); kPut(G, x, 5, KP.winWide); } return G; },
     flaty: C => { const G = [...kRoof('beige', C.w, 2), ...kWall('orange', C.w, [0, 1, 2, 3])];
       for (const x of [1, 2, 3]) { kPut(G, x, 2, KP.winArch); kPut(G, x, 4, KP.winGray); } kPut(G, 2, 5, KP.winWide); return G; },
+    /* 進得去的公寓：同 flatx／flaty，一樓中間是一扇門（灰色／木色），兩邊是窗 */
+    flatd: C => { const G = [...kRoof('grayb', C.w, 2), ...kWall('red', C.w, [0, 1, 2, 3])];
+      for (const x of [1, 3]) { kPut(G, x, 2, KP.win); kPut(G, x, 4, KP.win); kPut(G, x, 5, KP.win); }
+      kPut(G, C.door[0], 4, KP.winBig); kPut(G, C.door[0], 5, KP.doorGray2); return G; },
+    flatyd: C => { const G = [...kRoof('beige', C.w, 2), ...kWall('orange', C.w, [0, 1, 2, 3])];
+      for (const x of [1, 2, 3]) { kPut(G, x, 2, KP.winArch); if (x !== C.door[0]) kPut(G, x, 4, KP.winGray); }
+      kPut(G, 0, 5, KP.bush); kPut(G, C.w - 1, 5, KP.bush); kPut(G, C.door[0], 5, KP.doorWood); return G; },
+    /* 早餐店：橘色遮雨棚＋玻璃櫥窗＋木門 */
+    bkfast: C => { const G = [...kRoof('gray', C.w, 2), ...kWall('orange', C.w, [0, 2, 3])];
+      kPut(G, 1, 2, KP.win); kPut(G, 3, 2, KP.win);
+      kRun(G, 0, C.w - 1, 3, KP.awnO); kRun(G, 0, C.w - 1, 4, KP.shop); kPut(G, C.door[0], 4, KP.doorWood); return G; },
     /* 打烊的小店：橘色遮雨棚＋暗掉的櫥窗 */
     shopx: C => { const G = [...kRoof('gray', C.w, 2), ...kWall('orange', C.w, [0, 1, 2, 3])];
       kPut(G, 1, 2, KP.win); kPut(G, 3, 2, KP.win); kRun(G, 0, C.w - 1, 4, KP.awnO); kRun(G, 1, 3, 5, KP.shop); return G; },

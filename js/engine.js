@@ -153,7 +153,9 @@ const Sound = (() => {
   function applyVol() { if (!ctx) return; mus.gain.value = Settings.music * 0.035; sfxG.gain.value = Settings.sfx * 0.05; }
   function stop() { if (timer) clearInterval(timer); timer = null; current = null; pendingSong = null; }
   function toggle() { muted = !muted; Store.set('ciling_mute', muted); if (master) master.gain.value = muted ? 0 : 0.5; return muted; }
-  return { unlock, sfx, play, stop, toggle, applyVol, get muted() { return muted; }, get song() { return current; } };
+  /* 單一音符（解謎用：踩音階石板）：f 頻率、d 秒 */
+  function note(f, d = 0.28) { if (!ctx) return; tone(f, ctx.currentTime, d, 'triangle', 0.7); }
+  return { unlock, sfx, note, play, stop, toggle, applyVol, get muted() { return muted; }, get song() { return current; } };
 })();
 
 /* 原創 8-bit 曲目（五聲音階為主），每軌長度皆為 32 個八分音符 */

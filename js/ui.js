@@ -13,16 +13,36 @@ const UI = {
 function fmt(t) {
   return String(t).replace(/\{name\}/g, G ? G.player.name : '').replace(/\{money\}/g, W ? W.money : '').replace(/\{weapon\}/g, G && W && G.equip && G.equip.length && curW() ? weaponName(curW()) : '');
 }
-function paginate(text, max = 46) {
+/* 分頁：對話框只放得下兩行。用跟對話框一樣的元件實際量，一頁裝到剛好兩行就切，
+   不再用「46 個字」估（46 個字其實會折成三行，第三行就掉到畫面外了）。
+   量不到（畫面還沒顯示）就用字數估：全形字 1、英數約 0.6，一行 21 個全形字 */
+let _meas = null;
+function measurer(opt) {
+  if (!_meas || !_meas.isConnected) {
+    _meas = h('div', 'box tb'); _meas.innerHTML = '<div class="tbtext"></div>';
+    Object.assign(_meas.style, { visibility: 'hidden', pointerEvents: 'none', zIndex: -1 });
+    UI.root.appendChild(_meas);
+  }
+  _meas.style.left = opt && opt.left ? U(opt.left) : ''; _meas.style.right = opt && opt.right ? U(opt.right) : '';
+  return _meas.firstChild;
+}
+const _cw = c => /[\u0000-\u00ff]/.test(c) ? (/[A-Za-z0-9]/.test(c) ? .6 : .35) : 1;
+function _lines(s, W = 21) { let n = 1, w = 0; for (const ch of s) { if (ch === '\n') { n++; w = 0; continue; } const x = _cw(ch); if (w + x > W) { n++; w = 0; } w += x; } return n; }
+function paginate(text, opt = {}) {
   const out = [];
+  let tx = null, lh = 0;
+  try { if (UI.root) { tx = measurer(opt); lh = parseFloat(getComputedStyle(tx).lineHeight); if (!(lh > 0) || !tx.parentNode.getBoundingClientRect().width) tx = null; } } catch (e) { tx = null; }
+  const fits = s => { if (!tx) return _lines(s) <= 2; tx.textContent = s; return tx.getBoundingClientRect().height <= lh * 2 + 1; };
   for (const block of String(text).split(/\n{2,}/)) {
     let s = block;
-    while (s.length > max) {
-      let cut = -1;
-      for (let i = Math.min(max, s.length - 1); i > max * 0.45; i--) if ('。！？；…」'.includes(s[i])) { cut = i + 1; break; }
-      if (cut < 0) for (let i = max; i > max * 0.45; i--) if ('，、：'.includes(s[i])) { cut = i + 1; break; }
+    while (s && !fits(s)) {
+      let lo = 1, hi = s.length - 1;                       // 最長的、裝得下兩行的開頭
+      while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (fits(s.slice(0, mid))) lo = mid; else hi = mid - 1; }
+      let max = lo, cut = -1;
+      for (let i = max - 1; i > max * 0.45; i--) if ('。！？；…」\n'.includes(s[i])) { cut = i + 1; break; }
+      if (cut < 0) for (let i = max - 1; i > max * 0.45; i--) if ('，、：'.includes(s[i])) { cut = i + 1; break; }
       if (cut < 0) cut = max;
-      out.push(s.slice(0, cut)); s = s.slice(cut).replace(/^\n/, '');
+      out.push(s.slice(0, cut).replace(/\n$/, '')); s = s.slice(cut).replace(/^\n/, '');
     }
     if (s) out.push(s);
   }
@@ -48,7 +68,7 @@ function portraitFor(name) {
 /* 對話：opt.name 說話者；opt.dark 戰鬥框；opt.auto 毫秒後自動關閉；opt.hold 打完字就返回並保留對話框 */
 UI.say = function (text, opt = {}) {
   return new Promise(res => {
-    const pages = paginate(fmt(text));
+    const pages = paginate(fmt(text), opt);
     const box = UI.el('box tb' + (opt.dark ? ' dark' : ''));
     if (opt.right) box.style.right = U(opt.right);
     if (opt.left) box.style.left = U(opt.left);
@@ -97,6 +117,8 @@ UI.choose = function (options, opt = {}) {
       d.addEventListener('pointerdown', e => { e.preventDefault(); sel = i; render(); confirm(); });
       box.appendChild(d); return d;
     });
+    /* 選項太長、超出畫面寬度時改成可折行 */
+    try { const rw = UI.root.getBoundingClientRect().width; if (rw && box.getBoundingClientRect().width > rw * 0.97) box.classList.add('wrapopts'); } catch (e) { }
     let sel = clamp(opt.start || 0, 0, options.length - 1);
     const render = () => { items.forEach((d, i) => d.classList.toggle('sel', i === sel)); if (opt.onMove) opt.onMove(sel); };
     const confirm = () => { const o = options[sel]; if (o.disabled) { Sound.sfx('bump'); return; } Sound.sfx('ok'); UI.pop(m); res(sel); };

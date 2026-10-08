@@ -43,7 +43,7 @@ const OW = {
     if (G && G.defeated && W.dreams) for (const D of Object.values(W.dreams)) if (D.legacyKey && G.defeated[D.legacyKey] && !G.flags[D.enteredFlag]) { G.flags[D.enteredFlag] = G.flags[D.openFlag] = G.flags[D.doneFlag] = G.flags[D.seenFlag] = true; }   // 舊存檔：夢中小鎮出現之前就打過了
     Object.assign(this.p, { x, y, dir: dir || this.p.dir, moving: false, t: 0 });
     settleGyms();
-    this.npcs = this.spawnList();
+    this.npcs = this.spawnList(); this.plateNag = 0;
     this.resetEncounter();
     if (id === 'inkpool') this.spawnSpirit();
     else this.spawnRoamer();
@@ -102,11 +102,22 @@ const OW = {
     const R0 = W.roles.stoneSpirit; if (!R0) return;
     this.npcs.push({ key: 'inkpool:stoneSpirit', role: R0, x: 8, y: 6, dir: 'down', home: 'down', sight: 0, ox: 0, oy: 0, fr: 0, look: R0.look });
   },
+  /* 擺件底下鋪石板路還是草地：四周的石板路（, ;）比草地（. g F）多就鋪路（回傳 16，給 GFX 的擺件底圖用） */
+  pathBit(x, y) {
+    let path = 0, grass = 0;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const t = this.tile(x + dx, y + dy); if (t === ',' || t === ';') path++; else if (t === '.' || t === 'g' || t === 'F') grass++; }
+    return path > grass ? 16 : 0;
+  },
+  /* 落單的樹（四周至少三格是石板路）：算「站在路上」，底下鋪石板路、路的邊緣也不要圍著它收邊 */
+  lonelyTree(x, y) { let n = 0; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const t = this.tile(x + dx, y + dy); if (t === ',' || t === ';') n++; } return this.tile(x, y) === 'T' && n >= 3; },
   /* 上／右／下／左 四個位元：哪幾邊不是同一種磚。水面的岸線與球場的邊線都靠它畫 */
   edgeMask(x, y, c) {
     /* 地圖外面當成同一種磚：路、水走到地圖邊緣是「繼續延伸出去」，不是在邊上收邊 */
     const r = this.L.rows, out = (a, b) => b < 0 || b >= r.length || a < 0 || a >= r[0].length;
-    const diff = (a, b) => !out(a, b) && this.tile(a, b) !== c;
+    /* 石板路旁邊如果是「站在路上的擺件」（路燈、告示牌、信箱、盆栽……），路的邊緣不要收邊：
+       以前路磚把擺件當成「不是路」，圍著它畫一圈圓角和草地，擺件就像貼在路上的一塊綠色方塊（2026-10-07 使用者回報） */
+    const onPath = (a, b) => (c === ',' || c === ';') && (('LS-`{6pn:!4F=f'.includes(this.tile(a, b)) && this.pathBit(a, b) === 16) || this.lonelyTree(a, b));
+    const diff = (a, b) => !out(a, b) && this.tile(a, b) !== c && !onPath(a, b);
     return (diff(x, y - 1) ? 1 : 0) | (diff(x + 1, y) ? 2 : 0) | (diff(x, y + 1) ? 4 : 0) | (diff(x - 1, y) ? 8 : 0);
   },
   tile(x, y) { const r = this.L.rows; if (y < 0 || y >= r.length || x < 0 || x >= r[0].length) return this.L.indoor ? 'X' : 'T'; const o = G && G.opened && G.opened[this.id + ':' + x + ',' + y]; return o || r[y][x]; },
@@ -158,6 +169,7 @@ const OW = {
     }
     const gt = this.L.guideTiles;                                       // 小墨出現的點：目標換了新的才會跳出來
     if (gt && gt.includes(p.x + ',' + p.y) && typeof Guide !== 'undefined' && Guide.shouldTell()) { p.cont = false; this.run(() => moGuide()); return true; }
+    const ex = exploreStep(); if (ex) { p.cont = false; this.run(ex); return true; }      // 閃光點、音階石板
     const w = (this.L.warps || []).find(w => w.x === p.x && w.y === p.y);
     if (w) { this.run(() => w.to === '@ret' ? warpTo(G.ret.map, G.ret.x, G.ret.y, 'down') : warpTo(w.to, w.tx, w.ty, w.dir)); return true; }
     if (!G.teacher) for (const n of this.npcs) if (n.sight && !G.defeated[n.key] && this.sees(n)) { p.cont = false; this.run(() => spotted(n)); return true; }   // 教師版：路上的人不會攔人（只跑劇情）
@@ -175,6 +187,7 @@ const OW = {
     const p = this.p, [dx, dy] = DIRS[p.dir], tx = p.x + dx, ty = p.y + dy, key = tx + ',' + ty;
     const n = this.npcAt(tx, ty) || (this.tile(tx, ty) === 't' && this.npcAt(tx + dx, ty + dy)); if (n) { this.run(() => talkTo(n)); return; }
     const c = this.chestAt(tx, ty); if (c) { this.run(() => openChest(c)); return; }
+    const sp = this.L.sparks && this.L.sparks[key]; if (sp && !G.flags['sp:' + sp.id]) { this.run(() => collectSpark(sp)); return; }
     if (this.L.signs && this.L.signs[key]) { this.run(() => say(W.signs[this.L.signs[key]])); return; }
     const dw = this.L.doorWarps && this.L.doorWarps[key];
     if (dw) { this.run(() => enterDoor(dw)); return; }
@@ -239,9 +252,10 @@ const OW = {
                 : c === 'K' ? this.edgeMask(tx, ty, 'K')
                 : c === 'r' ? this.edgeMask(tx, ty, 'r')                  // 地毯：3×3 拼塊
                 : c === 'q' ? this.edgeMask(tx, ty, 'q')                  // 餐桌：左右接起來
-                : c === '=' ? this.edgeMask(tx, ty, '=')                  // 柵欄：左右接起來
+                : c === '=' ? (this.edgeMask(tx, ty, '=') | this.pathBit(tx, ty))                  // 柵欄：左右接起來（＋底下是不是石板路）
                 : c === '*' ? ((SOLID.has(this.tile(tx, ty + 1)) ? 0 : 1) | (SOLID.has(this.tile(tx + 1, ty)) ? 0 : 2) | (SOLID.has(this.tile(tx - 1, ty)) ? 0 : 4) | (((tx * 5 + ty * 11) & 3) << 3))   // 海報：牆的收邊＋圖案
                 : c === '$' ? (this.tile(tx, ty - 1) === '?' ? 1 : 0)                                                  // 椅子：課桌後面才畫背面（餐桌旁維持正面）
+                : 'LS-`{6pn:!F'.includes(c) ? (((tx * 5 + ty * 11) & 3) | this.pathBit(tx, ty))      // 路邊擺件：底下是石板路還是草地，看四周
                 : c === '&' ? (this.edgeMask(tx, ty, '&') | (((tx * 5 + ty * 11) & 3) << 4))   // 墨塵：邊緣遮罩＋雜訊
                 : c === '#' && theme === 't_street' ? this.edgeMask(tx, ty, '#')   // 街邊大樓屋頂：3×3 拼塊
                 /* 樹：鄰格遮罩＋「在這一串直的樹裡是上半還是下半」——素材的樹是兩格高（上半樹冠＋下半樹幹） */
@@ -296,6 +310,7 @@ const OW = {
       if (!solved) { const rg = g.createRadialGradient(px + 8, py + 6, 1, px + 8, py + 6, 11); rg.addColorStop(0, `rgba(160,215,255,${.38 + .18 * Math.sin(now / 300)})`); rg.addColorStop(1, 'rgba(160,215,255,0)'); g.fillStyle = rg; g.fillRect(px - 4, py - 6, 24, 24); }
       g.drawImage(GFX.devProp(solved), px, py);
     }
+    drawPlates(g, L, cx, cy, now);
     for (const c of L.chests || []) g.drawImage(GFX.chest(!!G.chests[c.id]), c.x * 16 - cx - 2, c.y * 16 - cy - 16);
     const actors = this.npcs.map(n => ({ y: n.y * 16 + n.oy, draw: () => {
       if (n.look.sprite) { const sp = GFX.anim(n.look.sprite, n.look.size || 'map', now) || GFX.special(n.look.sprite), sw = sp.width, sh = sp.height; const bob = Math.round(Math.sin(now / 300) * 1.5);
@@ -314,10 +329,9 @@ const OW = {
       const im = GFX.campus(kind), oh = C.over * 16;
       g.drawImage(im, 0, 0, im.width, oh, bx * 16 - cx, (by - C.over) * 16 - cy, im.width, oh);
     }
-    // 任務提示：該對話的對象頭上閃爍
-    const marks = questMarks();
-    for (const n of this.npcs) { const m = marks[n.role === W.roles.questGiver ? 'questGiver' : n.key.split(':')[1]]; if (m) drawMark(g, n.x * 16 + n.ox - cx + 3, n.y * 16 + n.oy - cy - (n.look.sprite === 'boss' ? 28 : 15), m, now); }
+    /* 人物頭上不再有常駐的「！」「？」（2026-10-07 使用者要求）：提示只在「跟某個人說完話之後」跳出一次（見 popEmote），之後靠選單「任務」與路上的人指路。 */
     for (const [k, d] of Object.entries(this.L.devices || {})) if (!G.flags[d.flag]) { const [dx2, dy2] = k.split(',').map(Number); drawDevMark(g, dx2 * 16 - cx, dy2 * 16 - cy, now); }
+    drawSparks(g, L, cx, cy, now, p);
     for (const f of this.fx || []) f(g, cx, cy);
     /* 夢中小鎮：整張圖蒙一層淡淡的顏色、飄著字（讓玩家一眼知道這裡不是現實）。顏色與字由 W.dreams[id] 決定 */
     if (L.dream && W.dreams && W.dreams[L.dream]) {
@@ -335,8 +349,11 @@ const OW = {
     const dk = Math.max(this.dark, L.night && !G.flags.prologue ? L.night : 0);
     if (dk > 0) { g.fillStyle = `rgba(8,6,14,${dk})`; g.fillRect(0, 0, 240, 160); }
     if (this.flash > 0) { g.fillStyle = `rgba(255,250,235,${this.flash})`; g.fillRect(0, 0, 240, 160); }
-    if (this.bubble) { const n = this.bubble; const bx = n.x * 16 + n.ox - cx + 3, by = n.y * 16 + n.oy - cy - 16;
-      g.fillStyle = '#2a2018'; g.fillRect(bx - 1, by - 1, 12, 13); g.fillStyle = '#fbf3dc'; g.fillRect(bx, by, 10, 11); g.fillStyle = '#b8322a'; g.fillRect(bx + 4, by + 2, 2, 5); g.fillRect(bx + 4, by + 8, 2, 2); }
+    if (this.bubble) {                                   // 頭上跳出的提示（被發現、說明的人說話）：奶油白對話泡泡＋紅色「！」（2026-10-07 使用者選的款式）
+      const n = this.bubble, bx = n.x * 16 + n.ox - cx + 2, by = n.y * 16 + n.oy - cy - (n.look.sprite === 'boss' ? 30 : 17) + Math.round(Math.sin(now / 160) * 1);
+      const BUB = ['.oooooooooo.', 'owwwwwwwwwwo', 'owwwwrrwwwwo', 'owwwwrrwwwwo', 'owwwwrrwwwwo', 'owwwwrrwwwwo', 'owwwwwwwwwwo', 'owwwwrrwwwwo', 'owwwwwwwwwwo', '.oooooooooo.', '....oowo....', '.....oo.....'], PAL = { o: '#8a7a68', w: '#fbf3dc', r: '#c8443c' };
+      BUB.forEach((row, yy) => [...row].forEach((ch, xx) => { if (PAL[ch]) { g.fillStyle = PAL[ch]; g.fillRect(bx + xx, by + yy, 1, 1); } }));
+    }
   },
 };
 /* ============================================================
@@ -623,7 +640,7 @@ async function dreamProgress(id) {
   const n = dreamDoneCount(id);
   if (G.flags[D.openFlag]) return;
   if (n >= D.need) { G.flags[D.openFlag] = true; Sound.sfx('badge'); autosave(); await sayEach(D.openText); }
-  else { await say(`（夢鬆動了一點……還差 ${D.need - n} 件。）`); }
+  else if (!D.explore) await say(`（夢鬆動了一點……還差 ${D.need - n} 件。）`);
 }
 /* 真正的小老師倒下之後：夢開始淡去，回到教室 */
 async function dreamFinish(id) {
@@ -639,6 +656,128 @@ function storyStage() { return G.badges.length; }
 const roleKey = r => { for (const [k, L] of Object.entries(LAYOUTS)) { const sp = (L.npcs || []).find(s => s.role === r); if (sp) return sp.key || (k + ':' + r); } return r; };
 const isDone = r => !!G.defeated[roleKey(r)];
 const roleReady = r => { const R = W.roles[r]; return !R.needDefeated || R.needDefeated.every(k => G.defeated[k]); };
+/* ============================================================
+   夢中小鎮的探索式解謎與線索（2026-10-07）
+   ------------------------------------------------------------
+   舊的做法是「跟小鎮裡每個人說話、接委託，直到順序對」。使用者試玩後改成：
+   · 一進夢就丟給玩家自己探索，只有「路牌匠」這類的人會告訴你「要怎麼樣道館的門才開」（說話時頭上跳一個提示，再說明）。
+   · 閃光點（L.sparks）：藏在草叢、路邊、房子裡（共約 10 個）。**面對它按確認才會撿**（像對話，踩上去不會有反應）。
+     撿到的可能是「聲調碎片」（frag），也可能只是紙屑、空墨水瓶這種沒用的東西。
+   · 石板（L.plates）：站上去（踩上去）就會把對應的碎片放上去，有就發亮；沒有碎片就說還缺哪一片。
+     不用照順序、不用一次湊齊。「萬能碎片」（打夢裡的人有機率掉落）哪一聲都能用。四塊都亮了，道館的門就開。
+   · 手札（選單）：聽到的話、撿到的東西都記下來，並列出每一塊石板現在的狀態。
+   ============================================================ */
+function allSparks() { const out = []; for (const L of Object.values(LAYOUTS)) for (const sp of Object.values(L.sparks || {})) out.push(sp); return out; }
+function addNote(n) { G.notes = G.notes || []; if (G.notes.some(x => x.id === n.id)) return; G.notes.push(Object.assign({ at: G.notes.length }, n)); }
+/* 這座夢的石板（只會有一組） */
+function platesOf(dreamId) { for (const L of Object.values(LAYOUTS)) if (L.dream === dreamId && L.plates) return L.plates; return null; }
+const platesLit = P => P.items.filter(it => G.flags['pl:' + it.key]).length;
+const haveFrag = it => !!G.flags['spf:' + it.key];
+function exploreProgress(dreamId) { const P = platesOf(dreamId); return P ? platesLit(P) : 0; }
+/* 這個人現在說到第幾段（stages 的第幾個條件已經達成） */
+function stageIdx(R) {
+  if (!R.stages || !R.sd || !W.dreams || !W.dreams[R.sd]) return 0;
+  const D = W.dreams[R.sd], cnt = dreamDoneCount(R.sd); let idx = 0;
+  R.stages.forEach((st, i) => { if (st.done ? !!G.flags[D.doneFlag] : cnt >= (st.min || 0)) idx = i + 1; });
+  return idx;
+}
+/* 站在這一格會觸發的事（目前只有石板）：回傳要執行的函式，沒有就回傳 null */
+function exploreStep() {
+  const L = OW.L, p = OW.p;
+  if (L.plates) { const it = L.plates.items.find(q => q.x === p.x && q.y === p.y); if (it) return () => stepPlate(L.plates, it); }
+  return null;
+}
+/* 面對閃光點按確認：像跟人說話一樣才會撿，踩上去不會有反應 */
+async function collectSpark(sp) {
+  const P = platesOf(OW.L.dream);
+  if (G.teacher && sp.frag && P) for (const it of P.items) G.flags['spf:' + it.key] = true;        // 教師版：撿到任何一片碎片，四片都算有
+  G.flags['sp:' + sp.id] = true;
+  if (sp.frag) {
+    const it = P && P.items.find(q => q.key === sp.frag);
+    Sound.sfx('catch'); G.flags['spf:' + sp.frag] = true;
+    addNote({ id: 'sp:' + sp.id, kind: 'clue', dream: OW.L.dream, who: sp.title, place: W.mapNames[OW.id], text: [].concat(sp.text).join('\n') });
+    await say(`（你撿起了「${sp.title}」！）`); await sayEach(sp.text);
+    if (it && !G.flags['pl:' + it.key]) await say(`（拿去小鎮裡的石板上試試看——${it.name}的那一塊。）`);
+  } else {
+    Sound.sfx('bump');
+    await say(`（你翻了翻……只是${sp.title}。）`); if (sp.text) await sayEach(sp.text);
+  }
+  autosave();
+}
+/* 踩上石板：有對應的碎片（或萬能碎片）就放上去、發亮；全亮了，道館的門就開 */
+async function stepPlate(P, it) {
+  const D = W.dreams[OW.L.dream], key = 'pl:' + it.key;
+  if (G.flags[key]) return;
+  if (G.flags[P.flag]) return;
+  let how = null;
+  if (G.teacher) { for (const q of P.items) G.flags['pl:' + q.key] = true; how = 'all'; }
+  else if (haveFrag(it)) how = 'own';
+  else if ((G.flags[P.anyFlag] || 0) > 0) how = 'any';
+  if (!how) {
+    if (!OW.plateNag || performance.now() - OW.plateNag > 4000) { OW.plateNag = performance.now(); Sound.sfx('bump'); await sayEach(P.missing(it)); }
+    return;
+  }
+  if (how === 'any') G.flags[P.anyFlag] = (G.flags[P.anyFlag] || 0) - 1;
+  if (how !== 'all') G.flags[key] = true;
+  Sound.note(it.note || 440, .4);
+  const n = platesLit(P);
+  addNote({ id: 'pl:' + it.key, kind: 'clue', dream: OW.L.dream, who: `${it.name}的石板`, place: W.mapNames[OW.id], text: it.demo });
+  if (how === 'any') await say(`（用了一片萬能碎片。「${it.name}」的石板亮了起來。）`);
+  else if (how === 'own') await say(`（碎片放上石板，「${it.name}」亮了起來。）`);
+  await say(it.demo);
+  if (n < P.items.length) { await say(`（石板 ${n} / ${P.items.length}${G.flags[P.anyFlag] ? `　萬能碎片還有 ${G.flags[P.anyFlag]} 片` : ''}）`); autosave(); return; }
+  G.flags[P.flag] = true; await sleep(250); Sound.sfx('badge'); await sayEach(P.done);
+  await dreamProgress(OW.L.dream); autosave();
+}
+const TONE_PTS = { 'ˉ': [[4, 7, 11, 7]], 'ˊ': [[4, 10, 11, 4]], 'ˇ': [[4, 5, 7, 10], [7, 10, 11, 5]], 'ˋ': [[4, 4, 11, 10]] };
+function pixLine(g, x0, y0, x1, y1) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+  for (let k = 0; k <= n; k++) { const x = Math.round(x0 + (x1 - x0) * k / n), y = Math.round(y0 + (y1 - y0) * k / n); g.fillRect(x, y, 2, 2); }
+}
+function drawPlates(g, L, cx, cy, now) {
+  const P = L.plates; if (!P) return;
+  P.items.forEach(it => {
+    const px = it.x * 16 - cx, py = it.y * 16 - cy; if (px < -16 || px > 240 || py < -16 || py > 160) return;
+    const lit = !!G.flags['pl:' + it.key], ready = !lit && (haveFrag(it) || (G.flags[P.anyFlag] || 0) > 0);
+    const C = lit ? ['#e8d890', '#fff4b8', '#b89c3c', '#6a4a10'] : ['#a8b6b7', '#c9d4d5', '#757f7f', '#3a4a5a'];
+    g.fillStyle = C[0]; g.fillRect(px + 1, py + 1, 14, 14);
+    g.fillStyle = C[1]; g.fillRect(px + 1, py + 1, 14, 1); g.fillRect(px + 1, py + 1, 1, 14);
+    g.fillStyle = C[2]; g.fillRect(px + 1, py + 14, 14, 1); g.fillRect(px + 14, py + 1, 1, 14);
+    g.fillStyle = C[3]; for (const [a, b, c, d] of (TONE_PTS[it.mark] || [])) pixLine(g, px + a, py + b, px + c, py + d);
+    if (lit) { g.fillStyle = `rgba(255,240,160,${.22 + .12 * Math.sin(now / 220)})`; g.fillRect(px - 1, py - 1, 18, 18); }
+    else if (ready) { g.fillStyle = `rgba(180,230,255,${.20 + .14 * Math.sin(now / 180)})`; g.fillRect(px - 1, py - 1, 18, 18); }      // 身上有對應的碎片：石板微微發藍光，提示可以踩上去
+  });
+}
+/* 閃光點：離玩家四格以內才看得到（遠處看不出來，要走近才發現），已撿起的不再畫 */
+function drawSparks(g, L, cx, cy, now, p) {
+  if (!L.sparks) return;
+  for (const [k, sp] of Object.entries(L.sparks)) {
+    if (G.flags['sp:' + sp.id]) continue;
+    const [x, y] = k.split(',').map(Number);
+    if (Math.abs(x - p.x) + Math.abs(y - p.y) > 4 && !G.teacher) continue;
+    const f = Math.floor(now / 140 + x * 3 + y) % 6, s = [0, 1, 2, 3, 2, 1][f], px = x * 16 - cx + 8, py = y * 16 - cy + 8 + Math.round(Math.sin(now / 320 + x) * 1);
+    g.fillStyle = 'rgba(255,236,150,.30)'; g.fillRect(px - 3, py - 3, 7, 7);
+    g.fillStyle = '#7a5a10'; for (let i = -s - 1; i <= s + 1; i++) { g.fillRect(px + i, py - 1, 1, 3); g.fillRect(px - 1, py + i, 3, 1); }
+    g.fillStyle = '#ffe680'; for (let i = -s; i <= s; i++) { g.fillRect(px + i, py, 1, 1); g.fillRect(px, py + i, 1, 1); }
+    g.fillStyle = '#fff'; g.fillRect(px, py, 1, 1);
+  }
+}
+/* 說明的人（kind 'explainer'）：第一次說話，頭上先跳一個提示，再說「來到這座夢該怎麼做」；之後說現在的進度 */
+async function popEmote(n, ms = 650) { Sound.sfx('alert'); OW.bubble = n; await sleep(ms); OW.bubble = null; }
+async function explainerTalk(n) {
+  const R = n.role, D = W.dreams[R.sd], k = 'ex:' + n.key;
+  if (!G.flags[k]) { G.flags[k] = true; await popEmote(n); await sayEach(R.intro, R.name); addNote({ id: 'ex:' + n.key, kind: 'clue', dream: R.sd, who: R.name, place: W.mapNames[OW.id], text: [].concat(R.intro).join('\n') }); n.dir = n.home; return; }
+  if (G.flags[D.openFlag]) { await sayEach(R.opened, R.name); n.dir = n.home; return; }
+  await sayEach(D.explore.status(), R.name); n.dir = n.home;
+}
+/* 夢中的人打倒之後，有機率掉「萬能碎片」（哪一聲都能用） */
+async function dreamDrop(R) {
+  const D = R.sd && W.dreams && W.dreams[R.sd]; if (!D || !D.drop || !OW.L.dream) return;
+  const P = platesOf(R.sd); if (!P || G.flags[P.flag]) return;
+  if (Math.random() >= (G.teacher ? 1 : D.drop.chance)) return;
+  G.flags[P.anyFlag] = (G.flags[P.anyFlag] || 0) + 1; Sound.sfx('catch');
+  await say(D.drop.text); await say(`（萬能碎片 ×${G.flags[P.anyFlag]}。踩到石板就能用。）`);
+}
 function questMarks() {
   const m = {};
   if (W.story) {
@@ -692,7 +831,7 @@ const wenqiDots = () => `<span class="wq">${Array.from({ length: ULT_COST }, (_,
 function treeFr(ow, x, y) {
   const L = ow.L, isT = (a, b) => b >= 0 && b < L.rows.length && a >= 0 && a < L.rows[0].length && ow.tile(a, b) === 'T';
   let k = 0; while (isT(x, y - k - 1)) k++;
-  return ow.edgeMask(x, y, 'T') | ((k & 1) << 4) | ((isT(x, y + 1) ? 1 : 0) << 5) | (0 << 6);   // 第 6 位（圓樹）不用了：圍起來的樹統一用松樹
+  return ow.edgeMask(x, y, 'T') | ((k & 1) << 4) | ((isT(x, y + 1) ? 1 : 0) << 5) | (0 << 6) | (ow.lonelyTree(x, y) ? 128 : 0);   // 第 7 位：落單的樹站在石板路上   // 第 6 位（圓樹）不用了：圍起來的樹統一用松樹
 }
 /* 出口箭頭的方向：在地圖邊緣就朝外；不在邊緣的（開著的校門、樓梯）朝「擋住的那一邊」 */
 function exitDir(L, w) {
@@ -838,6 +977,7 @@ async function afterDevice(d) {
 }
 /* 夢中居民依進度換台詞：role.stages 裡 { min: 夢裡已做完幾件委託 } 或 { done: true（夢結束後） }，取最後一個符合的，欄位蓋過原本的 */
 function dreamDoneCount(id) {
+  const D0 = W.dreams && W.dreams[id]; if (D0 && D0.explore) return exploreProgress(id);                 // 探索式的夢：亮了幾塊石板
   return Object.keys(G.flags).filter(k => /^sq:/.test(k) && !k.endsWith(':got') && (W.roles[k.split(':').pop()] || {}).dream === id).length;
 }
 function stagedRole(R) {
@@ -852,8 +992,9 @@ const sayEach = async (t, name) => { for (const x of [].concat(t)) await say(x, 
    聊完原本的話之後，補一句現在該做什麼、往哪走；目標不直接顯示在遊戲畫面上，要問人或看選單「任務」才知道。 */
 const GUIDE_ROLE = /^(c1aTip|inkTip|tipInk|tip[A-Z]\w*|townTip\d+|gymTip\d+)$/;
 const isGuideNpc = R => R.kind === 'guide' || R.guide === true || GUIDE_ROLE.test(Object.keys(W.roles).find(k => W.roles[k] === R) || '');
-async function guideHint(R) {
+async function guideHint(R, n) {
   const o = typeof Guide !== 'undefined' && Guide.objective(); if (!o) return;
+  if (n) await popEmote(n);                                            // 說完原本的話之後，頭上跳一個提示，再說現在該做什麼（不再有常駐的記號）
   if (R.kind === 'guide') await say(`「對了，現在該做的是——\n${o.text}」`, R.name);
   else await say(`（你想起現在該做的事：\n${o.text}）`);
 }
@@ -881,7 +1022,14 @@ async function moGuide() {
 }
 async function talkTo(n) {
   const base = n.role; n.role = stagedRole(base);
-  try { await talkToInner(n); if (isGuideNpc(base)) await guideHint(base); } finally { n.role = base; }
+  try {
+    await talkToInner(n); if (isGuideNpc(base)) await guideHint(base, n);
+    /* 夢中小鎮的居民說的話，記進手札（附人名與地點；有新的一段話就多記一條） */
+    if (OW.L && OW.L.dream && base.sd && (!base.kind || base.kind === 'healer')) {
+      const R = n.role, idx = stageIdx(base), txt = base.kind === 'healer' ? [R.text].concat(R.extra || []).join('\n') : [].concat(R.lines || []).join('\n');
+      if (txt) addNote({ id: 'clue:' + n.key + ':' + idx, kind: 'clue', dream: OW.L.dream, who: R.name, place: W.mapNames[OW.id], text: txt });
+    }
+  } finally { n.role = base; }
 }
 async function talkToInner(n) {
   const R = n.role; n.dir = OPP[OW.p.dir];
@@ -892,7 +1040,10 @@ async function talkToInner(n) {
     case 'guardian': return n.retry ? guardianRetry(n) : n.role.gq ? guardianSpirit(n) : guardianTalk(n);
     case 'trainer': case 'rival': case 'gym': return trainerTalk(n);
     case 'quest': return questTalk(n);
+    case 'explainer': return explainerTalk(n);
     case 'rematch': return rematchTalk(n);
+    /* 閒聊：不給東西、不打架，每次說話換一段（輪流），讓街坊有點人味 */
+    case 'chat': { const k = 'chat:' + n.key, i = +G.flags[k] || 0, L = R.chats[i % R.chats.length]; G.flags[k] = i + 1; for (const t of [].concat(L)) await say(t, R.name); n.dir = n.home; return; }
     case 'spirit': return spiritTalk(n);
     case 'bus': return busTalk(n);
     case 'quest2': return sideQuestTalk(n);
@@ -967,6 +1118,7 @@ async function sideQuestTalk(n) {
   if (!done) { await sayEach(G.flags[key + ':got'] ? R.progress : R.offer, R.name); G.flags[key + ':got'] = true; autosave(); return; }
   G.flags[key] = true; Sound.sfx('badge');
   await sayEach(R.done, R.name);
+  if (R.dream) addNote({ id: 'done:' + n.key, kind: 'clue', dream: R.dream, who: R.name, place: W.mapNames[OW.id], text: [].concat(R.done).join('\n') });
   const P = R.prize || {};
   if (P.money) G.money += P.money;
   if (P.items) for (const id in P.items) G.bag[id] += P.items[id];
@@ -1196,7 +1348,7 @@ async function rematchTalk(n) {
   for (const t of R.lines) await say(fmt(t), t.startsWith('（') ? undefined : R.name);
   const k = await UI.ask(R.ask, ['好，來吧！', '下次吧'], { name: R.name });
   if (k !== 0) { await say(R.no, R.name); return; }
-  const role = Object.assign({}, R, { foe: Object.assign({}, R.foe, { lv: Math.max(R.foe.lv, G.lv + 2) }) });
+  const role = Object.assign({}, R, { foe: Object.assign({}, R.foe, { lv: Math.max(R.foe.lv, G.lv + (R.lvAdd == null ? 2 : R.lvAdd)) }) });
   const res = await Battle.start({ kind: 'gym', foe: makePersonFoe(role), role, cats: role.foe.cats });
   if (res !== 'win') return;
   const P = R.prize || {};
@@ -1291,6 +1443,7 @@ async function trainerTalk(n) {
   const res = await Battle.start({ kind: R.kind, foe: makePersonFoe(R), role: R, cats: R.foe.cats });
   if (res !== 'win') return;
   G.defeated[n.key] = true; settleGyms();
+  if (R.kind === 'trainer') await dreamDrop(R);
   const arrived = OW.syncNpcs();                        // 這一場打完，剛好達成條件的人現身（三位菁英倒下 → 小墨走進禮堂）
   if (arrived.some(a => a.role.name === '小墨')) await say('（三位菁英倒下了。禮堂的角落，一個小小的身影慢慢走了過來。）');
   let grant = false;

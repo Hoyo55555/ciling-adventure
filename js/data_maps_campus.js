@@ -33,7 +33,7 @@ const INK_B = inkFoes('B'), INK_C = inkFoes('C');
 CAMPUS_MAPS.s1 = {
   music: 'route', theme: 't_street', chapter: 0,
   rows: [
-    '##......,,,,......##',
+    '##======,,,,======##',
     '##......,,,,......##',
     '##.....!,,,,p.....##',
     '##......,,,,......##',
@@ -50,11 +50,14 @@ CAMPUS_MAPS.s1 = {
     '##......,,,,......##',
     '##================##',
   ],
-  /* 左邊兩棟公寓、右上公寓（都進不去，沒有門）；右下是自己家（透天厝，木門＋地墊）。
+  /* 左上陳家公寓、左下早餐店、右上李家公寓都進得去（居民樓，可以閒聊）；右下是自己家（透天厝，木門＋地墊）。
      巷子往南是死巷（圍牆），往北整條路寬都通到大馬路口。起點這裡不放商店。 */
-  props: [['flatx', 2, 2], ['shopx', 2, 9], ['flaty', 13, 2], ['house', 13, 9]],
+  props: [['flatd', 2, 2], ['bkfast', 2, 10], ['flatyd', 13, 2], ['house', 13, 9]],
   doorWarps: {
     '15,13': { label: '我家', to: 'house1f', tx: 4, ty: 6, dir: 'up', ret: { x: 15, y: 14 } },   // 自己家（一樓客廳，媽媽在這裡）
+    '4,6':   { label: '陳家公寓', to: 'chenA1', tx: 4, ty: 6, dir: 'up', ret: { x: 4, y: 7 } },     // 兩層：奶奶與小豆，樓上是爸爸與姊姊
+    '4,13':  { label: '早餐店', to: 'bkf', tx: 4, ty: 5, dir: 'up', ret: { x: 4, y: 14 } },
+    '15,6':  { label: '李家公寓', to: 'liB1', tx: 4, ty: 6, dir: 'up', ret: { x: 15, y: 7 } },     // 三層：管理員、補習班老師、作家
   },
   warps: [8, 9, 10, 11].map(x => ({ x, y: 0, to: 'path1', tx: x, ty: 20, dir: 'up' })),
 };
@@ -101,7 +104,7 @@ CAMPUS_MAPS.s2 = {
   music: 'route', theme: 't_street', chapter: 0,
   /* 十字路口：只有補給站（左下，回血）與便利商店（左上，買東西）。草叢搬到通學路了。 */
   rows: [
-    '##......,,,,......##',
+    '##======,,,,======##',
     '##......,,,,......##',
     '##......,,,,......##',
     '##......,,,,......##',
@@ -122,12 +125,13 @@ CAMPUS_MAPS.s2 = {
     '##......,,,,......##',
     '##......,,,,......##',
     '##......,,,,......##',
-    '##......,,,,......##',
+    '##======,,,,======##',
   ],
-  props: [['cvs', 2, 3], ['shopx', 13, 2], ['clinic', 2, 16], ['flatx', 13, 16]],
+  props: [['cvs', 2, 3], ['flatyd', 13, 2], ['clinic', 2, 16], ['flatx', 13, 16]],
   doorWarps: {
     '4,6':  { plate: 'shop', label: '便利商店', to: 'store_h',  tx: 5, ty: 5, dir: 'up', ret: { x: 4, y: 7 } },    // 便利商店
     '4,19': { plate: 'cross', label: '補給站', to: 'pharmacy', tx: 4, ty: 5, dir: 'up', ret: { x: 4, y: 20 } },   // 補給站
+    '15,6': { label: '幸福大樓', to: 'xfC1', tx: 4, ty: 6, dir: 'up', ret: { x: 15, y: 7 } },               // 四層：管理員、上班族、退休國文老師、頂樓養鴿子的阿伯
   },
   warps: [8, 9, 10, 11].flatMap(x => [
     { x, y: 21, to: 'path1', tx: x,     ty: 1,  dir: 'down' },
@@ -172,7 +176,7 @@ CAMPUS_MAPS.s3 = {
     ',4,,,,,,,0000,,,,,,,4,',
     ';4;;;;;;;0000;;;;;;;4;',
     ',4,,,,,,,0000,,,,,,,4,',
-    ',4,,,,,,,0000,,,,,,,4,',
+    ',4=======0000=======4,',
   ],
   props: [['gateopen', 8, 0]],
   /* 斑馬線兩側的草叢（試玩回饋：校門前也補一些，收集碎片才不會太難） */
@@ -275,6 +279,9 @@ CAMPUS_MAPS.corridor1 = {
     '_______&&_______&&____&&________',
     '_______&&_______&&____&&________',
     '11111111111111111111111111111111',
+    '..T.....T.......TT.....T......T.',   // 欄杆外面是下方的中庭（只看得到、走不到），不要讓畫面外一片黑
+    '..T.....T.......TT.....T......T.',
+    '................................',
   ],
   foes: INK_B,
   doorWarps: {
@@ -406,10 +413,13 @@ CAMPUS_MAPS.corridor2 = {
   rows: [
     'wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww',
     'wzz*WDWwWWW*zzw22wWDWwWWW*zzw*ww',
-    '________________________________',
-    '_________&&_____&&_____&&_______',
-    '_________&&_____&&_____&&_______',
+    '_______________________________w',
+    '_________&&_____&&_____&&______w',
+    '_________&&_____&&_____&&______w',
     '11111111111111111111111111111111',
+    '..T.....T.......TT.....T......T.',   // 欄杆外面是下方的中庭（只看得到、走不到），不要讓畫面外一片黑
+    '..T.....T.......TT.....T......T.',
+    '................................',
   ],
   foes: INK_C,
   doorWarps: {
@@ -557,25 +567,32 @@ CAMPUS_MAPS.zy_town = {
     'TTT..F.T...,,..S..F..TTT',
     'TTTTTTTTTTT,,TTTTTTTTTTT',
   ],
-  props: [['flatx', 2, 2], ['block8', 8, 1], ['flaty', 17, 2]],
+  props: [['flatd', 2, 2], ['block8', 8, 1], ['flatyd', 17, 2]],
   doorWarps: {
-    '11,7': { plate: 'class', label: '注音坡道館', to: 'zy_gym', tx: 6, ty: 7, dir: 'up', ret: { x: 11, y: 8 },
-              needFlag: 'zyOpen', flagText: '（道館的大門被夢鎖著……先幫鎮上的人解決麻煩吧。）' },
+    '4,6':  { label: '包子鋪', to: 'zy_bun1', tx: 4, ty: 6, dir: 'up', ret: { x: 4, y: 7 } },
+    '19,6': { label: '坡下人家', to: 'zy_home', tx: 4, ty: 6, dir: 'up', ret: { x: 19, y: 7 } },
+    '11,7': { plate: 'class', label: '夢中的一年甲班', to: 'zy_gym', tx: 6, ty: 7, dir: 'up', ret: { x: 11, y: 8 },
+              needFlag: 'zyOpen', flagText: '（教室的大門被夢鎖著……要先把四個聲調找回來，放上小鎮裡的石板，門才會開。）' },
   },
   warps: [
     { x: 11, y: 17, to: 'zy_slope', tx: 9,  ty: 1, dir: 'down' },
     { x: 12, y: 17, to: 'zy_slope', tx: 10, ty: 1, dir: 'down' },
   ],
-  devices: {
-    '3,12':  { group: 'zysign', flag: 'zs1', cat: '字音', label: '壞掉的路牌',
-      text: '路牌上的注音掉光了，只剩下空空的方格……\n（讀出正確的唸法，注音就會回到牌子上。）',
-      ok: '注音一個一個回到了牌子上！', allText: '三面路牌都亮起來了！' },
-    '20,12': { group: 'zysign', flag: 'zs2', cat: '字音', label: '壞掉的路牌',
-      text: '第二面路牌上的聲調全都歪掉了。', ok: '聲調站回了正確的位置！', allText: '三面路牌都亮起來了！' },
-    '15,16': { group: 'zysign', flag: 'zs3', cat: '字形', label: '壞掉的路牌',
-      text: '最後一面路牌上的字寫錯了，連「己」「已」都分不清……', ok: '字全都改對了，牌子端正地立了起來！',
-      allText: '三面路牌都亮起來了——小鎮的路不會再走錯了！', onAll: 'zsAll' },
+  /* 注音坡的解謎（2026-10-07 再改）：不接委託，直接探索。四個聲調的碎片藏在坡道草叢、路邊的房子裡（也有廢紙這種沒用的閃光點）；
+     碎片拿到這四塊石板上，踩上去對得上就會亮，四塊都亮道館才開。小鎮裡只放 2 個閃光點，其餘在坡道與房子裡。 */
+  sparks: {
+    '3,13':  { id: 'zs_t1', title: '一團皺掉的紙屑', text: ['攤開來看，上面是小孩亂畫的ㄅㄆㄇ，畫得歪歪扭扭。'] },
+    '20,16': { id: 'zs_t2', frag: 'zn1', title: '一聲的碎片 ˉ', text: ['碎片上是一條平平的橫線「ˉ」。', '「一聲：平平的，像把聲音拉成一條直線。」'] },
   },
+  plates: { flag: 'zsAll', anyFlag: 'znAny',
+    items: [
+      { x: 3, y: 11, key: 'zn1', mark: 'ˉ', name: '一聲', note: 262, demo: '「ˉ」一聲：平平的，像把聲音拉成一條直線。\n例：媽（ㄇㄚ）。' },
+      { x: 6, y: 11, key: 'zn2', mark: 'ˊ', name: '二聲', note: 330, demo: '「ˊ」二聲：往上揚，像在問「咦？」。\n例：麻（ㄇㄚˊ）。' },
+      { x: 3, y: 14, key: 'zn3', mark: 'ˇ', name: '三聲', note: 392, demo: '「ˇ」三聲：先降後升，像嘆氣再慢慢站起來。\n例：馬（ㄇㄚˇ）。' },
+      { x: 6, y: 14, key: 'zn4', mark: 'ˋ', name: '四聲', note: 523, demo: '「ˋ」四聲：往下掉，乾脆俐落，像在說「對！」。\n例：罵（ㄇㄚˋ）。' },
+    ],
+    missing: it => [`（石板上刻著「${it.name} ${it.mark}」，凹槽空空的。）`, '（身上沒有這一聲的碎片，也沒有萬能碎片。到坡道的草叢、路邊的房子裡找找閃光的地方。）'],
+    done: ['（四塊石板同時亮起，發出清亮的音階。）', '（遠處的路牌，一面一面立了起來。）'] },
   signs: {},
 };
 CAMPUS_MAPS.zy_slope = {
@@ -605,10 +622,19 @@ CAMPUS_MAPS.zy_slope = {
     'TTTTTTTTTTTTTTTTTTTT',
   ],
   foes: { lv: [5, 8], scale: 3, pool: 'B', rate: .17, safe: 2 },
+  props: [['house', 13, 2]],
+  doorWarps: { '15,6': { label: '坡上小屋', to: 'zy_hut', tx: 4, ty: 5, dir: 'up', ret: { x: 15, y: 7 } } },
   warps: [
     { x: 9,  y: 0, to: 'zy_town', tx: 11, ty: 16, dir: 'up' },
     { x: 10, y: 0, to: 'zy_town', tx: 12, ty: 16, dir: 'up' },
   ],
+  /* 坡道的閃光點：草叢裡 4 個（兩個是真的碎片，兩個只是垃圾）；坡上有一間小屋可以進去 */
+  sparks: {
+    '3,4':   { id: 'zs_s1', title: '一個空的墨水瓶', text: ['瓶底還黏著一點乾掉的墨，聞起來像舊教室的味道。'] },
+    '15,13': { id: 'zs_s2', frag: 'zn3', title: '三聲的碎片 ˇ', text: ['碎片上是一個小小的「ˇ」。', '「三聲：先降後升，像嘆氣——先低下去，再慢慢站起來。」'] },
+    '5,17':  { id: 'zs_s3', title: '半截粉筆', text: ['粉筆斷成兩截，上面還有牙印。是誰在緊張的時候咬的呢？'] },
+    '4,19':  { id: 'zs_s4', frag: 'zn4', title: '四聲的碎片 ˋ', text: ['碎片上是一條往右下掉的線「ˋ」。', '「四聲：往下掉，乾脆俐落，像在說「對！」。」'] },
+  },
   chests: [
     { x: 5,  y: 7,  id: 'zyb1', items: { hint: 1 } },
     { x: 16, y: 18, id: 'zyb2', items: { heal: 1 } },
@@ -976,10 +1002,321 @@ CAMPUS_MAPS.pl_gym = {
   signs: {},
 };
 
+/* ---- 注音坡的三間房子（2026-10-07）---- */
+/* 注音坡的包子鋪 1F（鎮上左邊的房子）：老闆娘 */
+CAMPUS_MAPS.zy_bun1 = {
+  music: 'town', theme: 't_home', chapter: 1, indoor: 1, dream: 'zy',
+  rows: [
+    'wwww/w/www',
+    'wtt_____>w',
+    'w________w',
+    'w_qq__qq_w',
+    'w_$$__$$_w',
+    'wp_______w',
+    'w_rr___p_w',
+    'wwww__wwww',
+  ],
+  warps: [
+    { x: 8, y: 1, to: 'zy_bun2', tx: 7, ty: 6, dir: 'left' },
+    { x: 4, y: 7, to: '@ret' },
+    { x: 5, y: 7, to: '@ret' },
+  ],
+  sparks: {
+    '8,5': { id: 'zs_b1', title: '一袋麵粉', text: ['袋子上的字被麵粉蓋住了，只看得出「發」字的一半。'] },
+  },
+  npcs: [],
+};
+
+/* 注音坡的包子鋪 2F：老闆娘的臥室，床邊藏著二聲的碎片 */
+CAMPUS_MAPS.zy_bun2 = {
+  music: 'town', theme: 't_home', chapter: 1, indoor: 1, dream: 'zy',
+  rows: [
+    'www/wwww/w',
+    'wb_)__[__w',
+    'w________w',
+    'w_k___b__w',
+    'w________w',
+    'wp_rr____w',
+    'w_rr____<w',
+    'wwwwwwwwww',
+  ],
+  warps: [
+    { x: 8, y: 6, to: 'zy_bun1', tx: 8, ty: 2, dir: 'down' },
+  ],
+  sparks: {
+    '3,4': { id: 'zs_b2', frag: 'zn2', title: '二聲的碎片 ˊ', text: ['碎片上是一條往右上揚的線「ˊ」。', '「二聲：往上揚，像在問「咦？」。」'] },
+  },
+  npcs: [],
+};
+
+/* 坡下人家（鎮上右邊的房子）：小愛 */
+CAMPUS_MAPS.zy_home = {
+  music: 'town', theme: 't_home', chapter: 1, indoor: 1, dream: 'zy',
+  rows: [
+    'wwww/w/www',
+    'wkk______w',
+    'w________w',
+    'w_qq_____w',
+    'w_$$__pk_w',
+    'w________w',
+    'wp__rr___w',
+    'wwww__wwww',
+  ],
+  warps: [
+    { x: 4, y: 7, to: '@ret' },
+    { x: 5, y: 7, to: '@ret' },
+  ],
+  sparks: {
+    '7,5': { id: 'zs_h1', title: '一本舊作業簿', text: ['翻開來，每一頁的字都寫得很用力，擦了又寫、寫了又擦，紙都磨薄了。'] },
+  },
+  npcs: [],
+};
+
+/* 坡上小屋：沒人住的小屋，角落裡只有一些舊東西 */
+CAMPUS_MAPS.zy_hut = {
+  music: 'town', theme: 't_home', chapter: 1, indoor: 1, dream: 'zy',
+  rows: [
+    'wwww/w/www',
+    'wk______kw',
+    'w________w',
+    'w__rr____w',
+    'wp_rr___pw',
+    'w________w',
+    'wwww__wwww',
+  ],
+  warps: [
+    { x: 4, y: 6, to: '@ret' },
+    { x: 5, y: 6, to: '@ret' },
+  ],
+  sparks: {
+    '2,5': { id: 'zs_u1', title: '一隻舊鞋墊', text: ['……為什麼會有鞋墊在這裡？不管了。'] },
+  },
+  npcs: [],
+};
+
+/* ============ 居民樓（2026-10-07）：巷口與大馬路口的公寓、早餐店，進得去、有人可以閒聊 ============ */
+/* 陳家公寓 1F（巷口左上，兩層）：奶奶與小豆 */
+CAMPUS_MAPS.chenA1 = {
+  music: 'town', theme: 't_home', chapter: 0, indoor: 1,
+  rows: [
+    'wwww/w/www',
+    'wkk_____>w',
+    'w________w',
+    'w_qq_____w',
+    'w_$$__pk_w',
+    'w________w',
+    'wp__rr___w',
+    'wwww__wwww',
+  ],
+  warps: [
+    { x: 8, y: 1, to: 'chenA2', tx: 7, ty: 6, dir: 'left' },
+    { x: 4, y: 7, to: '@ret' },
+    { x: 5, y: 7, to: '@ret' },
+  ],
+  npcs: [],
+};
+
+/* 陳家公寓 2F：剛下夜班的爸爸、準備會考的姊姊 */
+CAMPUS_MAPS.chenA2 = {
+  music: 'town', theme: 't_home', chapter: 0, indoor: 1,
+  rows: [
+    'www/wwww/w',
+    'wb_)__[__w',
+    'w________w',
+    'w_k___b__w',
+    'w________w',
+    'wp_rr____w',
+    'w_rr____<w',
+    'wwwwwwwwww',
+  ],
+  warps: [
+    { x: 8, y: 6, to: 'chenA1', tx: 8, ty: 2, dir: 'down' },
+  ],
+  npcs: [],
+};
+
+/* 李家公寓 1F（巷口右上，三層）：管理員與送報的大哥 */
+CAMPUS_MAPS.liB1 = {
+  music: 'town', theme: 't_home', chapter: 0, indoor: 1,
+  rows: [
+    'wwww/w/www',
+    'wtt_____>w',
+    'w________w',
+    'w_kk_____w',
+    'w________w',
+    'w_rr___p_w',
+    'wprr_____w',
+    'wwww__wwww',
+  ],
+  warps: [
+    { x: 8, y: 1, to: 'liB2', tx: 7, ty: 6, dir: 'left' },
+    { x: 4, y: 7, to: '@ret' },
+    { x: 5, y: 7, to: '@ret' },
+  ],
+  npcs: [],
+};
+
+/* 李家公寓 2F：補習班李老師與助教姊姊 */
+CAMPUS_MAPS.liB2 = {
+  music: 'town', theme: 't_home', chapter: 0, indoor: 1,
+  rows: [
+    'www/wwww/w',
+    'wkk[____>w',
+    'w________w',
+    'w_qq_____w',
+    'w_$$_____w',
+    'wp_rr____w',
+    'w__rr___<w',
+    'wwwwwwwwww',
+  ],
+  warps: [
+    { x: 8, y: 1, to: 'liB3', tx: 7, ty: 6, dir: 'left' },
+    { x: 8, y: 6, to: 'liB1', tx: 8, ty: 2, dir: 'down' },
+  ],
+  npcs: [],
+};
+
+/* 李家公寓 3F：關在房間裡的作家與來催稿的編輯 */
+CAMPUS_MAPS.liB3 = {
+  music: 'town', theme: 't_home', chapter: 0, indoor: 1,
+  rows: [
+    'www/wwww/w',
+    'w[[_kkb__w',
+    'w________w',
+    'w_______kw',
+    'w_rr_____w',
+    'wprr_____w',
+    'w_______<w',
+    'wwwwwwwwww',
+  ],
+  warps: [
+    { x: 8, y: 6, to: 'liB2', tx: 8, ty: 2, dir: 'down' },
+  ],
+  npcs: [],
+};
+
+/* 幸福大樓 1F（大馬路口右上，四層）：警衛阿伯與外送員 */
+CAMPUS_MAPS.xfC1 = {
+  music: 'town', theme: 't_home', chapter: 0, indoor: 1,
+  rows: [
+    'wwww/w/www',
+    'wtt_____>w',
+    'w________w',
+    'w__kk____w',
+    'w________w',
+    'wp__rr__pw',
+    'w___rr___w',
+    'wwww__wwww',
+  ],
+  warps: [
+    { x: 8, y: 1, to: 'xfC2', tx: 7, ty: 6, dir: 'left' },
+    { x: 4, y: 7, to: '@ret' },
+    { x: 5, y: 7, to: '@ret' },
+  ],
+  npcs: [],
+};
+
+/* 幸福大樓 2F：上班族姊姊與加班的叔叔 */
+CAMPUS_MAPS.xfC2 = {
+  music: 'town', theme: 't_home', chapter: 0, indoor: 1,
+  rows: [
+    'www/wwww/w',
+    'wk[_____>w',
+    'w________w',
+    'w_qq__k__w',
+    'w_$$_____w',
+    'wp_rr____w',
+    'w__rr___<w',
+    'wwwwwwwwww',
+  ],
+  warps: [
+    { x: 8, y: 1, to: 'xfC3', tx: 7, ty: 6, dir: 'left' },
+    { x: 8, y: 6, to: 'xfC1', tx: 8, ty: 2, dir: 'down' },
+  ],
+  npcs: [],
+};
+
+/* 幸福大樓 3F：退休的國文老師 */
+CAMPUS_MAPS.xfC3 = {
+  music: 'town', theme: 't_home', chapter: 0, indoor: 1,
+  rows: [
+    'www/wwww/w',
+    'wkkkk_kk>w',
+    'w________w',
+    'w_qq_____w',
+    'w_$$__k__w',
+    'wp_rr____w',
+    'w__rr___<w',
+    'wwwwwwwwww',
+  ],
+  warps: [
+    { x: 8, y: 1, to: 'xfC4', tx: 7, ty: 6, dir: 'left' },
+    { x: 8, y: 6, to: 'xfC2', tx: 8, ty: 2, dir: 'down' },
+  ],
+  npcs: [],
+};
+
+/* 幸福大樓 4F（頂樓加蓋）：養鴿子的阿伯與小朋友 */
+CAMPUS_MAPS.xfC4 = {
+  music: 'town', theme: 't_home', chapter: 0, indoor: 1,
+  rows: [
+    'www/wwww/w',
+    'wb_)____kw',
+    'w________w',
+    'w_rr_____w',
+    'wprr__qq_w',
+    'w_____$$_w',
+    'w_______<w',
+    'wwwwwwwwww',
+  ],
+  warps: [
+    { x: 8, y: 6, to: 'xfC3', tx: 8, ty: 2, dir: 'down' },
+  ],
+  npcs: [],
+};
+
+/* 早餐店（巷口左下）：老闆娘與兩位客人 */
+CAMPUS_MAPS.bkf = {
+  music: 'town', theme: 't_shop', chapter: 0, indoor: 1,
+  rows: [
+    'ww*wwww*ww',
+    'wkkk__kkkw',
+    'w__ttttt_w',
+    'w________w',
+    'w_qq__qq_w',
+    'w_$$__$$_w',
+    'wwww__wwww',
+  ],
+  warps: [
+    { x: 4, y: 6, to: '@ret' },
+    { x: 5, y: 6, to: '@ret' },
+  ],
+  npcs: [],
+};
+
 const CAMPUS_NPCS = {
+  zy_bun1: [{ role: 'zyG3', x: 3, y: 1, dir: 'down' }],
+  zy_home: [{ role: 'zyG4', x: 4, y: 2, dir: 'down' }],
+  s2: [
+    { role: 'chatBus', x: 4, y: 8, dir: 'up' },
+    { role: 'chatDog', x: 16, y: 8, dir: 'left', wander: 1 },
+  ],
+
+  /* 居民樓與街坊：只閒聊（kind: 'chat'），每次說話換一段 */
+  chenA1: [{ role: 'chatChenGma', x: 4, y: 2, dir: 'down' }, { role: 'chatXiaodou', x: 6, y: 5, dir: 'left' }],
+  chenA2: [{ role: 'chatChenDad', x: 5, y: 3, dir: 'right' }, { role: 'chatSister', x: 6, y: 2, dir: 'up' }],
+  liB1: [{ role: 'chatGuardA', x: 3, y: 1, dir: 'down' }, { role: 'chatPostman', x: 6, y: 5, dir: 'left' }],
+  liB2: [{ role: 'chatTutor', x: 4, y: 4, dir: 'left' }, { role: 'chatTutorAsst', x: 6, y: 3, dir: 'down' }],
+  liB3: [{ role: 'chatWriter', x: 2, y: 2, dir: 'up' }, { role: 'chatEditor', x: 5, y: 4, dir: 'left' }],
+  xfC1: [{ role: 'chatGuardB', x: 3, y: 1, dir: 'down' }, { role: 'chatDelivery', x: 6, y: 4, dir: 'left' }],
+  xfC2: [{ role: 'chatOffice', x: 5, y: 4, dir: 'left' }, { role: 'chatOvertime', x: 2, y: 2, dir: 'up' }],
+  xfC3: [{ role: 'chatRetired', x: 5, y: 3, dir: 'left' }],
+  xfC4: [{ role: 'chatPigeon', x: 4, y: 2, dir: 'down' }, { role: 'chatKid', x: 7, y: 3, dir: 'left' }],
+  bkf: [{ role: 'chatBkOwner', x: 5, y: 1, dir: 'down' }, { role: 'chatBkGuest', x: 2, y: 3, dir: 'right' }, { role: 'chatBkKid', x: 7, y: 3, dir: 'left' }],
   s1: [
     { role: 't_cd_a', x: 7,  y: 7,  dir: 'right' },
     { role: 't_cd_b', x: 12, y: 8,  dir: 'right' },
+    { role: 'chatPaper',  x: 17, y: 7, dir: 'left' },
   ],
   path1: [
     { role: 'dictA',  x: 7,  y: 9,  dir: 'right', sight: 3 },   // 草叢邊：第一個會攔人的同學
@@ -988,26 +1325,31 @@ const CAMPUS_NPCS = {
   ],
   s3: [
     { role: 'roamHint2', x: 19, y: 5,  dir: 'down' },
+    { role: 'chatGuide', x: 12, y: 11, dir: 'left' },
+    { role: 'chatBreakfast', x: 4, y: 6, dir: 'right', wander: 1 },
   ],
   front: [
     { role: 'gymTip1',  x: 16, y: 8,  dir: 'down' },
     { role: 't_zy_b',   x: 12, y: 12, dir: 'down', wander: 1 },
     { role: 'townTip2', x: 20, y: 14, dir: 'down', wander: 1 },
+    { role: 'chatFr1', x: 9, y: 9, dir: 'right' },
+    { role: 'chatFr2', x: 10, y: 9, dir: 'left' },
+    { role: 'chatSweep', x: 3, y: 14, dir: 'down', wander: 1 },
   ],
   zy_town: [
     { role: 'zyWake', x: 12, y: 11, dir: 'down' },
-    { role: 'zyG1',   x: 7,  y: 11, dir: 'right' },
-    { role: 'zyG2',   x: 16, y: 11, dir: 'left' },
-    { role: 'zyG3',   x: 18, y: 15, dir: 'left' },
-    { role: 'zyG4',   x: 8,  y: 15, dir: 'right' },
-    { role: 'zyKid',  x: 20, y: 14, dir: 'left', sight: 3 },
-    { role: 'zyTea',  x: 4,  y: 15, dir: 'up' },
-    { role: 'zyTip1', x: 9,  y: 13, dir: 'down' },
-    { role: 'zyTip2', x: 14, y: 13, dir: 'down' },
-    { role: 'zyQuiz', x: 6,  y: 9,  dir: 'down', wander: 1 },
+    { role: 'zyG1',   x: 8,  y: 11, dir: 'left' },      // 路牌匠：說明「要怎麼樣道館的門才會開」
+    { role: 'zyTea',  x: 4,  y: 15, dir: 'up' },        // 補血婆婆
   ],
   zy_slope: [
     { role: 'zyThug', x: 10, y: 13, dir: 'up', sight: 3 },
+    { role: 'zyKid',  x: 14, y: 9,  dir: 'left', sight: 3 },
+    { role: 'zyTr1',  x: 12, y: 7,  dir: 'left', sight: 3 },
+    { role: 'zyTr2',  x: 4,  y: 10, dir: 'right', sight: 3 },
+    { role: 'zyG2',   x: 6,  y: 12, dir: 'right' },
+    { role: 'zyTip1', x: 6,  y: 9,  dir: 'down' },
+    { role: 'zyTip2', x: 13, y: 17, dir: 'left' },
+    { role: 'zyQuiz', x: 12, y: 15, dir: 'left', wander: 1 },
   ],
   zy_gym: [
     { role: 'boss1', x: 5, y: 2, dir: 'down', key: 'c1a:boss1' },   // 真正的小老師。打倒的紀錄沿用 c1a:boss1（舊存檔、測試都不用改）
@@ -1076,6 +1418,8 @@ const CAMPUS_NPCS = {
     { role: 'townTip3', x: 4,  y: 9,  dir: 'right' },
     { role: 'gymTip2',  x: 19, y: 9,  dir: 'left' },
     { role: 'roamHint', x: 16, y: 3,  dir: 'down' },
+    { role: 'chatExam', x: 8, y: 5, dir: 'right' },
+    { role: 'chatExam2', x: 15, y: 6, dir: 'left' },
   ],
   corridor1: [
     { role: 'spar_c1', x: 10, y: 4,  dir: 'up' },
@@ -1109,6 +1453,8 @@ const CAMPUS_NPCS = {
     { role: 't_hn_b',   x: 20, y: 10, dir: 'down', wander: 1 },
     { role: 'gd_paper', x: 16, y: 12, dir: 'up',   gq: 'g_paper' },   // 涼亭下（神器據點重做前的暫時位置）
     { role: 'gd_ink',   x: 10, y: 11, dir: 'left', gq: 'g_ink' },     // 水池邊（同上）
+    { role: 'chatClub', x: 6, y: 9, dir: 'down' },
+    { role: 'chatLunch', x: 21, y: 8, dir: 'left' },
   ],
   field: [
     { role: 'sideBGiver', x: 13, y: 14, dir: 'down' },
@@ -1117,12 +1463,15 @@ const CAMPUS_NPCS = {
     { role: 't_r3b',      x: 16, y: 5,  dir: 'down', sight: 3 },
     { role: 't_r5a',      x: 20, y: 18, dir: 'left', sight: 3 },
     { role: 't_bl_a',     x: 6,  y: 19, dir: 'down' },
+    { role: 'chatBall', x: 10, y: 13, dir: 'left' },
+    { role: 'chatRun', x: 10, y: 3, dir: 'right' },
   ],
   audyard: [
     { role: 'gymTip5', x: 9,  y: 10, dir: 'right' },
     { role: 't_zt_a',  x: 4,  y: 13, dir: 'down' },
     { role: 't_zt_b',  x: 17, y: 13, dir: 'down', wander: 1 },
     { role: 'townTip6', x: 19, y: 10, dir: 'down', wander: 1 },
+    { role: 'chatBoard', x: 6, y: 12, dir: 'up' },
   ],
 };
 for (const [id, list] of Object.entries(CAMPUS_NPCS)) CAMPUS_MAPS[id].npcs = list;
@@ -1204,9 +1553,143 @@ function CAMPUS_PATCH(S) {
     zy_rest: '（坡道盡頭有一張長椅，椅背上刻著：「讀得慢也沒關係，唸對才是真的。」下面還有一行很小的字：「——小老師」）',
   });
   S.campus = true;
+  /* 居民樓與街坊的閒聊（2026-10-07）：kind 'chat'，不給東西、不打架，每次說話輪流換下一段。
+     話題圍著「國中生的日子」：開學、會考、字、被比較、怕寫不好——讓街坊像真的住在這裡。 */
+  const st = (hair, c2, extra) => Object.assign({ hair, cloth: '#f8f8f8', cloth2: c2, style: 'school' }, extra || {});
+  const CH = (name, look, chats) => ({ kind: 'chat', name, look, chats });
+  Object.assign(R, {
+    chatChenGma: CH('陳奶奶', { hair: '#d8d8d8', cloth: '#b07a8a', gender: 'f' }, [
+      ['啊，開學第一天呀？書包有沒有帶齊？', '我孫子小豆今天也要上學，吵著要穿新鞋，現在還在鞋櫃那邊轉圈圈。'],
+      ['以前我們讀書，是一個字一個字抄在石板上的。', '你們現在用的筆，比我那時候的好太多了。'],
+      ['人老了就愛念叨，你別嫌煩。', '去吧，路上慢慢走，不要跑。']]),
+    chatXiaodou: CH('小豆', st('#2a2a2a', '#e8a030', { gender: 'm' }), [
+      ['我在背唐詩！「床前明月光」……後面是什麼來著？', '奶奶說後面是「疑是地上霜」，可是我覺得地上沒有霜啊。'],
+      ['你是國中生嗎？國中的國文是不是很可怕？', '我同學說，國中的字有一百萬個。'],
+      ['我長大要當……當……老師！不對，是鞋店老闆。']]),
+    chatChenDad: CH('陳爸爸', { hair: '#3a3a3a', cloth: '#6a7a9a' }, [
+      ['噓——小聲一點，我剛下夜班。', '你是要去上學的吧？早自習聽說很早開始，真辛苦。'],
+      ['我年輕的時候也討厭國文，總覺得那些字跟日子沒關係。', '後來寫信給我太太，才發現一個字就能讓她笑一整天。']]),
+    chatSister: CH('陳家姊姊', st('#201818', '#8a58c8', { gender: 'f' }), [
+      ['會考倒數……我每天看著那行字，心都在抖。', '你也要小心，別太晚睡。'],
+      ['我書桌上那疊考卷，一半是寫完的，一半是「明天一定寫」的。', '……你別跟人說。']]),
+    chatGuardA: CH('管理員阿伯', { hair: '#909090', cloth: '#5a6a5a', hat: '#4a5a4a' }, [
+      ['早啊，這棟三層，一二三樓我都認得。', '一樓是我，二樓是補習班的李老師，三樓住了個整天關在房間裡的作家。'],
+      ['信件放信箱，包裹放這裡，不要弄混。', '你要上樓看看也行，輕聲一點。']]),
+    chatPostman: CH('送報的大哥', { hair: '#2a2a2a', cloth: '#3a6a4a', hat: '#2a5a3a' }, [
+      ['今天的報紙頭版寫著「會考倒數五十天」，看得我都緊張。', '你們國中生真辛苦。'],
+      ['我每天送兩百份報紙，字認得最多的人大概是我。', '可惜認得多，不一定懂得多。']]),
+    chatTutor: CH('補習班李老師', { hair: '#2a2a2a', cloth: '#7a6a8a', glasses: 1 }, [
+      ['我在批改作文。題目是「一件小事」，十個學生有八個寫「扶老奶奶過馬路」。', '我也不是說不好，只是……老奶奶一定很累吧。'],
+      ['好作文不用華麗，把那件小事「看清楚」就夠了。', '看清楚，才寫得出來。']]),
+    chatTutorAsst: CH('助教姊姊', st('#3a2a20', '#d8629a', { gender: 'f' }), [
+      ['我負責幫老師影印講義，一天印了八百張，手都是碳粉味。'],
+      ['學生交來的字，有的工整、有的像蚯蚓。', '我看久了，居然能從字看出他們那天的心情。']]),
+    chatWriter: CH('作家', { hair: '#4a3a30', cloth: '#6a6a7a', glasses: 1 }, [
+      ['這個詞我寫了三天，還是覺得不對。', '「寂寞」跟「孤獨」到底差在哪？你覺得呢？'],
+      ['寫東西的人最怕兩件事：寫不出來，還有寫出來沒人看。', '……我兩個都怕。'],
+      ['不過啊，只要有一個人讀懂，就值得了。']]),
+    chatEditor: CH('編輯小姐', { hair: '#2a1a14', cloth: '#c85a5a', gender: 'f' }, [
+      ['我是來催稿的。他說「快好了」，已經說了三個禮拜。'],
+      ['其實我最喜歡看他寫到一半的稿子，字很亂，可是很真。']]),
+    chatGuardB: CH('警衛阿伯', { hair: '#a0a0a0', cloth: '#4a5a7a', hat: '#3a4a6a' }, [
+      ['住戶每天進出，我都記得。', '有人今天笑得很開心，我就知道他順利；有人低著頭，我就說聲加油。'],
+      ['這棟四層樓，頂樓有人養鴿子，吵是吵了點，可是每天早上聽著也習慣了。']]),
+    chatDelivery: CH('外送員', { hair: '#2a2a2a', cloth: '#e8a030', hat: '#c88a20' }, [
+      ['這棟四樓的訂單最多，也最難送——電梯壞了，要爬樓梯。'],
+      ['我也曾經是國中生，現在每天靠看門牌號碼過日子。', '數字比字簡單多了，哈哈。']]),
+    chatOffice: CH('上班族姊姊', { hair: '#2a1a14', cloth: '#6a7a8a', gender: 'f' }, [
+      ['昨天簡報被主管說「不夠有感情」，我還在想是少了哪一個形容詞。', '你們國文課，會教怎麼寫「有感情」嗎？'],
+      ['同事升遷了，我只是點頭說恭喜。', '心裡其實……算了，你快去上學吧。']]),
+    chatOvertime: CH('加班的叔叔', { hair: '#3a3a3a', cloth: '#7a8a9a', glasses: 1 }, [
+      ['再給我五分鐘，這封信我再改一個字。'],
+      ['一封信改十遍，不是我龜毛，是怕一個字用錯，對方就誤會了。']]),
+    chatRetired: CH('退休國文老師', { hair: '#e0e0e0', cloth: '#7a6a5a', glasses: 1, beard: 1 }, [
+      ['我教了三十年國文，退休後最大的樂趣，是看公園裡的人讀報紙。', '你知道「讀書」兩個字，最早是什麼意思嗎？……我也不知道，所以才一直讀。'],
+      ['有個學生，當年說他最討厭古文。', '去年他寄來一張卡片，全是文言文。哈哈，現在換我看不懂了。'],
+      ['學國文不是為了考一百分。', '是將來有一天，你能把想說的話說得剛剛好。']]),
+    chatPigeon: CH('養鴿子的阿伯', { hair: '#b0b0b0', cloth: '#8a7a5a', hat: '#6a5a3a' }, [
+      ['屋頂這二十隻鴿子，每一隻都有名字。', '那隻灰的叫「之乎」，那隻白的叫「者也」。'],
+      ['鴿子認得回家的路，比人厲害多了。', '人常常忙著趕路，就忘了自己要去哪。']]),
+    chatKid: CH('頂樓的小朋友', st('#2a1a14', '#6aa8d8', { gender: 'f' }), [
+      ['我們家有大冒險：從一樓爬到四樓，不能用電梯！', '你也要試試看嗎？'],
+      ['我偷偷告訴你，鴿子最喜歡吃的不是米，是爺爺講的笑話。']]),
+    chatBkOwner: CH('早餐店老闆娘', { hair: '#4a2a1a', cloth: '#e8e0d0', gender: 'f' }, [
+      ['蛋餅加蛋？奶茶要微糖對不對？', '……咦，你還沒開口。算了，我記得你每天都來。'],
+      ['今天的蛋餅特別香吧？我偷偷多加了一點蔥。', '去吧，上學別遲到。']]),
+    chatBkGuest: CH('上班族客人', { hair: '#2a2a2a', cloth: '#5a6a8a' }, [
+      ['老闆娘的蛋餅，吃了一口整天都有精神。', '……可惜沒辦法吃一口，就考一百分。'],
+      ['我每天這個時間都在這裡，看著你們穿制服的一個個走過去。', '好像看見以前的自己。']]),
+    chatBkKid: CH('小學生', st('#2a2a2a', '#4a78c8', { gender: 'm' }), [
+      ['我今天要帶兩個飯糰去學校，一個自己吃，一個給同桌。', '他昨天把我的橡皮擦借走了，還沒還。'],
+      ['老闆娘會偷偷多送我一片蘿蔔糕，不要告訴別人喔。']]),
+    chatPaper: CH('讀報的叔叔', { hair: '#6a5a4a', cloth: '#7a8a6a' }, [
+      ['新聞說今年會考作文題目很難預測。', '我看啊，題目再難，只要是真心話就不會太差。'],
+      ['我每天只看兩個版面：副刊和天氣。其他的，太吵。']]),
+    chatBus: CH('等公車的上班族', { hair: '#2a2a2a', cloth: '#6a6a8a' }, [
+      ['這班公車永遠在我快遲到的時候才來。', '你們學生可以用走的，真好。'],
+      ['每天站在這個站牌，我就在心裡默背昨天的會議重點。', '背不起來的時候，就看看雲。']]),
+    chatDog: CH('遛狗的阿姨', { hair: '#6a3a2a', cloth: '#a85a8a', gender: 'f' }, [
+      ['我家的狗叫「小逗」，因為牠一出門就停下來逗每一棵電線桿。', '你看牠，又在聞了。'],
+      ['早上遛狗是我一天最安靜的時候。', '路上的字──招牌、路標、公告──我都慢慢讀一遍。']]),
+    chatGuide: CH('導護志工媽媽', { hair: '#3a2a20', cloth: '#e8c030', hat: '#e8c030', gender: 'f' }, [
+      ['同學早！過馬路要看左右，眼睛不要只看手機喔。', '今天會有點涼，外套拉好。'],
+      ['我每天站在這裡，認得每一個走進校門的孩子。', '你昨天的鞋帶有鬆開過，今天綁緊了，很棒。']]),
+    chatBreakfast: CH('買早餐的同學', st('#4a2a1a', '#3a8a58', { gender: 'f' }), [
+      ['我早餐一定要吃蛋餅，沒吃就整天沒力氣。', '你吃過了嗎？沒吃的話，巷口那家很好吃。'],
+      ['我同桌每天遲到，我都幫他買一份放在抽屜。', '他說我是他的「早餐之神」。']]),
+    chatFr1: CH('同學甲', st('#2a1a14', '#4a78c8', { gender: 'm' }), [
+      ['欸，昨天的國文習作你寫了嗎？第三題我寫了又擦、擦了又寫。'],
+      ['我決定了，今天開始每天背一個成語。', '……明天再開始好了。']]),
+    chatFr2: CH('同學乙', st('#3a2a20', '#d8629a', { gender: 'f' }), [
+      ['你看他，又在說明天開始。', '他這句話我已經聽了三十七次了。'],
+      ['其實我也想開始，只是不知道從哪裡開始。']]),
+    chatSweep: CH('打掃的同學', st('#1a1a20', '#8a8a92', { gender: 'm' }), [
+      ['外掃區的落葉怎麼掃都掃不完，掃完這邊，那邊又掉了。', '好像在寫作業，寫完一題又來一題。'],
+      ['不過掃乾淨的時候，心情會很好，很奇怪吧？']]),
+    chatExam: CH('剛考完試的同學', st('#2a2a2a', '#c8a040', { gender: 'm' }), [
+      ['剛剛小考最後一題，我寫了又擦，擦了又寫，最後交了白卷。', '……不對，我有寫名字。'],
+      ['考完試的感覺很奇怪，好像腦袋被掏空，又好像被塞滿了答案。']]),
+    chatExam2: CH('等著對答案的同學', st('#4a2a1a', '#6a8ac8', { gender: 'f' }), [
+      ['先別告訴我答案！我想自己再想一想。', '……好吧，你說，我心臟準備好了。'],
+      ['對完答案才發現，我有一題明明會，卻寫成別的字。']]),
+    chatClub: CH('社團學長', st('#3a2a20', '#8a58c8', { gender: 'm' }), [
+      ['社團博覽會快到了，我們攤位還缺一塊招牌。', '誰字寫得好看？……你看我幹嘛，我字很醜。'],
+      ['社團是學校裡最自由的地方，想做什麼就做什麼。', '當然，要先把功課寫完。']]),
+    chatLunch: CH('吃便當的同學', st('#2a1a14', '#e8a030', { gender: 'f' }), [
+      ['我每天的便當都是爸爸做的，今天的蛋有點焦。', '可是我還是全部吃完了。'],
+      ['中午的中庭最好，太陽曬著，風吹著，什麼煩惱都慢慢變小。']]),
+    chatBall: CH('打籃球的同學', st('#1a1a20', '#d8483c', { gender: 'm' }), [
+      ['投進三分球的時候，整個世界都安靜了。', '考試要是也有這種感覺就好了。'],
+      ['我國文不好，但我背得出每一個球員的名字。', '……你說，這算不算一種記憶力？']]),
+    chatRun: CH('練跑步的學姊', st('#201818', '#3a8a58', { gender: 'f' }), [
+      ['跑步的時候，我什麼都不想，腦袋反而最清楚。', '有時候卡住的作文題，就在跑完第三圈的時候想通了。'],
+      ['你也來跑一圈？不用很快，慢慢跑也算。']]),
+    chatBoard: CH('看公佈欄的同學', st('#3a2a20', '#c8a040', { gender: 'f' }), [
+      ['我每天都來看榜，不是在找自己，是在找朋友的名字。', '看到他們名次進步，我比自己進步還開心。'],
+      ['公佈欄貼了好多社團海報，我一張一張看過去，心裡有點羨慕。']]),
+  });
+  /* 通關（二週目）後：四位關主回到自己的教室，說「我又訓練變強了」，跟他們說話就能再挑戰（不用湊碎片、不用進夢）。第五位是大禮堂的 postBoss */
+  const REMATCH = [
+    ['postT1', 'boss1', ['（小老師站在黑板前，手裡的粉筆很穩。）', '我又訓練變強了。這次我先把字寫在黑板上給你看——再挑戰一次吧！'], '小老師', '……還是你比較準。不過我會再練的。'],
+    ['postT2', 'boss2', ['（股長把借閱證收進口袋。）', '這個學期我又多讀了好幾本，我又訓練變強了。再挑戰一次吧！'], '股長', '……這次輸得心服口服。讀懂的那一本，真的不會變。'],
+    ['postT3', 'boss3', ['「這次我寫得比較簡單了。」', '我又訓練變強了，把句子說清楚這件事，再挑戰一次吧！'], '助教', '……你說得比我清楚。好的文字，真的是把真心說清楚。'],
+    ['postT4', 'boss4', ['「讀得慢，才讀得進去。」', '我又訓練變強了，再挑戰一次吧！'], '助教', '……碑，是讓人讀的。而你，是讀得最認真的那一個。'],
+  ];
+  REMATCH.forEach(([id, bid, lines, who, win], i) => {
+    const B = R[bid];
+    R[id] = { kind: 'rematch', name: B.name, look: B.look, lines, lvAdd: -5,   // 等級跟著玩家（二週目再 +4 → 比玩家高 1 級），血量比第一次打時少一點，輸了可以再來
+      ask: `要再挑戰${B.name}一次嗎？（敵人會比上次更強）`, no: '好，想挑戰的時候再來找我。',
+      reward: Math.floor(B.reward / 2), win,
+      foe: Object.assign({}, B.foe, { lv: B.foe.lv + 14, hpMul: B.foe.hpMul * 0.7 }), potions: 2,
+      prize: { money: Math.floor(B.reward / 2), frags: 1, items: { heal2: 1 } } };
+  });
   S.postNpcs = Object.assign({}, S.postNpcs, {
     front: [{ role: 'postRival', x: 12, y: 13, dir: 'down' }],
     yard2: [{ role: 'tipInk', x: 17, y: 1, dir: 'right' }],      // 通關後：指點舊牆角（硯海墨池）
+    c1a: [{ role: 'postT1', x: 6, y: 2, dir: 'down' }],
+    lib: [{ role: 'postT2', x: 7, y: 1, dir: 'down' }],
+    yard: [{ role: 'postT3', x: 8, y: 1, dir: 'down' }],
+    hist: [{ role: 'postT4', x: 8, y: 1, dir: 'down' }],
   });
   /* 章節名稱與目標（劇情選單、換章時的橫幅會顯示） */
   const ST = [
@@ -1232,14 +1715,14 @@ function CAMPUS_PATCH(S) {
   /* 夢中小鎮（2026-10-06）：進夢、醒來、休息處、開門條件、劇情台詞 */
   S.dreams = {
     zy: { name: '注音坡', home: { map: 'c1a', x: 5, y: 3, dir: 'down' }, town: { map: 'zy_town', x: 11, y: 10, dir: 'down' },
-      heal: { map: 'zy_town', x: 11, y: 10 }, need: 3, openFlag: 'zyOpen', doneFlag: 'zyDone', enteredFlag: 'zyEntered', seenFlag: 'zySeen',
+      heal: { map: 'zy_town', x: 11, y: 10 }, need: 4, openFlag: 'zyOpen', doneFlag: 'zyDone', enteredFlag: 'zyEntered', seenFlag: 'zySeen',
       legacyKey: 'c1a:boss1', homeName: '教室', fx: 'vortex', tint: [140, 110, 230, .15],
       glyphs: ['字', '音', '形', 'ㄅ', '注', 'ㄆ', '錯', '對', 'ㄇ', '夢', '筆', 'ㄈ', '墨', '紙'],
       openText: ['（遠處傳來一聲清脆的鐘響——坡頂道館的大門，開了。）', '（你想起老爺爺說的話：「你替她說一句：寫錯，沒關係。」）'],
       arrive: ['（睜開眼睛，周圍的樹、坡道、房子，都像是從課本裡長出來的。）',
                '小墨：「別怕，這是「注音坡」——碎片留下的夢。」',
                '小墨：「這裡的每個人，都是小老師「怕寫錯」的字變出來的。」',
-               '小墨：「真正的小老師在坡頂的道館裡，但夢把門鎖上了。幫鎮上的人解決三件麻煩，夢才會鬆口。」',
+               '小墨：「真正的小老師在坡頂的道館裡，但夢把門鎖上了。小鎮裡的路牌匠知道門要怎麼開，去跟他聊聊。」',
                '小墨：「想回教室的話，隨時可以從旋渦、或選單的「醒來」回去，進度都會留著。」'],
       finish: ['（小老師身上的墨塵一點一點散開。整個小鎮的輪廓也像水彩一樣，慢慢淡去……）',
                '（老爺爺、阿聲、小注音、小愛……每個人都朝你揮了揮手。）',
@@ -1307,6 +1790,16 @@ function CAMPUS_PATCH(S) {
                   '周以恆：「……原來，是這麼唸的。」',
                   '（遠處，大禮堂傳來了沉重的鐘聲。）'] },
   };
+  /* 注音坡（探索式）：找聲調碎片放上石板，四塊都亮了道館才開。打夢裡的人有機率掉「萬能碎片」。 */
+  S.dreams.zy.explore = { label: '聲調碎片', hint: '到坡道的草叢、路邊的房子裡找閃光點，找回四個聲調的碎片，放上小鎮裡的石板',
+    status() {
+      const P = platesOf('zy'), miss = P.items.filter(it => !G.flags['pl:' + it.key]), have = miss.filter(it => G.flags['spf:' + it.key]), none = miss.filter(it => !G.flags['spf:' + it.key]), any = G.flags[P.anyFlag] || 0;
+      const out = [`石板亮了 ${platesLit(P)} / ${P.items.length} 塊。`];
+      if (have.length) out.push(`你身上有「${have.map(i => i.name).join('、')}」的碎片，拿去踩對應的石板吧。`);
+      if (none.length) out.push(`還沒找到：${none.map(i => i.name).join('、')}。` + (any ? `（你有 ${any} 片萬能碎片，哪一聲都能用。）` : '草叢和房子裡找找看；打贏夢裡的人，也有機會掉出一片「萬能碎片」。'));
+      return out;
+    } };
+  S.dreams.zy.drop = { chance: 0.45, text: '（對方掉下了一片閃著光的碎片——是「萬能碎片」，哪一聲都能用！）' };
   S.stages[0].roles = ['avatar1', 'boss1'];
   S.stages[1].roles = ['rival1', 'avatar2', 'boss2'];
   S.stages[2].roles = ['m1', 'm2', 'm3', 'avatar3', 'boss3'];
@@ -1314,17 +1807,21 @@ function CAMPUS_PATCH(S) {
   /* 教師版「直達」的分類 */
   S.travelGroups = [
     ['家．通學路', ['room', 'house1f', 's1', 'path1', 's2', 'pharmacy', 's3']],
+    ['居民樓', ['chenA1', 'chenA2', 'liB1', 'liB2', 'liB3', 'xfC1', 'xfC2', 'xfC3', 'xfC4', 'bkf']],
     ['校園', ['front', 'hall', 'corridor1', 'stair1', 'corridor2', 'yard2', 'field', 'audyard']],
     ['道館', ['c1a', 'lib', 'yard', 'hist', 'aud']],
-    ['夢中小鎮', ['zy_town', 'zy_slope', 'zy_gym', 'dj_town', 'dj_pier', 'dj_gym', 'hn_town', 'hn_pavilion', 'hn_gym', 'pl_town', 'pl_road', 'pl_gym']],
+    ['夢中小鎮', ['zy_town', 'zy_slope', 'zy_bun1', 'zy_bun2', 'zy_home', 'zy_hut', 'zy_gym', 'dj_town', 'dj_pier', 'dj_gym', 'hn_town', 'hn_pavilion', 'hn_gym', 'pl_town', 'pl_road', 'pl_gym']],
     ['教室．其他', ['c8', 'clinic_h', 'store_c', 'forge', 'inkpool']],
   ];
   Object.assign(S.mapNames, {
     s1: '巷口', path1: '通學路', s2: '大馬路口', s3: '校門前', pharmacy: '補給站', front: '校門與前庭', hall: '穿堂',
     corridor1: '走廊 1F', stair1: '樓梯間', corridor2: '走廊 2F', yard2: '中庭',
+    chenA1: '陳家公寓（1F）', chenA2: '陳家公寓（2F）', liB1: '李家公寓（1F）', liB2: '李家公寓（2F）', liB3: '李家公寓（3F）',
+    xfC1: '幸福大樓（1F）', xfC2: '幸福大樓（2F）', xfC3: '幸福大樓（3F）', xfC4: '幸福大樓（4F）', bkf: '早餐店',
     field: '操場與跑道', audyard: '禮堂前廣場', room: '我的房間（2F）', house1f: '我家（1F）', c8: '自己的教室',
     c1a: '一年甲班', lib: '圖書館', yard: '文藝教室', hist: '校史室', aud: '大禮堂',
     clinic_h: '保健室', store_h: '便利商店', store_c: '福利社', forge: '工藝教室',
+    zy_bun1: '包子鋪', zy_bun2: '包子鋪（2F）', zy_home: '坡下人家', zy_hut: '坡上小屋',
     zy_town: '夢中小鎮．注音坡', zy_slope: '注音坡道', zy_gym: '夢中的一年甲班',
     dj_town: '夢中小鎮．書海港', dj_pier: '船埠', dj_gym: '夢中的圖書館',
     hn_town: '夢中小鎮．花南街', hn_pavilion: '聽雨亭', hn_gym: '夢中的花室',
@@ -1502,17 +1999,24 @@ ROOM_REDO.c1a.npcs = [
 ROOM_REDO.yard.npcs = [
   { role: 'avatar3', x: 7, y: 1, dir: 'down', hideFlag: 'hnEntered' },
   { role: 'hnPortal', x: 7, y: 1, dir: 'down', needFlag: 'hnEntered' },
+  /* 教室裡的對手從一開始就站在這裡（玩家會以為真的要打了；夢醒之後才出現的話太突兀）。打倒館主之後沒打的人算已打完（settleGyms） */
+  { role: 'gy3a', x: 4,  y: 8, dir: 'right', sight: 3 },
+  { role: 'gy3b', x: 11, y: 8, dir: 'left',  sight: 3 },
 ];
 /* 校史室：沒有人邀你。三座古文石碑亮起、石碑牆沉下之後，檔案室裡只有一塊歷屆榜（最後一格空著，你的名字浮現）；
    讀完被墨寫進夢裡，榜在進過夢之後留在原地當入口（碑林關，詳見 W.dreams.pl）。助教本人在夢裡。 */
 ROOM_REDO.hist.npcs = [
   { role: 'avatar4', x: 7, y: 1, dir: 'down', hideFlag: 'plEntered' },
   { role: 'plPortal', x: 7, y: 1, dir: 'down', needFlag: 'plEntered' },
+  { role: 'gy4a', x: 3,  y: 9, dir: 'right', sight: 3 },
+  { role: 'gy4b', x: 10, y: 9, dir: 'left',  sight: 3 },
 ];
 /* 圖書館：股長是「碎片化身」，三本辭典歸位、書架讓開後才見得到；攤開的書在打完化身之後留在原地（書海港的入口，詳見 W.dreams.dj） */
 ROOM_REDO.lib.npcs = [
   { role: 'avatar2', x: 8, y: 1, dir: 'down', hideFlag: 'djEntered' },
   { role: 'djPortal', x: 8, y: 1, dir: 'down', needFlag: 'djEntered' },
+  { role: 'gy2a', x: 5,  y: 8, dir: 'right', sight: 3 },
+  { role: 'gy2b', x: 10, y: 8, dir: 'left',  sight: 3 },
 ];
 /* 機關改成「題卷台」：靠牆的機關往前挪一格，站在牆前（台子本身的圖在 overworld 畫） */
 const moveDevices = (id, map) => { const dv = {}; for (const [k, d] of Object.entries(LAYOUTS[id].devices)) dv[map[k] || k] = d; ROOM_REDO[id].devices = dv; };

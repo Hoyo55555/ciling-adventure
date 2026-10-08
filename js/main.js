@@ -144,10 +144,10 @@ function showTeacherBadge() {
   if (document.querySelector('.teacherbadge')) return;
   const b = document.createElement('div');
   b.className = 'teacherbadge';
-  b.textContent = '教師測試版：只跑劇情・略過對戰與機關題・地圖全開';
-  b.style.cssText = 'position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:99;' +
-    'background:#7a2a1e;color:#f0e0c0;font:600 12px system-ui,"Noto Sans TC",sans-serif;' +
-    'padding:3px 12px;border-radius:10px;border:1px solid #c8a040;pointer-events:none;opacity:.92';
+  b.textContent = '教師版'; b.title = '教師測試版：只跑劇情、略過對戰與機關題、地圖全開';
+  b.style.cssText = 'position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:99;white-space:nowrap;' +
+    'background:#7a2a1e;color:#f0e0c0;font:600 10px/14px system-ui,"Noto Sans TC",sans-serif;' +
+    'padding:0 8px;border-radius:0 0 8px 8px;border:1px solid #c8a040;border-top:0;pointer-events:none;opacity:.92';
   document.body.appendChild(b);
 }
 /* 徽章跟著目前這份存檔：教師版存檔才顯示，回標題或讀一般存檔就收起來 */
@@ -340,6 +340,7 @@ const Flow = {
     if (W.story && !G.flags.prologue) { const S0 = W.start; G.map = S0.map; G.x = S0.x; G.y = S0.y; if (!G.teacher) { G.weapons = []; G.equip = []; } }
     await fade(1, 0.3); UI.clear(); Game.scene = 'overworld'; OW.load(G.map, G.x, G.y, 'down'); await fade(0, 0.3);
     if (W.story && !G.flags.prologue) OW.run(() => storyPrologue());
+    else if (W.story && G.flags.cleared && !G.ng) OW.run(() => Flow.newGamePlus());   // 一週目通關的存檔：選了就開始二週目劇情
     if (G.flags.teacherFixNote) { delete G.flags.teacherFixNote; OW.run(() => say('（教師版更新：劇情進度已整理成正常順序——第五章開頭，前四章都算做完。想看其他章節，可以從選單的「📖 劇情進度」跳過去。）')); }
     else if (movedCampus) OW.run(() => say('（……回過神來，你站在學校的保健室門口。\n學校好像跟你記得的不太一樣，不過你的冒險紀錄都還在。）'));
   },
@@ -359,16 +360,14 @@ const Flow = {
       await Flow.start(); return true;
     }
   },
-  /* 二週目：保留養成，重新挑戰所有道館，敵人更強，開放隱藏地圖 */
+  /* 二週目：什麼都不重置（等級、武器、碎片、劇情進度、機關、打倒的人都留著），所以所有教室的門都開著，不用再湊碎片。
+     五位關主可以回去再挑戰（他們說「我又訓練變強了」，見 postNpcs 的 postT1～4、postBoss）；二週目的主線是找齊三位器靈、到墨池面對硯海龍君。
+     觸發：一週目通關後回到標題，從「繼續冒險」選這份紀錄（見 Flow.load） */
   async newGamePlus() {
     const ng = (G.ng || 0) + 1;
     for (const t of (W.ngIntro || [])) await say(t, t.startsWith('（') ? undefined : '小墨');
-    await say('【二週目】\n等級、武器、碎片、圖鑑與稱號都會保留，但所有對手都會變得更強，題目也會變難。\n五座道館與最終魔王可以重新挑戰！');
-    G.ng = ng;
-    G.badges = []; G.defeated = {}; G.opened = {}; G.devTry = {}; G.route = null; G.chapter = 1;
-    const keep = { prologue: true, tut: 'skip', cleared: true };
-    if (G.flags.dreamClock != null) keep.dreamClock = G.flags.dreamClock;   // 同一個夢又做一次：鬧鐘還停在那個時間
-    G.flags = keep;
+    await say('【二週目】\n等級、武器、碎片、圖鑑、劇情進度，全部原封不動保留。\n所有教室的門都開著，不用再湊碎片。\n五位關主說他們又訓練變強了——去找他們聊聊，就能再挑戰一次（敵人會比上次更強）。');
+    G.ng = ng; delete G.flags.dream; delete G.flags.allDone; delete G.flags.ngDone;
     G.hp = G.maxhp; G.wenqi = 0;
     /* 二週目從哪裡開始由世界決定（校園版：同一個房間醒來），沒設定就回晨讀村 */
     const S0 = W.ngStart || { map: 'chendu', x: 11, y: 7 };

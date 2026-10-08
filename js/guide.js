@@ -55,6 +55,7 @@ const Guide = {
       if (G.flags.dream && !inDream) { const O = W.dreams[G.flags.dream]; return { map: O.town.map, text: `先從選單「醒來」，回到${O.homeName}`, short: `先「醒來」回${O.homeName}`, dream: G.flags.dream }; }
       if (inDream) {
         if (!G.flags[D.openFlag]) { const n = typeof dreamDoneCount === 'function' ? dreamDoneCount(R.dream) : 0;
+          if (D.explore) return { map: D.town.map, text: `在「${D.name}」${D.explore.hint}（${n} / ${D.need}）`, short: `${D.explore.label}（${n}/${D.need}）（${D.name}）`, dream: R.dream };
           return { map: D.town.map, text: `在「${D.name}」幫居民完成委託，任意 ${D.need} 件（${n} / ${D.need}）`, short: `幫居民完成委託（${n}/${D.need}）（${D.name}）`, dream: R.dream }; }
         return Object.assign(this.go(r, '找'), { dream: R.dream });
       }
@@ -75,11 +76,21 @@ const Guide = {
         ? { map: 'room', text: `在「${where}」檢查書包，確認准考證`, short: `檢查書包（${where}）` }
         : { map: 'room', text: `在「${where}」確認床頭的鬧鐘`, short: `確認鬧鐘（${where}）` };
     }
+    if (G.ng > 0 && !G.flags.ngDone) return this.ngObjective();
     if (G.flags.cleared) return null;
     const st = W.stages[Math.min(G.badges.length, W.stages.length - 1)];
     const gd = this.guardianStep(st); if (gd) return this.withRoute(gd);
     for (const r of (st.roles || [])) { const s = this.step(r); if (s) return this.withRoute(s); }
     return { text: st.text, short: st.name };
+  },
+  /* 二週目的主線：找齊三位器靈 → 帶著牠們到中庭舊牆角 → 硯海墨池的硯海龍君。五位關主可以隨時回去再挑戰（不在主線裡） */
+  ngObjective() {
+    const left = GUARDIAN_FIRST.filter(k => !ownsArch(k));
+    if (left.length) return { text: `找齊筆、紙、墨三位器靈（還差 ${left.length} 位）\n（牠們會在校園的某個角落現身，同學聊天時會透露消息）`, short: `找齊三位器靈（還差 ${left.length} 位）`, ng: 1 };
+    const yard = this.mapName('yard2');
+    if (!G.flags.stoneAwake) return this.withRoute({ map: 'yard2', text: `帶著三位器靈（都要放進攜帶欄），到「${yard}」的舊牆角墨漬前按確認鍵`, short: `到「${yard}」的舊牆角（帶著三位器靈）`, ng: 1 });
+    if (!ownsArch('g_stone')) return this.withRoute({ map: 'inkpool', text: `進「${this.mapName('inkpool')}」，解開泉眼的機關，面對硯海龍君`, short: `硯海墨池：面對硯海龍君`, ng: 1 });
+    return null;
   },
   /* 大禮堂的門要先做完「器靈」的決定才打得開（門的 needFlag 是 guardianDone）：先到禮堂前廣場聽小墨交代，再去找器靈 */
   guardianStep(st) {
@@ -115,7 +126,8 @@ const Guide = {
   key(o) { return `${Math.min(G.badges.length, 9)}|${o.role || o.map}|${o.flag ? 'dev' : ''}|${o.dream || ''}|${o.text.includes('委託') ? 'q' : ''}`; },
   /* 要不要讓小墨出現：目標換成新的、而且還沒告訴過玩家 */
   shouldTell() {
-    if (!W || !W.story || !G || !G.flags.prologue || G.flags.cleared || G.flags.moOff) return null;      // moOff：測試用，關掉小墨的主線引導
+    if (!W || !W.story || !G || !G.flags.prologue || G.flags.moOff) return null;
+    if (G.flags.cleared && !(G.ng > 0 && !G.flags.ngDone)) return null;      // moOff：測試用，關掉小墨的主線引導
     const o = this.objective(); if (!o) return null;
     return G.flags.moTold === this.key(o) ? null : o;
   },

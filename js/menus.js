@@ -65,7 +65,7 @@ const SlotScreen = {
           const g = Slots.read(i); const r = h('div', 'row slot');
           if (g) { const Wd = WORLDS[g.world];
             r.innerHTML = `<div class="slotno">${i}</div><div class="grow"><b>${esc(g.player.name)}</b>　<span class="small">${Wd.icon} ${esc(Wd.name)}．Lv.${g.lv}${g.ng ? `．轉生 ${g.ng} 次` : ''}${g.flags.cleared ? '．<b class="good">已通關</b>' : ''}</span>
-              <div class="small muted">${esc(g.flags.cleared ? '試玩版完成' : Wd.chapterName)}．遊玩 ${fmtTime(g.time)}．存於 ${fmtDate(g.savedAt)}</div></div>`;
+              <div class="small muted">${esc(g.flags.cleared ? (g.ng ? '二週目' + (g.flags.ngDone ? '完成' : '進行中') : '一週目通關．選這份紀錄開始二週目') : Wd.chapterName)}．遊玩 ${fmtTime(g.time)}．存於 ${fmtDate(g.savedAt)}</div></div>`;
             if (mode === 'rebirth' && !g.flags.cleared) r.classList.add('dis');
           } else r.innerHTML = `<div class="slotno">${i}</div><div class="grow muted">（空白欄位）</div>`;
           sc.appendChild(r); rows.push(r);
@@ -102,7 +102,8 @@ const BookMenu = {
   async open() {
     let sel = 0;
     while (true) {
-      const opts = ['角色', '地圖', '武器', '電腦', '鍛造', '道具', '兵器譜', '妖怪圖鑑', '稱號', '任務', '存檔', '設定']
+      const opts = ['角色', '地圖', '武器', '電腦', '鍛造', '道具', '兵器譜', '妖怪圖鑑', '稱號', '任務']
+        .concat(W.dreams && ((G.notes && G.notes.length) || G.flags.dream) ? ['手札'] : [], ['存檔', '設定'])
         .concat(OW.L && OW.L.dream && G.flags.dream ? ['醒來'] : [], G && G.teacher ? ['🚌 直達', '📖 劇情進度', '🎬 轉場展示'] : [], Cloud.user ? ['登出'] : [], ['回到主畫面', '關閉']);
       const i = await UI.choose(opts, { pos: {}, cls: 'bookmenu', start: sel });
       const L = opts[i]; if (i < 0 || L === '關閉') return; sel = i;
@@ -116,6 +117,7 @@ const BookMenu = {
       if (L === '妖怪圖鑑') await MonDex.open();
       if (L === '稱號') await TitleMenu.open();
       if (L === '任務') await Quests.open();
+      if (L === '手札') await Notebook.open();
       if (L === '存檔') { autosave(); Sound.sfx('badge'); await say(`已儲存到欄位 ${G.slot}！（${fmtDate(G.savedAt)}）`); }
       if (L === '設定') await SettingsPanel.open();
       if (L === '醒來') {                                    // 夢中小鎮：隨時可以醒來（進度保留）
@@ -588,6 +590,51 @@ const Shop = {
   },
 };
 
+/* ---------- 手札：夢中小鎮的委託、聽到的話、撿到的線索（2026-10-07）----------
+   以前玩家要記得「誰說了什麼、下一個該找誰」，現在全部記在這裡，附人名與地點。 */
+const Notebook = {
+  tasks(dreamId) {
+    const out = [];
+    for (const [rid, R] of Object.entries(W.roles)) {
+      if (R.kind !== 'quest2' || R.dream !== dreamId) continue;
+      const at = Guide.where(rid); if (!at) continue;
+      const key = 'sq:' + at.key; if (!G.flags[key] && !G.flags[key + ':got']) continue;          // 還沒聽過的委託不列
+      const ok = R.need ? R.need.every(k => G.defeated[k]) : R.needChests ? R.needChests.every(c => G.chests[c]) : !!G.flags[R.needFlag];
+      out.push({ R, place: W.mapNames[at.map], state: G.flags[key] ? '完成' : ok ? '可回報' : '進行中' });
+    }
+    return out;
+  },
+  /* 探索式的夢：每一塊石板現在的狀態、身上有幾片萬能碎片 */
+  explore(id) {
+    const D = W.dreams[id], P = platesOf(id); if (!P) return '';
+    const rows = P.items.map(it => { const lit = G.flags['pl:' + it.key], have = G.flags['spf:' + it.key];
+      return `<span class="${lit ? 'good' : have ? 'warn' : 'muted'}">${esc(it.name)}${esc(it.mark)}：${lit ? '已亮' : have ? '有碎片，去踩石板' : '還沒找到碎片'}</span>`; });
+    const any = G.flags[P.anyFlag] || 0;
+    return `<div class="qitem"><b>${esc(D.explore.label)}</b>（${platesLit(P)} / ${P.items.length}）<br><span class="small">${rows.join('　')}</span>${any ? `<br><span class="small good">萬能碎片 ×${any}（哪一聲都能用）</span>` : ''}<br><span class="small muted">${esc(D.explore.hint)}</span></div>`;
+  },
+  html() {
+    const parts = [];
+    for (const [id, D] of Object.entries(W.dreams || {})) {
+      const tasks = this.tasks(id), notes = (G.notes || []).filter(n => n.dream === id);
+      if (!tasks.length && !notes.length && !(D.explore && G.flags.dream === id)) continue;
+      parts.push(`<div class="qsec">夢中小鎮．${esc(D.name)}</div>`);
+      if (D.explore) parts.push(Notebook.explore(id));
+      for (const t of tasks) {
+        const col = t.state === '完成' ? 'good' : t.state === '可回報' ? 'warn' : 'muted';
+        parts.push(`<div class="qitem"><b class="${col}">【${t.state}】</b>${esc(t.R.name)}<span class="muted">（${esc(t.place)}）</span><br><span class="small">${esc([].concat(t.R.offer)[0])}</span>${t.state === '進行中' ? `<br><span class="small muted">${esc([].concat(t.R.progress).join(' '))}</span>` : t.state === '可回報' ? '<br><span class="small">任務做完了，回去找他說話。</span>' : ''}</div>`);
+      }
+      for (const n of notes.slice().reverse()) parts.push(`<div class="qitem small"><b>${esc(n.who)}</b><span class="muted">（${esc(n.place || '')}）</span><br>${esc(n.text).replace(/\n/g, '<br>')}</div>`);
+    }
+    return parts.join('') || '<div class="muted small">還沒有紀錄。進到夢中小鎮，跟居民說話、在草叢裡找找看，聽到的話和撿到的線索都會記在這裡。</div>';
+  },
+  open() {
+    return UI.panel(ctl => {
+      ctl.box.innerHTML = `<h2>📓 手札</h2><div class="scroll">${this.html()}</div>` + footKeys('↑↓ 捲動　B 返回');
+      const sc = $('.scroll', ctl.box);
+      ctl.update = () => { const d = Input.dir(); if (d === 'down') sc.scrollTop += 40; if (d === 'up') sc.scrollTop -= 40; if (Input.p('B') || Input.p('A')) { Sound.sfx('back'); ctl.done(); } };
+    });
+  },
+};
 /* ---------- 任務 ---------- */
 const Quests = {
   main() {
@@ -610,6 +657,9 @@ const Quests = {
         out.push(done >= ds.length
           ? `<s>${esc(where)}的機關（${esc(ds[0].label)}）</s>　<b class="good">已全部解開</b>`
           : `解開${esc(where)}的機關「${esc(ds[0].label)}」（${done} / ${ds.length}）<span class="muted">．答對題目就能解開</span>`);
+      }
+      for (const [id, D] of Object.entries(W.dreams || {})) {                 // 探索式的夢：石板進度
+        if (D.explore && G.flags.dream === id && !G.flags[D.openFlag]) out.push(`${esc(D.explore.label)}（${exploreProgress(id)} / ${D.need}）<span class="muted">．${esc(D.explore.hint)}</span>`);
       }
       const n = dexCount(), nt = DEX_TITLES.find(t => t.n > n);
       out.push(nt ? `妖怪圖鑑收集（${n} / ${MON_KEYS.length}）<span class="muted">．再 ${nt.n - n} 種可解鎖稱號「${esc(nt.name)}」</span>`
@@ -899,20 +949,16 @@ const StoryEnding = {
     await Report.open(G);
     if (ng > 0) {                                           // 二週目通關：紀錄（存檔、成績單、紀錄館）都留著，接著自由探索，不再有劇情，也不會問「要不要重新開始」
       G.flags.ngDone = true; autosave();
-      if (gotStone) { await StoryEnding.allDone(); return; }
+      if (gotStone) { await StoryEnding.allDone(true); return; }
       await say('（紀錄已經保存。故事到這裡就結束了——接下來可以自由地在校園裡走走、挑戰、收集，不會再有劇情。）');
       Sound.play(W.music[OW.L.music] || OW.L.music); return;
     }
-    const opts = ['進入二週目（難度提升，可再挑戰所有道館）', '留在校園繼續探索', '重新開始（全新冒險）', '返回標題畫面'];
-    const k = await UI.ask('恭喜通關國中生涯！接下來要做什麼呢？', opts, { cancel: false });
-    const L = opts[k];
-    if (L && L.startsWith('進入二週目')) { await Flow.newGamePlus(); return; }
-    if (L === '重新開始（全新冒險）') { Game.scene = 'blank'; Flow.newGame(G.slot); }
-    else if (L === '返回標題畫面') { Game.scene = 'blank'; titleScreen(); }
-    else Sound.play(W.music[OW.L.music] || OW.L.music);
+    /* 一週目：不再詢問。回到主畫面；存檔已經記著「通關」，下次從「繼續冒險」選這份紀錄，就會開始二週目劇情（見 Flow.load） */
+    G.flags.cleared = true; autosave();
+    Game.scene = 'blank'; titleScreen();
   },
   /* 二週目＋文房四寶到齊：最終的跑馬燈與謝幕 */
-  async allDone() {
+  async allDone(seen) {
     if (G.flags.allDone) return;
     G.flags.allDone = true;
     Sound.play('ending');
@@ -920,6 +966,12 @@ const StoryEnding = {
     await say('（筆、紙、墨、硯——文房四寶四隻器靈同時亮了起來。）');
     await say('小墨：「你看，牠們本來就不是武器。」\n「牠們只是在等一個，願意好好讀、好好寫的人。」');
     await say('★ 全部挑戰完成！\n\n感謝遊玩《詞靈冒險．翡翠之卷》。\n願你在每一次考試之外，都還記得文字原本的溫度。');
+    if (!seen) {                                            // 二週目的結尾：感謝名單（不能跳過，停在 END），再進成績單，紀錄館多一筆二週目
+      await Credits.play({ end: true });
+      const T = totals(G); Meta.clear(G.world);
+      Meta.addReport({ world: G.world, name: G.player.name, title: rankTitle(T.pct), pct: T.pct, total: T.t, time: G.time, lv: G.lv, ng: G.ng || 0, at: Date.now() });
+      autosave(); await Report.open(G);
+    }
     G.flags.ngDone = true; autosave();                      // 紀錄留著，接著自由探索（沒有劇情了）；要回標題從選單的「回到主畫面」
     await say('（紀錄已經保存。接下來可以自由地在校園裡走走、挑戰、收集，不會再有劇情。）');
     Sound.play(W.music[OW.L.music] || OW.L.music);
@@ -969,18 +1021,20 @@ const Credits = {
       `<p class="dlc"><b>${esc(DLC_NOTICE[0])}　${esc(DLC_NOTICE[1])}</b><br>${esc(DLC_NOTICE[2])}<br><b>${esc(DLC_NOTICE[3])}</b></p><p><b>感謝遊玩</b></p>` +
       (end ? `<div class="theend">END</div>` : '');
   },
-  /* opts.end：二週目的結尾，跑馬燈停在大大的 END，按 A 才結束 */
+  /* 不能跳過：按住 A／B／方向鍵只是 1.5 倍速。一週目跑完自己結束；opts.end（二週目）停在大大的 END，按 A 才結束 */
   play(opts = {}) {
     return UI.panel(ctl => {
       ctl.box.classList.add('credits');
-      ctl.box.innerHTML = `<div class="roll">${this.html(!!opts.end)}</div>` + footKeys('A 跳過');
-      const roll = $('.roll', ctl.box); let y = 0; const t0 = performance.now(); let held = false;
+      ctl.box.innerHTML = `<div class="roll">${this.html(!!opts.end)}</div>` + footKeys('按住 A 可加速（1.5 倍）');
+      const roll = $('.roll', ctl.box); let y = 0, last = performance.now(), held = false;
+      const fastKey = () => Input.h('A') || Input.h('B') || Input.h('up') || Input.h('down') || Input.h('left') || Input.h('right');
       ctl.update = () => {
-        y = (performance.now() - t0) / 40;
+        const now = performance.now(), dt = now - last; last = now;
+        y += dt / 40 * (fastKey() ? 1.5 : 1);
         const endEl = $('.theend', roll), stop = endEl ? endEl.offsetTop + endEl.offsetHeight / 2 - ctl.box.clientHeight / 2 : Infinity;
         if (endEl && y >= stop) { y = stop; if (!held) { held = true; const f = $('.foot', ctl.box); if (f) f.textContent = 'A 結束'; } }
         roll.style.transform = `translateY(${-y}px)`;
-        if (Input.p('A') || Input.p('B')) { if (endEl && !held) { y = stop; held = true; const f = $('.foot', ctl.box); if (f) f.textContent = 'A 結束'; } else { ctl.done(); return; } }
+        if (held && (Input.p('A') || Input.p('B'))) { ctl.done(); return; }
         if (!endEl && y > roll.offsetHeight + 40) ctl.done();
       };
     });
