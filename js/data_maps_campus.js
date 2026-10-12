@@ -667,8 +667,12 @@ CAMPUS_MAPS.zy_gym = {
    ------------------------------------------------------------
    成語圖書股長怕被比較：居民是她「收藏卻沒讀懂」的成語。港口、棧橋、書箱。
    進夢：現實的圖書館（lib）→ 書頁翻飛（pages）→ 這裡。
-   dj_town 書海港：攤開的書（醒來）、茶亭（休息）、4 位委託人、周以恆、3 塊成語石碑（機關）、道館大門
-   dj_pier 船埠：C 區妖怪、3 個寶箱（走失的借書證）、鈴鐺小偷、青蛙學弟
+   2026-10-10 改成探索式（沿用注音坡）：不接委託，直接探索。四頁「成語故事殘頁」藏在三層書倉與船埠的老井邊，
+   帶回港口的 4 塊成語石碑，讀完故事、選出成語才會亮（L.plates.ask）；四塊都亮了，道館才開。
+   dj_town 書海港：攤開的書（醒來）、碼頭工人阿帆（說明）、老管理員（休息）、4 塊成語石碑、書倉與鈴鐺鋪的門、道館大門
+   dj_hold1／2／3 書倉一～三樓：殘頁 ①②③、周以恆、2 位訓練員、老陳、練習成語的小朋友
+   dj_shop 鈴鐺鋪：老闆
+   dj_pier 船埠：C 區妖怪、3 個寶箱、鈴鐺小偷、青蛙學弟、老農夫、井邊婆婆、殘頁 ④（老井邊）
    dj_gym 夢中的圖書館：真正的股長
    ============================================================ */
 CAMPUS_MAPS.dj_town = {
@@ -684,34 +688,60 @@ CAMPUS_MAPS.dj_town = {
     'TT....................TT',
     'TT,,,,,,,,,,,,,,,,,,,,TT',
     'TT.....,S,,,,,,,S.....TT',
-    'TTO....,,,,,,,,,,....OTT',
+    'TT.O..O,,,,,,,,,,O..O.TT',
     'TT~~~~~~~~++++~~~~~~~~TT',
     'TT~~~~~~~~++++~~~~~~~~TT',
-    'TT~~~~~~~~+++O~~~~~~~~TT',
+    'TT~~~~~~~~++++~~~~~~~~TT',
     'TT~~~~~~~~++++~~~~~~~~TT',
     'TT~~~~~~~~++++~~~~~~~~TT',
     'TT~~~~~~~~++++~~~~~~~~TT',
     'TTTTTTTTTTT++TTTTTTTTTTT',
   ],
-  props: [['shopx', 2, 2], ['lib8', 8, 1], ['flaty', 17, 2]],
+  props: [['bellshop', 2, 3], ['lib8', 8, 1], ['flatyd', 17, 2]],
   doorWarps: {
+    '4,6':  { label: '鈴鐺鋪', to: 'dj_shop', tx: 4, ty: 5, dir: 'up', ret: { x: 4, y: 7 } },
+    '19,6': { label: '書倉', to: 'dj_hold1', tx: 6, ty: 7, dir: 'up', ret: { x: 19, y: 7 } },
     '11,7': { plate: 'lib', label: '夢中的圖書館', to: 'dj_gym', tx: 7, ty: 10, dir: 'up', ret: { x: 11, y: 8 },
-              needFlag: 'djOpen', flagText: '（圖書館的大門被夢鎖著……先幫港口的人解決麻煩吧。）' },
+              needFlag: 'djOpen', flagText: '（圖書館的大門被夢鎖著……四塊成語石碑都亮起來，門才會開。）' },
   },
   warps: [
     { x: 11, y: 17, to: 'dj_pier', tx: 9,  ty: 1, dir: 'down' },
     { x: 12, y: 17, to: 'dj_pier', tx: 10, ty: 1, dir: 'down' },
   ],
-  devices: {
-    '2,10':  { group: 'djstone', flag: 'ds1', cat: '成語', label: '成語石碑',
-      text: '石碑上刻著一個成語，缺了一個字。碑腳下坐著一隻兔子的石像……\n（把缺的字補回去，石碑就會亮起來。）',
-      ok: '缺的字回到了石碑上，石碑亮了起來！', allText: '三塊石碑都亮起來了！' },
-    '21,10': { group: 'djstone', flag: 'ds2', cat: '成語', label: '成語石碑',
-      text: '第二塊石碑被海風磨得看不清楚，只剩下半個字。', ok: '字跡清楚了，石碑也亮了！', allText: '三塊石碑都亮起來了！' },
-    '13,13': { group: 'djstone', flag: 'ds3', cat: '成語', label: '成語石碑', under: '+',
-      text: '棧橋邊的最後一塊石碑，浪花打濕了一半的字。', ok: '最後一塊石碑也亮了——整座港口的石碑都連成了一句話！',
-      allText: '三塊石碑都亮起來了——港口的人不會再「守著樹墩等兔子」了！', onAll: 'dsAll' },
+  /* 閃光點：港口只有 1 個（岸邊的爛書）；殘頁在書倉三層與船埠。 */
+  sparks: {
+    '8,10': { id: 'ds_t1', title: '一本泡爛的書', text: ['漂上岸的書，字全糊在一起，只剩一個「兔」字的半邊。'] },
   },
+  /* 成語石碑（ask）：面對它按確認，放上殘頁、選出成語才會亮。石碑本身是 'O' 這一格。 */
+  plates: { flag: 'dpAll', anyFlag: 'dpAny', ask: true,
+    items: [
+      { x: 3,  y: 10, key: 'st1', note: 262 },
+      { x: 6,  y: 10, key: 'st2', note: 330 },
+      { x: 17, y: 10, key: 'st3', note: 392 },
+      { x: 20, y: 10, key: 'st4', note: 523 },
+    ],
+    pages: [
+      { key: 'pg1', title: '殘頁（宋國的農夫）', idiom: '守株待兔', wrong: ['刻舟求劍', '揠苗助長', '畫蛇添足'],
+        story: ['宋國有個農夫，在田裡看見一隻兔子飛奔過來，一頭撞在樹墩上，死了。',
+                '農夫撿到兔子，高興極了。從此他不再下田，每天守在樹墩旁，等著下一隻兔子自己撞上來。'],
+        moral: ['「守株待兔」：比喻不肯努力，只想靠運氣撿便宜。'] },
+      { key: 'pg2', title: '殘頁（破了洞的羊圈）', idiom: '亡羊補牢', wrong: ['狐假虎威', '自相矛盾', '葉公好龍'],
+        story: ['有個人養了一群羊。一天早上，他發現羊圈破了個洞，少了一隻羊，是被狼叼走的。',
+                '鄰居勸他快把洞補上，他說：「羊都丟了，補它做什麼？」',
+                '隔天又少了一隻，他才後悔，趕緊把羊圈修好。後來，羊就不再被叼走了。'],
+        moral: ['「亡羊補牢」：比喻出了差錯之後趕快補救，還來得及。'] },
+      { key: 'pg3', title: '殘頁（想偷鈴鐺的人）', idiom: '掩耳盜鈴', wrong: ['對牛彈琴', '杯弓蛇影', '塞翁失馬'],
+        story: ['有個人想偷一口鈴鐺，可是一碰，鈴鐺就噹噹響。',
+                '他怕被人聽見，竟然伸手把自己的耳朵摀住，心想：「我聽不到，別人也聽不到。」'],
+        moral: ['「掩耳盜鈴」：比喻自己騙自己，以為蒙住了，別人就不知道。'] },
+      { key: 'pg4', title: '殘頁（井裡的青蛙）', idiom: '井底之蛙', wrong: ['畫蛇添足', '鷸蚌相爭', '螳臂當車'],
+        story: ['一隻青蛙住在淺淺的井裡，覺得自己最快樂。',
+                '東海來的大鱉路過，青蛙得意地邀牠進來看看。大鱉的腳才伸進去就被卡住了，只好退出來。',
+                '大鱉告訴牠：「大海有多大，千里也比不上，萬丈也量不完。」青蛙聽了，愣了好久。'],
+        moral: ['「井底之蛙」：比喻見識狹小，卻自以為了不起。'] },
+    ],
+    missing: st => ['（石碑上刻著一道窄窄的凹槽，好像少了一頁什麼。）', '（身上沒有殘頁，也沒有萬能書籤。到書倉的三層樓、船埠的老井邊找找閃光的地方。）'],
+    done: ['（四塊成語石碑同時亮起，石碑上的四個成語連成了一圈光。）', '（遠處傳來翻動書頁的聲音——圖書館的方向。）'] },
   signs: { '8,9': 'dj_board1', '16,9': 'dj_board2' },
 };
 CAMPUS_MAPS.dj_pier = {
@@ -750,6 +780,11 @@ CAMPUS_MAPS.dj_pier = {
     { x: 17, y: 12, id: 'djb2', items: { heal: 1 } },
     { x: 10, y: 20, id: 'djb3', items: { hint: 1 } },
   ],
+  /* 船埠的閃光點：老井邊一頁殘頁、水邊一個漂流瓶（沒用）。寶箱不再綁委託，就是普通的寶箱 */
+  sparks: {
+    '15,14': { id: 'ds_p1', frag: 'pg4', see: '（老井的井沿上，卡著一頁被風吹得翹起來的紙。）', title: '', text: [] },
+    '6,11':  { id: 'ds_p2', title: '一個漂流瓶', text: ['瓶子裡塞著一張紙。攤開來——是空白的，什麼字也沒有。'] },
+  },
   signs: { '16,14': 'dj_well' },
 };
 CAMPUS_MAPS.dj_gym = {
@@ -773,6 +808,101 @@ CAMPUS_MAPS.dj_gym = {
     { x: 8, y: 11, to: 'dj_town', tx: 12, ty: 8, dir: 'down' },
   ],
   signs: {},
+};
+
+/* ---- 書海港的書倉（三層）與鈴鐺鋪（2026-10-10）---- */
+/* 書倉 1F：進門的一層。殘頁①（守株待兔）夾在書堆縫裡 */
+CAMPUS_MAPS.dj_hold1 = {
+  music: 'town', theme: 't_library', chapter: 2, indoor: 1, dream: 'dj',
+  rows: [
+    'ww/www/wwww/ww',
+    'wkkk___kkk__>w',
+    'w____________w',
+    'w_kkkk__kkkk_w',
+    'w____________w',
+    'w_kkkk__kkkk_w',
+    'w____________w',
+    'wp__________pw',
+    'wwwwww__wwwwww',
+  ],
+  warps: [
+    { x: 12, y: 1, to: 'dj_hold2', tx: 11, ty: 7, dir: 'left' },
+    { x: 6, y: 8, to: '@ret' },
+    { x: 7, y: 8, to: '@ret' },
+  ],
+  sparks: {
+    '7,3':  { id: 'ds_a1', frag: 'pg1', see: '（兩排書架中間的縫裡，夾著一張發黃的紙。）', title: '', text: [] },
+    '12,5': { id: 'ds_a2', title: '一張被蟲蛀的書籤', text: ['蛀成一排小洞，每個洞都剛好一個字大。這隻蟲，大概是很愛讀書。'] },
+  },
+  npcs: [],
+};
+/* 書倉 2F：殘頁②（亡羊補牢）夾在書架縫裡；周以恆在這裡 */
+CAMPUS_MAPS.dj_hold2 = {
+  music: 'town', theme: 't_library', chapter: 2, indoor: 1, dream: 'dj',
+  rows: [
+    'ww/www/wwww/ww',
+    'wkkk___kkk__>w',
+    'w____________w',
+    'w_kkkk__kkkk_w',
+    'w____________w',
+    'w_kkkk__kkkk_w',
+    'w____________w',
+    'wp__________<w',
+    'wwwwwwwwwwwwww',
+  ],
+  warps: [
+    { x: 12, y: 1, to: 'dj_hold3', tx: 11, ty: 7, dir: 'left' },
+    { x: 12, y: 7, to: 'dj_hold1', tx: 12, ty: 2, dir: 'down' },
+  ],
+  sparks: {
+    '7,5': { id: 'ds_b1', frag: 'pg2', see: '（書架夾縫裡，露出了一角紙。）', title: '', text: [] },
+    '1,3': { id: 'ds_b2', title: '一瓶乾掉的墨水', text: ['倒過來搖了搖，連一滴也倒不出來。'] },
+  },
+  npcs: [],
+};
+/* 書倉 3F：頂樓。殘頁③（掩耳盜鈴）壓在窗台上 */
+CAMPUS_MAPS.dj_hold3 = {
+  music: 'town', theme: 't_library', chapter: 2, indoor: 1, dream: 'dj',
+  rows: [
+    'ww/www/wwww/ww',
+    'w____________w',
+    'w_kkkk__kkkk_w',
+    'w____________w',
+    'w_kkkk__kkkk_w',
+    'w____________w',
+    'w____________w',
+    'wp__________<w',
+    'wwwwwwwwwwwwww',
+  ],
+  warps: [
+    { x: 12, y: 7, to: 'dj_hold2', tx: 12, ty: 2, dir: 'down' },
+  ],
+  sparks: {
+    '6,1': { id: 'ds_c1', frag: 'pg3', see: '（窗台上壓著一頁紙，被風吹得一角翹起來。）', title: '', text: [] },
+    '1,6': { id: 'ds_c2', title: '一隻睡著的書蟲', text: ['牠翻了個身，又繼續睡了。書頁上留下一條小小的啃痕。'] },
+  },
+  npcs: [],
+};
+/* 鈴鐺鋪：老闆。牆上掛滿鈴鐺，一陣風吹過，全都叮叮響 */
+CAMPUS_MAPS.dj_shop = {
+  music: 'town', theme: 't_home', chapter: 2, indoor: 1, dream: 'dj',
+  rows: [
+    'wwww/w/www',
+    'wkk____kkw',
+    'w________w',
+    'w__rrrr__w',
+    'wp_rrrr_pw',
+    'w________w',
+    'wwww__wwww',
+  ],
+  warps: [
+    { x: 4, y: 6, to: '@ret' },
+    { x: 5, y: 6, to: '@ret' },
+  ],
+  sparks: {
+    '8,2': { id: 'ds_s1', title: '一個生鏽的鈴鐺', text: ['搖了搖——一點聲音也沒有。鈴舌早就不見了。'] },
+  },
+  npcs: [],
 };
 
 /* ============================================================
@@ -1354,20 +1484,31 @@ const CAMPUS_NPCS = {
   zy_gym: [
     { role: 'boss1', x: 5, y: 2, dir: 'down', key: 'c1a:boss1' },   // 真正的小老師。打倒的紀錄沿用 c1a:boss1（舊存檔、測試都不用改）
   ],
+  /* 書海港（2026-10-10 改探索式）：港口主街只留 3 位（攤開的書、說明的碼頭工人、補血的老管理員），其餘散在書倉、鈴鐺鋪、船埠 */
   dj_town: [
     { role: 'djWake',  x: 12, y: 9,  dir: 'down' },
     { role: 'djTea',   x: 5,  y: 9,  dir: 'down' },
-    { role: 'djG2',    x: 3,  y: 9,  dir: 'right' },
-    { role: 'djG1',    x: 19, y: 9,  dir: 'down' },
-    { role: 'djG3',    x: 18, y: 10, dir: 'right' },
-    { role: 'djG4',    x: 8,  y: 10, dir: 'left' },
-    { role: 'djRival', x: 14, y: 10, dir: 'left' },
-    { role: 'djQuiz',  x: 16, y: 10, dir: 'down' },
     { role: 'djDock',  x: 9,  y: 9,  dir: 'down' },
+  ],
+  dj_hold1: [
+    { role: 'djG2',    x: 3,  y: 6,  dir: 'right' },
+    { role: 'djQuiz',  x: 11, y: 2,  dir: 'down' },
+  ],
+  dj_hold2: [
+    { role: 'djRival', x: 3,  y: 2,  dir: 'down' },
+    { role: 'djTr1',   x: 10, y: 6,  dir: 'left', sight: 3 },
+  ],
+  dj_hold3: [
+    { role: 'djTr2',   x: 9,  y: 5,  dir: 'left', sight: 3 },
+  ],
+  dj_shop: [
+    { role: 'djG3',    x: 2,  y: 2,  dir: 'right' },
   ],
   dj_pier: [
     { role: 'djBell', x: 13, y: 4,  dir: 'left', sight: 3 },
     { role: 'djFrog', x: 15, y: 15, dir: 'left', sight: 3 },
+    { role: 'djG1',   x: 6,  y: 3,  dir: 'down' },
+    { role: 'djG4',   x: 17, y: 15, dir: 'left' },
   ],
   dj_gym: [
     { role: 'boss2', x: 8, y: 2, dir: 'down', key: 'lib:boss2' },   // 真正的股長。打倒的紀錄沿用 lib:boss2（舊存檔、測試都不用改）
@@ -1733,14 +1874,14 @@ function CAMPUS_PATCH(S) {
                   '（講台上，小老師拿起粉筆，在黑板上寫下了很慢、很工整的兩個字：「注音」。）',
                   '小老師：「……這次，我自己寫的。」'] },
     dj: { name: '書海港', home: { map: 'lib', x: 8, y: 3, dir: 'down' }, town: { map: 'dj_town', x: 11, y: 9, dir: 'down' },
-      heal: { map: 'dj_town', x: 5, y: 10 }, need: 3, openFlag: 'djOpen', doneFlag: 'djDone', enteredFlag: 'djEntered', seenFlag: 'djSeen',
+      heal: { map: 'dj_town', x: 5, y: 10 }, need: 4, openFlag: 'djOpen', doneFlag: 'djDone', enteredFlag: 'djEntered', seenFlag: 'djSeen',
       legacyKey: 'lib:boss2', homeName: '圖書館', fx: 'pages', tint: [255, 190, 100, .17],
       glyphs: ['守', '株', '待', '兔', '亡', '羊', '補', '牢', '掩', '耳', '盜', '鈴', '井', '蛙', '書', '頁'],
       openText: ['（遠處傳來翻動書頁的聲音——港口盡頭，圖書館的大門開了。）', '（你想起老管理員說的話：「榜單可以換，讀懂的那一本不會。」）'],
       arrive: ['（書頁停了下來。你站在一座港口的石板路上，海面上漂著一頁一頁的書。）',
                '小墨：「別怕，這是「書海港」——圖書館碎片留下的夢。」',
                '小墨：「這裡的居民，都是股長「收藏卻沒讀懂」的成語變出來的。」',
-               '小墨：「真正的股長在港口盡頭的圖書館裡，但夢把門鎖上了。幫港口的人解決三件麻煩，夢才會鬆口。」',
+               '小墨：「真正的股長在港口盡頭的圖書館裡，但夢把門鎖上了。碼頭上的阿帆知道門怎麼開，去跟他聊聊。」',
                '小墨：「想回圖書館的話，隨時可以從攤開的書、或選單的「醒來」回去，進度都會留著。」'],
       finish: ['（股長身上的書頁一頁一頁飛了起來。整座港口像被風翻過的書，慢慢闔上……）',
                '（老農夫、老陳、鈴鐺鋪老闆、周以恆……每個人都朝你揮了揮手。）',
@@ -1800,6 +1941,17 @@ function CAMPUS_PATCH(S) {
       return out;
     } };
   S.dreams.zy.drop = { chance: 0.45, text: '（對方掉下了一片閃著光的碎片——是「萬能碎片」，哪一聲都能用！）' };
+  /* 書海港（探索式）：找回四頁成語故事殘頁，放上港口的成語石碑、選出成語，四塊都亮了道館才開。打夢裡的人有機率掉「萬能書籤」。 */
+  S.dreams.dj.explore = { label: '成語石碑', hint: '到書倉的三層樓、船埠的老井邊找故事殘頁，帶回港口的成語石碑，選出它說的是哪個成語',
+    status() {
+      const P = platesOf('dj'), lit = platesLit(P), placed = pg => P.items.some(it => G.flags['pl:' + it.key] === pg.key);
+      const have = P.pages.filter(pg => G.flags['spf:' + pg.key] && !placed(pg)), none = P.pages.filter(pg => !G.flags['spf:' + pg.key] && !placed(pg)), any = G.flags[P.anyFlag] || 0;
+      const out = [`成語石碑亮了 ${lit} / ${P.items.length} 塊。`];
+      if (have.length) out.push(`你身上有「${have.map(pg => pg.title).join('」、「')}」，拿去石碑上放放看。`);
+      if (none.length) out.push(`還有 ${none.length} 頁殘頁沒找到。` + (any ? `（你有 ${any} 張萬能書籤，面對石碑時可以直接點亮一塊。）` : '書倉的三層樓和船埠的老井邊找找看；打贏夢裡的人，也有機會掉出一張「萬能書籤」。'));
+      return out;
+    } };
+  S.dreams.dj.drop = { chance: 0.45, name: '萬能書籤', use: '面對成語石碑時可以直接點亮一塊', text: '（對方掉下了一張空白的書籤——是「萬能書籤」，哪一塊石碑都能用！）' };
   S.stages[0].roles = ['avatar1', 'boss1'];
   S.stages[1].roles = ['rival1', 'avatar2', 'boss2'];
   S.stages[2].roles = ['m1', 'm2', 'm3', 'avatar3', 'boss3'];
@@ -1810,7 +1962,7 @@ function CAMPUS_PATCH(S) {
     ['居民樓', ['chenA1', 'chenA2', 'liB1', 'liB2', 'liB3', 'xfC1', 'xfC2', 'xfC3', 'xfC4', 'bkf']],
     ['校園', ['front', 'hall', 'corridor1', 'stair1', 'corridor2', 'yard2', 'field', 'audyard']],
     ['道館', ['c1a', 'lib', 'yard', 'hist', 'aud']],
-    ['夢中小鎮', ['zy_town', 'zy_slope', 'zy_bun1', 'zy_bun2', 'zy_home', 'zy_hut', 'zy_gym', 'dj_town', 'dj_pier', 'dj_gym', 'hn_town', 'hn_pavilion', 'hn_gym', 'pl_town', 'pl_road', 'pl_gym']],
+    ['夢中小鎮', ['zy_town', 'zy_slope', 'zy_bun1', 'zy_bun2', 'zy_home', 'zy_hut', 'zy_gym', 'dj_town', 'dj_hold1', 'dj_hold2', 'dj_hold3', 'dj_shop', 'dj_pier', 'dj_gym', 'hn_town', 'hn_pavilion', 'hn_gym', 'pl_town', 'pl_road', 'pl_gym']],
     ['教室．其他', ['c8', 'clinic_h', 'store_c', 'forge', 'inkpool']],
   ];
   Object.assign(S.mapNames, {
@@ -1823,7 +1975,7 @@ function CAMPUS_PATCH(S) {
     clinic_h: '保健室', store_h: '便利商店', store_c: '福利社', forge: '工藝教室',
     zy_bun1: '包子鋪', zy_bun2: '包子鋪（2F）', zy_home: '坡下人家', zy_hut: '坡上小屋',
     zy_town: '夢中小鎮．注音坡', zy_slope: '注音坡道', zy_gym: '夢中的一年甲班',
-    dj_town: '夢中小鎮．書海港', dj_pier: '船埠', dj_gym: '夢中的圖書館',
+    dj_town: '夢中小鎮．書海港', dj_pier: '船埠', dj_gym: '夢中的圖書館', dj_hold1: '書倉（1F）', dj_hold2: '書倉（2F）', dj_hold3: '書倉（3F）', dj_shop: '鈴鐺鋪',
     hn_town: '夢中小鎮．花南街', hn_pavilion: '聽雨亭', hn_gym: '夢中的花室',
     pl_town: '夢中小鎮．碑林關', pl_road: '古碑小徑', pl_gym: '夢中的檔案室',
   });

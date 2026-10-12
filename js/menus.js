@@ -607,6 +607,12 @@ const Notebook = {
   /* 探索式的夢：每一塊石板現在的狀態、身上有幾片萬能碎片 */
   explore(id) {
     const D = W.dreams[id], P = platesOf(id); if (!P) return '';
+    if (P.ask) {                                                          // 成語石碑：每一頁殘頁現在在哪
+      const any = G.flags[P.anyFlag] || 0;
+      const rows = P.pages.map(pg => { const lit = P.items.some(it => G.flags['pl:' + it.key] === pg.key), have = G.flags['spf:' + pg.key];
+        return `<span class="${lit ? 'good' : have ? 'warn' : 'muted'}">${esc(pg.title)}：${lit ? `已放上石碑（${esc(pg.idiom)}）` : have ? '收著，拿去成語石碑' : '還沒找到'}</span>`; });
+      return `<div class="qitem"><b>${esc(D.explore.label)}</b>（${platesLit(P)} / ${P.items.length}）<br><span class="small">${rows.join('<br>')}</span>${any ? `<br><span class="small good">${esc(D.drop.name)} ×${any}（${esc(D.drop.use)}）</span>` : ''}<br><span class="small muted">${esc(D.explore.hint)}</span></div>`;
+    }
     const rows = P.items.map(it => { const lit = G.flags['pl:' + it.key], have = G.flags['spf:' + it.key];
       return `<span class="${lit ? 'good' : have ? 'warn' : 'muted'}">${esc(it.name)}${esc(it.mark)}：${lit ? '已亮' : have ? '有碎片，去踩石板' : '還沒找到碎片'}</span>`; });
     const any = G.flags[P.anyFlag] || 0;

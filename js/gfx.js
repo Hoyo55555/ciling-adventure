@@ -1523,6 +1523,8 @@ const GFX = (() => {
       awn: '#8a8a92', awn2: '#62626a', sign: null, floors: 2, ground: 'home' },
     bkfast:  { style: 'shopfront', w: 5, h: 4, over: 1, door: [2, 3], name: '早餐店',
       awn: '#e8a030', awn2: '#b87818', sign: '#f4f0e4', signInk: '#8a4a20' },
+    bellshop:{ style: 'shopfront', w: 5, h: 4, over: 1, door: [2, 3], name: '鈴鐺鋪',
+      awn: '#3aa06a', awn2: '#247a4c', sign: '#f4f0e4', signInk: '#1f6b46' },
     /* 打烊的小店（進不去）：讓街景不要每棟都長一樣 */
     shopx:   { style: 'shopfront', w: 5, h: 5, over: 1, door: null, name: '小店（打烊）',
       awn: '#d85a4a', awn2: '#a03a2e', sign: '#f4f0e4', signInk: '#a03a2e', floors: 2, ground: 'closed' },
@@ -1991,6 +1993,10 @@ const GFX = (() => {
     bkfast: C => { const G = [...kRoof('gray', C.w, 2), ...kWall('orange', C.w, [0, 2, 3])];
       kPut(G, 1, 2, KP.win); kPut(G, 3, 2, KP.win);
       kRun(G, 0, C.w - 1, 3, KP.awnO); kRun(G, 0, C.w - 1, 4, KP.shop); kPut(G, C.door[0], 4, KP.doorWood); return G; },
+    /* 鈴鐺鋪（書海港）：跟早餐店同一種店面，換成綠色遮雨棚 */
+    bellshop: C => { const G = [...kRoof('gray', C.w, 2), ...kWall('orange', C.w, [0, 2, 3])];
+      kPut(G, 1, 2, KP.win); kPut(G, 3, 2, KP.win);
+      kRun(G, 0, C.w - 1, 3, KP.awnG); kRun(G, 0, C.w - 1, 4, KP.shop); kPut(G, C.door[0], 4, KP.doorWood); return G; },
     /* 打烊的小店：橘色遮雨棚＋暗掉的櫥窗 */
     shopx: C => { const G = [...kRoof('gray', C.w, 2), ...kWall('orange', C.w, [0, 1, 2, 3])];
       kPut(G, 1, 2, KP.win); kPut(G, 3, 2, KP.win); kRun(G, 0, C.w - 1, 4, KP.awnO); kRun(G, 1, 3, 5, KP.shop); return G; },

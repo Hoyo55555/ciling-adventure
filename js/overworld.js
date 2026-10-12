@@ -188,6 +188,7 @@ const OW = {
     const n = this.npcAt(tx, ty) || (this.tile(tx, ty) === 't' && this.npcAt(tx + dx, ty + dy)); if (n) { this.run(() => talkTo(n)); return; }
     const c = this.chestAt(tx, ty); if (c) { this.run(() => openChest(c)); return; }
     const sp = this.L.sparks && this.L.sparks[key]; if (sp && !G.flags['sp:' + sp.id]) { this.run(() => collectSpark(sp)); return; }
+    const st = this.L.plates && this.L.plates.ask && this.L.plates.items.find(q => q.x === tx && q.y === ty); if (st) { this.run(() => useStone(this.L.plates, st)); return; }       // 成語石碑
     if (this.L.signs && this.L.signs[key]) { this.run(() => say(W.signs[this.L.signs[key]])); return; }
     const dw = this.L.doorWarps && this.L.doorWarps[key];
     if (dw) { this.run(() => enterDoor(dw)); return; }
@@ -684,15 +685,22 @@ function stageIdx(R) {
 /* 站在這一格會觸發的事（目前只有石板）：回傳要執行的函式，沒有就回傳 null */
 function exploreStep() {
   const L = OW.L, p = OW.p;
-  if (L.plates) { const it = L.plates.items.find(q => q.x === p.x && q.y === p.y); if (it) return () => stepPlate(L.plates, it); }
+  if (L.plates && !L.plates.ask) { const it = L.plates.items.find(q => q.x === p.x && q.y === p.y); if (it) return () => stepPlate(L.plates, it); }
   return null;
 }
 /* 面對閃光點按確認：像跟人說話一樣才會撿，踩上去不會有反應 */
 async function collectSpark(sp) {
-  const P = platesOf(OW.L.dream);
-  if (G.teacher && sp.frag && P) for (const it of P.items) G.flags['spf:' + it.key] = true;        // 教師版：撿到任何一片碎片，四片都算有
+  const P = platesOf(OW.L.dream), pg = P && P.pages && P.pages.find(q => q.key === sp.frag);
+  if (G.teacher && sp.frag && P) for (const it of (P.pages || P.items)) G.flags['spf:' + it.key] = true;        // 教師版：撿到任何一片碎片（殘頁），全部都算有
   G.flags['sp:' + sp.id] = true;
-  if (sp.frag) {
+  if (pg) {                                                                         // 故事殘頁（書海港）：撿起來、讀一遍，拿去成語石碑放上
+    Sound.sfx('catch'); G.flags['spf:' + pg.key] = true;
+    addNote({ id: 'sp:' + sp.id, kind: 'clue', dream: OW.L.dream, who: pg.title, place: W.mapNames[OW.id], text: pg.story.join('\n') });
+    if (sp.see) await say(sp.see);
+    await say(`（你撿起了「${pg.title}」！）`); await sayEach(pg.story);
+    if (P.items.some(q => G.flags['pl:' + q.key] === pg.key)) await say('（這一頁的故事，石碑上已經有了。）');
+    else await say('（拿去港口的成語石碑試試看。）');
+  } else if (sp.frag) {
     const it = P && P.items.find(q => q.key === sp.frag);
     Sound.sfx('catch'); G.flags['spf:' + sp.frag] = true;
     addNote({ id: 'sp:' + sp.id, kind: 'clue', dream: OW.L.dream, who: sp.title, place: W.mapNames[OW.id], text: [].concat(sp.text).join('\n') });
@@ -729,6 +737,49 @@ async function stepPlate(P, it) {
   G.flags[P.flag] = true; await sleep(250); Sound.sfx('badge'); await sayEach(P.done);
   await dreamProgress(OW.L.dream); autosave();
 }
+/* 成語石碑（P.ask，書海港）：面對它按確認。放上一頁殘頁、讀完故事、選出是哪個成語，選對才亮；選錯沒有懲罰，殘頁還在手上。
+   身上沒有殘頁但有「萬能書籤」，可以直接點亮一塊。亮著的石碑（'pl:石碑'）的值是放上去的那一頁的 key。 */
+async function useStone(P, st) {
+  const key = 'pl:' + st.key, byKey = k => P.pages.find(q => q.key === k), placed = () => P.items.map(q => G.flags['pl:' + q.key]).filter(v => typeof v === 'string');
+  if (G.flags[P.flag] || G.flags[key]) {
+    const pg = byKey(G.flags[key]); Sound.sfx('back');
+    await say(pg ? `（石碑上浮著「${pg.idiom}」，微微發光。）` : '（石碑微微發著光。）');
+    if (pg) await sayEach(pg.moral); return;
+  }
+  let pg = null, how = 'own';
+  if (G.teacher) {                                                                  // 教師版：直接全部點亮
+    const left = P.pages.filter(q => !placed().includes(q.key));
+    for (const q of P.items) if (!G.flags['pl:' + q.key]) G.flags['pl:' + q.key] = left.shift().key;
+    how = 'all';
+  } else {
+    const have = P.pages.filter(q => G.flags['spf:' + q.key] && !placed().includes(q.key));
+    if (have.length) {
+      pg = have[0];
+      if (have.length > 1) { const i = await ask('要放上哪一頁？', have.map(q => q.title).concat('先不放')); if (i < 0 || i >= have.length) return; pg = have[i]; }
+      Sound.sfx('ok'); await say('（殘頁和石碑上的凹槽剛好合起來。）'); await sayEach(pg.story);
+      const order = shuffle([pg.idiom].concat(pg.wrong)), r = await ask('這頁故事說的是哪個成語？', order);
+      if (r < 0) { await say('（你把殘頁收了回來。）'); return; }
+      if (order[r] !== pg.idiom) { Sound.sfx('bump'); await say('（石碑沒有反應。再讀一次殘頁吧——它還收在手札裡。）'); return; }
+    } else {
+      const any = G.flags[P.anyFlag] || 0;
+      if (!any) { Sound.sfx('bump'); await sayEach(P.missing(st)); return; }
+      if (!(await UI.yesno(`石碑的凹槽是空的。要用一張「萬能書籤」嗎？（還有 ${any} 張）`))) return;
+      pg = P.pages.find(q => !placed().includes(q.key)); G.flags[P.anyFlag] = any - 1; how = 'any';
+    }
+    G.flags[key] = pg.key;
+  }
+  const n = platesLit(P);
+  Sound.note(st.note || 440, .4);
+  if (how === 'all') await say('（教師版：四塊成語石碑一起亮了起來。）');
+  else {
+    addNote({ id: 'pl:' + st.key, kind: 'clue', dream: OW.L.dream, who: `成語石碑「${pg.idiom}」`, place: W.mapNames[OW.id], text: pg.moral.join('\n') });
+    await say(how === 'any' ? '（用了一張萬能書籤。石碑發出微光——亮了！）' : '（石碑發出微光——亮了！）');
+    await sayEach(pg.moral);
+  }
+  if (how !== 'all' && n < P.items.length) { await say(`（石碑 ${n} / ${P.items.length}${G.flags[P.anyFlag] ? `　萬能書籤還有 ${G.flags[P.anyFlag]} 張` : ''}）`); autosave(); return; }
+  G.flags[P.flag] = true; await sleep(250); Sound.sfx('badge'); await sayEach(P.done);
+  await dreamProgress(OW.L.dream); autosave();
+}
 const TONE_PTS = { 'ˉ': [[4, 7, 11, 7]], 'ˊ': [[4, 10, 11, 4]], 'ˇ': [[4, 5, 7, 10], [7, 10, 11, 5]], 'ˋ': [[4, 4, 11, 10]] };
 function pixLine(g, x0, y0, x1, y1) {
   const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
@@ -738,7 +789,12 @@ function drawPlates(g, L, cx, cy, now) {
   const P = L.plates; if (!P) return;
   P.items.forEach(it => {
     const px = it.x * 16 - cx, py = it.y * 16 - cy; if (px < -16 || px > 240 || py < -16 || py > 160) return;
-    const lit = !!G.flags['pl:' + it.key], ready = !lit && (haveFrag(it) || (G.flags[P.anyFlag] || 0) > 0);
+    const lit = !!G.flags['pl:' + it.key], ready = !lit && (P.ask ? P.pages.some(q => haveFrag(q) && !P.items.some(z => G.flags['pl:' + z.key] === q.key)) : haveFrag(it)) || (!lit && (G.flags[P.anyFlag] || 0) > 0);
+    if (P.ask) {                                                    // 成語石碑：石碑本身是 'O' 這一格畫的，這裡只加發光與提示星
+      if (lit) { g.fillStyle = `rgba(255,236,150,${.26 + .14 * Math.sin(now / 220)})`; g.fillRect(px, py, 16, 16); g.fillStyle = '#fff4b8'; g.fillRect(px + 7, py + 3, 2, 2); }
+      else { if (ready) { g.fillStyle = `rgba(180,230,255,${.22 + .14 * Math.sin(now / 180)})`; g.fillRect(px, py, 16, 16); } drawDevMark(g, px, py, now); }
+      return;
+    }
     const C = lit ? ['#e8d890', '#fff4b8', '#b89c3c', '#6a4a10'] : ['#a8b6b7', '#c9d4d5', '#757f7f', '#3a4a5a'];
     g.fillStyle = C[0]; g.fillRect(px + 1, py + 1, 14, 14);
     g.fillStyle = C[1]; g.fillRect(px + 1, py + 1, 14, 1); g.fillRect(px + 1, py + 1, 1, 14);
@@ -776,7 +832,7 @@ async function dreamDrop(R) {
   const P = platesOf(R.sd); if (!P || G.flags[P.flag]) return;
   if (Math.random() >= (G.teacher ? 1 : D.drop.chance)) return;
   G.flags[P.anyFlag] = (G.flags[P.anyFlag] || 0) + 1; Sound.sfx('catch');
-  await say(D.drop.text); await say(`（萬能碎片 ×${G.flags[P.anyFlag]}。踩到石板就能用。）`);
+  await say(D.drop.text); await say(`（${D.drop.name || '萬能碎片'} ×${G.flags[P.anyFlag]}。${D.drop.use || '踩到石板就能用'}。）`);
 }
 function questMarks() {
   const m = {};
