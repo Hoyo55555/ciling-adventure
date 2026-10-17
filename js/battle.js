@@ -4,12 +4,16 @@ const Battle = {
   s: null,
   async start(cfg) {
     if (this.s) return 'busy';   // 防止重複開戰
-    /* 教師測試版：所有對手一律略過對戰，對話完直接判勝（含道館館主）。
-       老師是來看流程與內容的，不需要真的打完每一場。 */
-    if (G && G.teacher) {
+    /* 教師測試版、試玩版（G.noBattle）：所有對手一律略過對戰，對話完直接判勝（含道館館主）。
+       老師、試玩的人是來看流程與內容的，不需要真的打完每一場；但劇情不能少——對手打到一半的插話（role.half）
+       與認輸後的心裡話（role.win）照樣用對話框說出來。 */
+    if (G && (G.teacher || G.noBattle)) {
       const nm = (cfg.role && cfg.role.name) || (cfg.foe && cfg.foe.name) || '對手';
       Sound.sfx('ok');
-      await say(`（教師測試版：略過與「${nm}」的對戰）`);
+      await say(G.teacher ? `（教師測試版：略過與「${nm}」的對戰）` : `（試玩版：略過與「${nm}」的對戰，直接算你贏）`);
+      const R = cfg.role;
+      if (R && R.half) for (const t of R.half) await say(t, /^[^：「（\s]{1,6}：/.test(t) || t.startsWith('（') ? undefined : nm);
+      if (R && R.win) await say(R.win, nm);
       return 'win';
     }
     Input.eat();

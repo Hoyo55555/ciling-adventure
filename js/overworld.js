@@ -63,7 +63,7 @@ const OW = {
   /* 回傳 true 代表這一步觸發了戰鬥，onStep 就不要再做別的事 */
   rollEncounter() {
     const F = this.L.foes; if (!F) return false;
-    if (G && G.teacher) return false;              // 教師測試版：不遇敵
+    if (G && (G.teacher || G.noBattle)) return false;              // 教師測試版、試玩版：不遇敵
     if (!G.equip || !G.equip.length) return false; // 手上沒武器就不該被拖進戰鬥
     const p = this.p;
     if (this.tile(p.x, p.y) !== (F.on || 'g')) { this.grassSteps = 0; return false; }
@@ -172,7 +172,7 @@ const OW = {
     const ex = exploreStep(); if (ex) { p.cont = false; this.run(ex); return true; }      // 閃光點、音階石板
     const w = (this.L.warps || []).find(w => w.x === p.x && w.y === p.y);
     if (w) { this.run(() => w.to === '@ret' ? warpTo(G.ret.map, G.ret.x, G.ret.y, 'down') : warpTo(w.to, w.tx, w.ty, w.dir)); return true; }
-    if (!G.teacher) for (const n of this.npcs) if (n.sight && !G.defeated[n.key] && this.sees(n)) { p.cont = false; this.run(() => spotted(n)); return true; }   // 教師版：路上的人不會攔人（只跑劇情）
+    if (!G.teacher && !G.noBattle) for (const n of this.npcs) if (n.sight && !G.defeated[n.key] && this.sees(n)) { p.cont = false; this.run(() => spotted(n)); return true; }   // 教師版：路上的人不會攔人（只跑劇情）
     if (this.tile(p.x, p.y) === 'g' || this.tile(p.x, p.y) === '&') Sound.sfx('grass');
     /* 草叢隨機遇敵：擺在最後，出口與被發現都優先於遇敵 */
     if (this.rollEncounter()) return true;
@@ -698,8 +698,8 @@ async function collectSpark(sp) {
     addNote({ id: 'sp:' + sp.id, kind: 'clue', dream: OW.L.dream, who: pg.title, place: W.mapNames[OW.id], text: pg.story.join('\n') });
     if (sp.see) await say(sp.see);
     await say(`（你撿起了「${pg.title}」！）`); await sayEach(pg.story);
-    if (P.items.some(q => G.flags['pl:' + q.key] === pg.key)) await say('（這一頁的故事，石碑上已經有了。）');
-    else await say('（拿去港口的成語石碑試試看。）');
+    if (P.items.some(q => G.flags['pl:' + q.key] === pg.key)) await say(P.placed || '（這一頁的故事，石碑上已經有了。）');
+    else await say(P.carry || '（拿去港口的成語石碑試試看。）');
   } else if (sp.frag) {
     const it = P && P.items.find(q => q.key === sp.frag);
     Sound.sfx('catch'); G.flags['spf:' + sp.frag] = true;
@@ -740,6 +740,7 @@ async function stepPlate(P, it) {
 /* 成語石碑（P.ask，書海港）：面對它按確認。放上一頁殘頁、讀完故事、選出是哪個成語，選對才亮；選錯沒有懲罰，殘頁還在手上。
    身上沒有殘頁但有「萬能書籤」，可以直接點亮一塊。亮著的石碑（'pl:石碑'）的值是放上去的那一頁的 key。 */
 async function useStone(P, st) {
+  if (P.ask === 'give') return useFlower(P, st);
   const key = 'pl:' + st.key, byKey = k => P.pages.find(q => q.key === k), placed = () => P.items.map(q => G.flags['pl:' + q.key]).filter(v => typeof v === 'string');
   if (G.flags[P.flag] || G.flags[key]) {
     const pg = byKey(G.flags[key]); Sound.sfx('back');
@@ -777,6 +778,51 @@ async function useStone(P, st) {
     await sayEach(pg.moral);
   }
   if (how !== 'all' && n < P.items.length) { await say(`（石碑 ${n} / ${P.items.length}${G.flags[P.anyFlag] ? `　萬能書籤還有 ${G.flags[P.anyFlag]} 張` : ''}）`); autosave(); return; }
+  G.flags[P.flag] = true; await sleep(250); Sound.sfx('badge'); await sayEach(P.done);
+  await dreamProgress(OW.L.dream); autosave();
+}
+/* 花（P.ask === 'give'，花南街）：每朵花只聽得懂一種修辭（st.device）。面對它按確認，從身上寫著句子的花瓣裡，選出用了這種修辭的那一句。
+   選對花就開；選錯沒有懲罰，花會告訴你那一句其實是什麼修辭。亮著的花的值是放上去那一片花瓣的 key。 */
+async function useFlower(P, st) {
+  const key = 'pl:' + st.key, byKey = k => P.pages.find(q => q.key === k), placed = () => P.items.map(q => G.flags['pl:' + q.key]).filter(v => typeof v === 'string');
+  if (G.flags[P.flag] || G.flags[key]) {
+    const pt = byKey(G.flags[key]); Sound.sfx('back');
+    await say(`（刻著「${st.device}」的花開著，微微發光。）`); if (pt) await sayEach(pt.ok); return;
+  }
+  let pt = null, how = 'own';
+  if (G.teacher) {                                                                  // 教師版：直接全部讓花開
+    const left = P.pages.filter(q => !placed().includes(q.key));
+    for (const q of P.items) if (!G.flags['pl:' + q.key]) { const i = left.findIndex(x => x.kind === q.device); G.flags['pl:' + q.key] = left.splice(i >= 0 ? i : 0, 1)[0].key; }
+    how = 'all';
+  } else {
+    const have = P.pages.filter(q => G.flags['spf:' + q.key] && !placed().includes(q.key)), any = G.flags[P.anyFlag] || 0;
+    await say(`（花低著頭，花瓣上刻著兩個字：「${st.device}」。）`);
+    if (!G.flags['fl:' + st.key]) { G.flags['fl:' + st.key] = true; await say(`（它只聽得懂這種說法——${P.devices[st.device]}）`); }
+    if (!have.length && !any) { Sound.sfx('bump'); await sayEach(P.missing(st)); return; }
+    if (!have.length) {
+      if (!(await UI.yesno(`花還在等一句話。要用一片「${P.anyName}」嗎？（還有 ${any} 片）`))) return;
+      pt = P.pages.find(q => q.kind === st.device && !G.flags['spf:' + q.key] && !placed().includes(q.key)) || P.pages.find(q => q.kind === st.device && !placed().includes(q.key)); how = 'any';
+    } else {
+      const opts = have.map(q => q.text).concat(any ? `用一片${P.anyName}（還有 ${any} 片）` : []).concat('先不給'), i = await ask(`要給這朵花哪一句？（它想聽的是「${st.device}」）`, opts);
+      if (i < 0 || i === opts.length - 1) return;
+      if (i === have.length) { pt = P.pages.find(q => q.kind === st.device && !G.flags['spf:' + q.key] && !placed().includes(q.key)) || P.pages.find(q => q.kind === st.device && !placed().includes(q.key)); how = 'any'; }
+      else {
+        pt = have[i];
+        if (pt.kind !== st.device) { Sound.sfx('bump'); await say('（花沒有動。）'); await sayEach(pt.why); return; }
+      }
+    }
+    if (how === 'any') G.flags[P.anyFlag] = any - 1;
+    G.flags[key] = pt.key;
+  }
+  const n = platesLit(P);
+  Sound.note(st.note || 440, .4);
+  if (how === 'all') await say('（教師版：四朵花一起抬起了頭。）');
+  else {
+    addNote({ id: 'pl:' + st.key, kind: 'clue', dream: OW.L.dream, who: `「${st.device}」的花`, place: W.mapNames[OW.id], text: `「${pt.text}」\n${pt.ok.join('\n')}` });
+    await say(how === 'any' ? `（用了一片${P.anyName}。刻著「${st.device}」的花抬起了頭——開了！）` : `（花瓣輕輕落在花心——刻著「${st.device}」的花抬起頭，開了！）`);
+    await sayEach(pt.ok);
+  }
+  if (how !== 'all' && n < P.items.length) { await say(`（花開了 ${n} / ${P.items.length}${G.flags[P.anyFlag] ? `　${P.anyName}還有 ${G.flags[P.anyFlag]} 片` : ''}）`); autosave(); return; }
   G.flags[P.flag] = true; await sleep(250); Sound.sfx('badge'); await sayEach(P.done);
   await dreamProgress(OW.L.dream); autosave();
 }

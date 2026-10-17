@@ -910,8 +910,13 @@ CAMPUS_MAPS.dj_shop = {
    ------------------------------------------------------------
    現代文青助教怕「不夠美」：居民是他「過度裝飾」的修辭（譬喻、擬人、誇飾、排比）。下著花雨的街。
    進夢：現實的文藝教室（yard）→ 助教本人邀你 → 花雨落下（petals）→ 這裡。
-   hn_town 花南街：含苞的花（醒來）、花攤老闆娘（休息）、4 位委託人、小婷、3 盆花（機關）、道館大門
-   hn_pavilion 聽雨亭：D 區妖怪、3 個寶箱（走失的風鈴）、吹牛的漁夫、雙胞胎、老詩人
+   2026-10-12 改成探索式（沿用注音坡、書海港）：不接委託，直接探索。街上四朵花各只聽得懂一種修辭（譬喻、擬人、誇飾、排比）；
+   六片「寫著句子的花瓣」藏在花店（兩層＋屋頂花園）、風鈴小屋、聽雨亭，面對閃光點按確認才會撿；
+   面對花、從身上的花瓣裡選出「用了這種修辭的那一句」（L.plates.ask = 'give'），選對花才開；四朵都開了，溫室才開門。
+   hn_town 花南街：含苞的花（醒來）、賣花人（說明）、花攤老闆娘（休息）、4 朵花、花店與風鈴小屋的門、溫室大門
+   hn_shop1／2／roof 花店 1F、2F、屋頂花園：小婷、出題的小朋友、雙胞胎的媽媽、屋頂的朗誦社學姊
+   hn_house 風鈴小屋：風鈴小妹
+   hn_pavilion 聽雨亭：D 區妖怪、3 個寶箱、吹牛的漁夫、雙胞胎、老詩人、垂釣的大叔
    hn_gym 夢中的花室：真正的助教
    ============================================================ */
 CAMPUS_MAPS.hn_town = {
@@ -919,8 +924,8 @@ CAMPUS_MAPS.hn_town = {
   rows: [
     'TTTTTTTTTTTTTTTTTTTTTTTT',
     'TT....................TT',
-    'TT.F................F.TT',
-    'TT.F................F.TT',
+    'TT....................TT',
+    'TT....................TT',
     'TT....................TT',
     'TT....................TT',
     'TT....................TT',
@@ -936,25 +941,59 @@ CAMPUS_MAPS.hn_town = {
     'TT....~~~~,,,,~~~~....TT',
     'TTTTTTTTTTT,,TTTTTTTTTTT',
   ],
-  props: [['artroom', 8, 1]],
+  props: [['flatyd', 2, 2], ['artroom', 8, 1], ['flatd', 17, 2]],
   doorWarps: {
+    '4,6':  { label: '花店', to: 'hn_shop1', tx: 4, ty: 6, dir: 'up', ret: { x: 4, y: 7 } },
+    '19,6': { label: '風鈴小屋', to: 'hn_house', tx: 4, ty: 5, dir: 'up', ret: { x: 19, y: 7 } },
     '11,6': { plate: 'art', label: '夢中的花室', to: 'hn_gym', tx: 7, ty: 10, dir: 'up', ret: { x: 11, y: 7 },
-              needFlag: 'hnOpen', flagText: '（溫室的門被花雨鎖著……先幫街上的人解決麻煩吧。）' },
+              needFlag: 'hnOpen', flagText: '（溫室的門被花雨鎖著……要先讓街上四朵低著頭的花都開了，門才會開。）' },
   },
   warps: [
     { x: 11, y: 17, to: 'hn_pavilion', tx: 9,  ty: 1, dir: 'down' },
     { x: 12, y: 17, to: 'hn_pavilion', tx: 10, ty: 1, dir: 'down' },
   ],
-  devices: {
-    '7,10':  { group: 'hnflower', flag: 'hf1', cat: '修辭', label: '低頭的花', under: 'F',
-      text: '一盆花低著頭，花瓣上寫滿了「像……像……」。\n（把它到底像什麼說清楚，花就會開。）',
-      ok: '花瓣舒展開來——「像」說完了，剩下的就是花本身。', allText: '三盆花都開了！' },
-    '15,10': { group: 'hnflower', flag: 'hf2', cat: '修辭', label: '低頭的花', under: 'F',
-      text: '第二盆花的葉子上掛著一長串形容詞，壓得它抬不起頭。', ok: '形容詞落了下來，花也抬起頭了！', allText: '三盆花都開了！' },
-    '19,13': { group: 'hnflower', flag: 'hf3', cat: '修辭', label: '低頭的花', under: 'F',
-      text: '最後一盆花，被雨淋得只剩下花苞。', ok: '最後一盆也開了——整條街的花，都看得見了！',
-      allText: '三盆花都開了——賣花人再也不用只會說「像……」了！', onAll: 'hfAll' },
+  /* 街上只放 1 個閃光點；花瓣在花店、屋頂、風鈴小屋、聽雨亭 */
+  sparks: {
+    '13,10': { id: 'hs_t1', title: '一片被雨打濕的花瓣', text: ['翻過來看，上面什麼字也沒有，只有幾顆水珠。'] },
   },
+  /* 四朵花（'F' 這一格，擋路，要面對它按確認）。每朵只聽得懂一種修辭。 */
+  plates: { flag: 'hpAll', anyFlag: 'hpAny', ask: 'give', anyName: '萬能花瓣', carry: '（拿去街上的花試試看——找刻著這種修辭的那一朵。）', placed: '（這一片，已經有花聽過了。）',
+    items: [
+      { x: 7,  y: 10, key: 'fl1', device: '譬喻', note: 262 },
+      { x: 15, y: 10, key: 'fl2', device: '擬人', note: 330 },
+      { x: 4,  y: 13, key: 'fl3', device: '誇飾', note: 392 },
+      { x: 19, y: 13, key: 'fl4', device: '排比', note: 523 },
+    ],
+    devices: { '譬喻': '把一件事物比成另一件事物，常常有「像」「好像」「是」。', '擬人': '把事物當成人來寫，讓它會說、會笑、會想。',
+               '誇飾': '故意把事物說得比實際更大、更多，或更小、更少。', '排比': '連著三句以上，結構相似、語氣一個接一個。' },
+    pages: [
+      { key: 'pt1', title: '花瓣（清晨的光）', kind: '譬喻', text: '這朵花像清晨的第一道光。',
+        story: ['花瓣上寫著一句話：', '「這朵花像清晨的第一道光。」'],
+        ok: ['「像」把花比成了清晨的光——這是「譬喻」：用熟悉的東西，讓看不見的人也看得見。'],
+        why: ['（這一句其實是「譬喻」：用「像」把花比成清晨的光。）'] },
+      { key: 'pt2', title: '花瓣（攤開的畫冊）', kind: '譬喻', text: '這座花園是一本攤開的畫冊。',
+        story: ['花瓣上寫著一句話：', '「這座花園是一本攤開的畫冊。」'],
+        ok: ['直接說「花園『是』畫冊」，這是「暗喻」，也算「譬喻」。'],
+        why: ['（這一句其實是「譬喻」：直接說花園「是」畫冊，叫做暗喻。）'] },
+      { key: 'pt3', title: '花瓣（會說話的風鈴）', kind: '擬人', text: '風鈴小聲地說：我想被聽見。',
+        story: ['花瓣上寫著一句話：', '「風鈴小聲地說：我想被聽見。」'],
+        ok: ['風鈴本來不會說話，這裡卻讓它「說」——把事物當成人來寫，這是「擬人」。'],
+        why: ['（這一句其實是「擬人」：風鈴不會說話，卻被寫成會說、會想被聽見。）'] },
+      { key: 'pt4', title: '花瓣（三千丈的浪）', kind: '誇飾', text: '那條魚尾巴一甩，濺起三千丈的浪。',
+        story: ['花瓣上寫著一句話：', '「那條魚尾巴一甩，濺起三千丈的浪。」'],
+        ok: ['浪不可能有三千丈。故意把事情說得比實際更大，這是「誇飾」。'],
+        why: ['（這一句其實是「誇飾」：浪不可能有三千丈，是故意說得很大。）'] },
+      { key: 'pt5', title: '花瓣（十里的花香）', kind: '誇飾', text: '這條街的花香，十里外都聞得到。',
+        story: ['花瓣上寫著一句話：', '「這條街的花香，十里外都聞得到。」'],
+        ok: ['花香哪能飄十里？故意說得很誇張，這是「誇飾」。'],
+        why: ['（這一句其實是「誇飾」：花香飄十里是故意說得很誇張。）'] },
+      { key: 'pt6', title: '花瓣（想看花想看雨）', kind: '排比', text: '我想看花，我想看雨，我想看風。',
+        story: ['花瓣上寫著一句話：', '「我想看花，我想看雨，我想看風。」'],
+        ok: ['三句的結構一樣、語氣一個接一個——這是「排比」。'],
+        why: ['（這一句其實是「排比」：三句結構一樣，一個接一個。）'] },
+    ],
+    missing: st => [`（花瓣上刻著「${st.device}」，可是身上沒有寫著句子的花瓣，也沒有萬能花瓣。）`, '（到花店、屋頂花園、風鈴小屋和聽雨亭找找閃光的地方。）'],
+    done: ['（四朵花同時抬起了頭，花瓣在雨裡輕輕地轉了一圈。）', '（街尾傳來玻璃輕輕打開的聲音——溫室的方向。）'] },
   signs: { '9,9': 'hn_board1', '14,9': 'hn_board2' },
 };
 CAMPUS_MAPS.hn_pavilion = {
@@ -993,6 +1032,11 @@ CAMPUS_MAPS.hn_pavilion = {
     { x: 16, y: 12, id: 'hnb2', items: { heal: 1 } },
     { x: 3,  y: 17, id: 'hnb3', items: { hint: 1 } },
   ],
+  /* 聽雨亭：草叢裡一片花瓣、路邊一個舊風鈴（沒用）。寶箱不再綁委託，就是普通的寶箱 */
+  sparks: {
+    '14,4': { id: 'hs_p1', frag: 'pt4', see: '（草叢裡，一片花瓣被雨水黏在草葉上，隱約看得到字。）', title: '', text: [] },
+    '3,12': { id: 'hs_p2', title: '一個掉了漆的舊風鈴', text: ['搖了搖——只有鈴舌「叩」地響了一聲，說不出話。'] },
+  },
   signs: { '11,18': 'hn_rain' },
 };
 CAMPUS_MAPS.hn_gym = {
@@ -1016,6 +1060,98 @@ CAMPUS_MAPS.hn_gym = {
     { x: 8, y: 11, to: 'hn_town', tx: 12, ty: 7, dir: 'down' },
   ],
   signs: {},
+};
+
+/* ---- 花南街的花店（兩層＋屋頂花園）與風鈴小屋（2026-10-12）---- */
+/* 花店 1F：櫃檯、盆花。小婷在這裡。花瓣①（譬喻）在花桶旁 */
+CAMPUS_MAPS.hn_shop1 = {
+  music: 'town', theme: 't_home', chapter: 3, indoor: 1, dream: 'hn',
+  rows: [
+    'wwww/w/www',
+    'wttt____>w',
+    'w________w',
+    'w_pp__pp_w',
+    'w________w',
+    'wp_______w',
+    'w_rr___p_w',
+    'wwww__wwww',
+  ],
+  warps: [
+    { x: 8, y: 1, to: 'hn_shop2', tx: 7, ty: 6, dir: 'left' },
+    { x: 4, y: 7, to: '@ret' },
+    { x: 5, y: 7, to: '@ret' },
+  ],
+  sparks: {
+    '8,4': { id: 'hs_a1', frag: 'pt1', see: '（花桶旁邊，躺著一片沾了水的花瓣，上面寫著字。）', title: '', text: [] },
+    '1,2': { id: 'hs_a2', title: '一張皺巴巴的包花紙', text: ['上面印著小小的花，被揉得皺成一團。'] },
+  },
+  npcs: [],
+};
+/* 花店 2F：倉庫兼書房。花瓣②（譬喻，暗喻）夾在書桌上的畫冊裡；樓梯往上是屋頂花園 */
+CAMPUS_MAPS.hn_shop2 = {
+  music: 'town', theme: 't_home', chapter: 3, indoor: 1, dream: 'hn',
+  rows: [
+    'www/wwww/w',
+    'w>_[__kk_w',
+    'w________w',
+    'w_qq_____w',
+    'w________w',
+    'wp_______w',
+    'w_rr____<w',
+    'wwwwwwwwww',
+  ],
+  warps: [
+    { x: 1, y: 1, to: 'hn_roof', tx: 1, ty: 2, dir: 'down' },
+    { x: 8, y: 6, to: 'hn_shop1', tx: 8, ty: 2, dir: 'down' },
+  ],
+  sparks: {
+    '3,2': { id: 'hs_b1', frag: 'pt2', see: '（書桌上攤著一本畫冊，一頁花瓣夾在裡面。）', title: '', text: [] },
+    '7,4': { id: 'hs_b2', title: '一個空花瓶', text: ['瓶口還留著一圈乾掉的水痕。裡面什麼也沒有。'] },
+  },
+  npcs: [],
+};
+/* 屋頂花園：戶外（四周圍著柵欄）。花瓣⑤（誇飾）、花瓣⑥（排比）；朗誦社學姊在這裡 */
+CAMPUS_MAPS.hn_roof = {
+  music: 'town', theme: 't_flower', chapter: 3, dream: 'hn',
+  rows: [
+    '============',
+    '=<..F....F.=',
+    '=..........=',
+    '=.F..pp..F.=',
+    '=..........=',
+    '=.F......F.=',
+    '=..........=',
+    '============',
+  ],
+  warps: [
+    { x: 1, y: 1, to: 'hn_shop2', tx: 1, ty: 2, dir: 'down' },
+  ],
+  sparks: {
+    '5,2': { id: 'hs_c1', frag: 'pt5', see: '（花叢中間，一片花瓣隨風輕輕翻動，上面有字。）', title: '', text: [] },
+    '8,5': { id: 'hs_c2', frag: 'pt6', see: '（花架邊的角落裡，壓著一片寫了字的花瓣。）', title: '', text: [] },
+  },
+  npcs: [],
+};
+/* 風鈴小屋：風鈴小妹。花瓣③（擬人）在窗邊的風鈴下 */
+CAMPUS_MAPS.hn_house = {
+  music: 'town', theme: 't_home', chapter: 3, indoor: 1, dream: 'hn',
+  rows: [
+    'wwww/w/www',
+    'wk______kw',
+    'w________w',
+    'w__rr____w',
+    'wp_rr___pw',
+    'w________w',
+    'wwww__wwww',
+  ],
+  warps: [
+    { x: 4, y: 6, to: '@ret' },
+    { x: 5, y: 6, to: '@ret' },
+  ],
+  sparks: {
+    '7,4': { id: 'hs_h1', frag: 'pt3', see: '（窗邊的風鈴下面，掉著一片花瓣，風一吹，鈴聲輕輕響了一下。）', title: '', text: [] },
+  },
+  npcs: [],
 };
 
 /* ============================================================
@@ -1513,21 +1649,31 @@ const CAMPUS_NPCS = {
   dj_gym: [
     { role: 'boss2', x: 8, y: 2, dir: 'down', key: 'lib:boss2' },   // 真正的股長。打倒的紀錄沿用 lib:boss2（舊存檔、測試都不用改）
   ],
+  /* 花南街（2026-10-12 改探索式）：街上只留含苞的花、賣花人（說明）、花攤老闆娘（休息），其餘散在花店、屋頂、風鈴小屋、聽雨亭 */
   hn_town: [
     { role: 'hnWake', x: 12, y: 9,  dir: 'down' },
     { role: 'hnShop', x: 4,  y: 10, dir: 'down' },
-    { role: 'hnG1',   x: 8,  y: 10, dir: 'left' },
-    { role: 'hnG2',   x: 19, y: 10, dir: 'down' },
-    { role: 'hnG3',   x: 5,  y: 14, dir: 'right' },
-    { role: 'hnG4',   x: 18, y: 14, dir: 'left' },
-    { role: 'hnTing', x: 13, y: 10, dir: 'left' },
-    { role: 'hnQuiz', x: 17, y: 10, dir: 'down' },
+    { role: 'hnG1',   x: 9,  y: 10, dir: 'down' },
+  ],
+  hn_shop1: [
+    { role: 'hnTing', x: 5,  y: 2, dir: 'down' },
+    { role: 'hnQuiz', x: 2,  y: 4, dir: 'right' },
+  ],
+  hn_shop2: [
+    { role: 'hnG4',   x: 4,  y: 4, dir: 'down' },
+  ],
+  hn_roof: [
+    { role: 'hnTr1',  x: 8,  y: 3, dir: 'left', sight: 3 },
+  ],
+  hn_house: [
+    { role: 'hnG2',   x: 3,  y: 2, dir: 'right' },
   ],
   hn_pavilion: [
     { role: 'hnFish',  x: 12, y: 9,  dir: 'left',  sight: 3 },
     { role: 'hnTwinA', x: 8,  y: 16, dir: 'right', sight: 3 },
     { role: 'hnTwinB', x: 11, y: 16, dir: 'left',  sight: 3 },
     { role: 'hnPoet',  x: 10, y: 18, dir: 'left' },
+    { role: 'hnG3',    x: 6,  y: 9,  dir: 'left' },
   ],
   hn_gym: [
     { role: 'boss3', x: 7, y: 1, dir: 'down', key: 'yard:boss3' },   // 真正的助教。打倒的紀錄沿用 yard:boss3（舊存檔、測試都不用改）
@@ -1821,7 +1967,7 @@ function CAMPUS_PATCH(S) {
     R[id] = { kind: 'rematch', name: B.name, look: B.look, lines, lvAdd: -5,   // 等級跟著玩家（二週目再 +4 → 比玩家高 1 級），血量比第一次打時少一點，輸了可以再來
       ask: `要再挑戰${B.name}一次嗎？（敵人會比上次更強）`, no: '好，想挑戰的時候再來找我。',
       reward: Math.floor(B.reward / 2), win,
-      foe: Object.assign({}, B.foe, { lv: B.foe.lv + 14, hpMul: B.foe.hpMul * 0.7 }), potions: 2,
+      foe: Object.assign({}, B.foe, { lv: B.foe.lv + 14, hpMul: B.foe.hpMul * 0.6 }), potions: 2,
       prize: { money: Math.floor(B.reward / 2), frags: 1, items: { heal2: 1 } } };
   });
   S.postNpcs = Object.assign({}, S.postNpcs, {
@@ -1893,14 +2039,14 @@ function CAMPUS_PATCH(S) {
                   '周以恆：「……借同一本，也行。」',
                   '股長：「這本，我想從頭讀。」'] },
     hn: { name: '花南街', home: { map: 'yard', x: 7, y: 3, dir: 'down' }, town: { map: 'hn_town', x: 11, y: 9, dir: 'down' },
-      heal: { map: 'hn_town', x: 5, y: 10 }, need: 3, openFlag: 'hnOpen', doneFlag: 'hnDone', enteredFlag: 'hnEntered', seenFlag: 'hnSeen',
+      heal: { map: 'hn_town', x: 5, y: 10 }, need: 4, openFlag: 'hnOpen', doneFlag: 'hnDone', enteredFlag: 'hnEntered', seenFlag: 'hnSeen',
       legacyKey: 'yard:boss3', homeName: '文藝教室', fx: 'petals', tint: [255, 170, 205, .16],
       glyphs: ['花', '雨', '風', '像', '如', '對', '排', '比', '詩', '美', '字', '夢'],
       openText: ['（遠處傳來玻璃輕輕打開的聲音——街尾，溫室的門開了。）', '（你想起花攤老闆娘說的話：「他以前每天來買一朵花，說是要送給阿嬤。」）'],
       arrive: ['（花雨停了。你站在一條鋪滿花瓣的街上，兩旁是一整排花攤，遠處有座小小的亭子。）',
                '小墨：「別怕，這是「花南街」——助教的碎片留下的夢。」',
                '小墨：「這裡的居民，都是助教「過度裝飾」的修辭變出來的。」',
-               '小墨：「真正的助教在街尾的溫室裡，但夢把門鎖上了。幫街上的人解決三件麻煩，夢才會鬆口。」',
+               '小墨：「真正的助教在街尾的溫室裡，但夢把門鎖上了。賣花人知道門怎麼開，去跟他聊聊。」',
                '小墨：「想回文藝教室的話，隨時可以從含苞的花、或選單的「醒來」回去，進度都會留著。」'],
       finish: ['（助教身上的花瓣一片一片飛了起來，把整條街染成淡淡的粉紅……）',
                '（賣花人、風鈴小妹、垂釣的大叔、雙胞胎……每個人都朝你揮了揮手。）',
@@ -1952,6 +2098,18 @@ function CAMPUS_PATCH(S) {
       return out;
     } };
   S.dreams.dj.drop = { chance: 0.45, name: '萬能書籤', use: '面對成語石碑時可以直接點亮一塊', text: '（對方掉下了一張空白的書籤——是「萬能書籤」，哪一塊石碑都能用！）' };
+  /* 花南街（探索式）：找回六片寫著句子的花瓣，讓街上四朵花各聽到它想聽的修辭，四朵都開了溫室才開門。打夢裡的人有機率掉「萬能花瓣」。 */
+  S.dreams.hn.explore = { label: '會說話的花瓣', hint: '到花店、屋頂花園、風鈴小屋和聽雨亭找寫著句子的花瓣，讓街上四朵花各聽到它想聽的說法',
+    status() {
+      const P = platesOf('hn'), lit = platesLit(P), placed = pt => P.items.some(it => G.flags['pl:' + it.key] === pt.key);
+      const have = P.pages.filter(pt => G.flags['spf:' + pt.key] && !placed(pt)), none = P.pages.filter(pt => !G.flags['spf:' + pt.key] && !placed(pt)), any = G.flags[P.anyFlag] || 0;
+      const shut = P.items.filter(it => !G.flags['pl:' + it.key]).map(it => it.device);
+      const out = [`街上的花開了 ${lit} / ${P.items.length} 朵。` + (shut.length ? `還低著頭的花：${shut.join('、')}。` : '')];
+      if (have.length) out.push(`你身上有 ${have.length} 片寫著句子的花瓣，拿去給花聽聽看。`);
+      if (none.length) out.push(`還有 ${none.length} 片花瓣沒找到。` + (any ? `（你有 ${any} 片萬能花瓣，面對花時可以直接讓它開。）` : '花店的兩層樓、屋頂花園、風鈴小屋和聽雨亭找找看；打贏夢裡的人，也有機會掉出一片「萬能花瓣」。'));
+      return out;
+    } };
+  S.dreams.hn.drop = { chance: 0.45, name: '萬能花瓣', use: '面對花時可以直接讓它開', text: '（對方掉下了一片閃著光的花瓣——是「萬能花瓣」，哪一朵花都能用！）' };
   S.stages[0].roles = ['avatar1', 'boss1'];
   S.stages[1].roles = ['rival1', 'avatar2', 'boss2'];
   S.stages[2].roles = ['m1', 'm2', 'm3', 'avatar3', 'boss3'];
@@ -1962,7 +2120,7 @@ function CAMPUS_PATCH(S) {
     ['居民樓', ['chenA1', 'chenA2', 'liB1', 'liB2', 'liB3', 'xfC1', 'xfC2', 'xfC3', 'xfC4', 'bkf']],
     ['校園', ['front', 'hall', 'corridor1', 'stair1', 'corridor2', 'yard2', 'field', 'audyard']],
     ['道館', ['c1a', 'lib', 'yard', 'hist', 'aud']],
-    ['夢中小鎮', ['zy_town', 'zy_slope', 'zy_bun1', 'zy_bun2', 'zy_home', 'zy_hut', 'zy_gym', 'dj_town', 'dj_hold1', 'dj_hold2', 'dj_hold3', 'dj_shop', 'dj_pier', 'dj_gym', 'hn_town', 'hn_pavilion', 'hn_gym', 'pl_town', 'pl_road', 'pl_gym']],
+    ['夢中小鎮', ['zy_town', 'zy_slope', 'zy_bun1', 'zy_bun2', 'zy_home', 'zy_hut', 'zy_gym', 'dj_town', 'dj_hold1', 'dj_hold2', 'dj_hold3', 'dj_shop', 'dj_pier', 'dj_gym', 'hn_town', 'hn_shop1', 'hn_shop2', 'hn_roof', 'hn_house', 'hn_pavilion', 'hn_gym', 'pl_town', 'pl_road', 'pl_gym']],
     ['教室．其他', ['c8', 'clinic_h', 'store_c', 'forge', 'inkpool']],
   ];
   Object.assign(S.mapNames, {
@@ -1976,7 +2134,7 @@ function CAMPUS_PATCH(S) {
     zy_bun1: '包子鋪', zy_bun2: '包子鋪（2F）', zy_home: '坡下人家', zy_hut: '坡上小屋',
     zy_town: '夢中小鎮．注音坡', zy_slope: '注音坡道', zy_gym: '夢中的一年甲班',
     dj_town: '夢中小鎮．書海港', dj_pier: '船埠', dj_gym: '夢中的圖書館', dj_hold1: '書倉（1F）', dj_hold2: '書倉（2F）', dj_hold3: '書倉（3F）', dj_shop: '鈴鐺鋪',
-    hn_town: '夢中小鎮．花南街', hn_pavilion: '聽雨亭', hn_gym: '夢中的花室',
+    hn_town: '夢中小鎮．花南街', hn_pavilion: '聽雨亭', hn_gym: '夢中的花室', hn_shop1: '花店（1F）', hn_shop2: '花店（2F）', hn_roof: '屋頂花園', hn_house: '風鈴小屋',
     pl_town: '夢中小鎮．碑林關', pl_road: '古碑小徑', pl_gym: '夢中的檔案室',
   });
 }
