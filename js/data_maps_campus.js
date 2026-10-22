@@ -1160,8 +1160,13 @@ CAMPUS_MAPS.hn_house = {
    古典研究助教怕「被遺忘」：居民是刻在碑上、沒人再讀的古人話。夜裡的關隘書院，滿山遍野都是碑。
    整座夢是文言文風格：居民說淺近文言（每句下面一行白話「譯」），夢裡所有戰鬥與題目都只考文言（W.dreams.pl.onlyCat）。
    進夢：現實的校史室（hist）→ 讀歷屆榜（不戰鬥）→ 墨暈（ink）→ 這裡。
-   pl_town 碑林關：還鄉碑（醒來）、驛站老卒（休息）、4 位委託人、周以恆、3 座古文石碑（機關）、書院大門
-   pl_road 古碑小徑：E 區妖怪、3 個寶箱（走失的竹簡）、迂腐的書生、師兄弟、守碑老人
+   2026-10-17 改成探索式（沿用前三座，加上新玩法「推石碑」）：不接委託，直接探索。
+   碑林場（pl_court）裡有四塊倒下的石碑（各刻一個虛詞：而、於、也、其）和四道刻痕（各刻著一句缺了字的文言文，被青苔蓋住）。
+   找到「這一句的拓片」才讀得到刻痕上的句子；把刻著對的字的石碑推進去，刻痕才亮；四道都亮了，書院（道館）才開門。
+   pl_town 碑林關：還鄉碑（醒來）、守關老吏（說明）、驛站老卒（休息）、驛站與書肆的門、書院大門
+   pl_inn1／2 驛站 1F、2F：周以恆、讀書的童子、抄書童；pl_shop 書肆：掌櫃
+   pl_road 古碑小徑：E 區妖怪、3 個寶箱、迂腐的書生、師兄弟、巡夜的兵士、守碑老人；南邊通碑林場
+   pl_court 碑林場：推石碑的謎題、私塾先生
    pl_gym 夢中的檔案室：真正的助教
    ============================================================ */
 CAMPUS_MAPS.pl_town = {
@@ -1186,24 +1191,20 @@ CAMPUS_MAPS.pl_town = {
     'TT........,,,,........TT',
     'TTTTTTTTTTT,,TTTTTTTTTTT',
   ],
-  props: [['oldblock', 7, 1]],
+  props: [['flatyd', 2, 2], ['oldblock', 7, 1], ['flatd', 17, 2]],
   doorWarps: {
+    '4,6':  { label: '驛站', to: 'pl_inn1', tx: 4, ty: 6, dir: 'up', ret: { x: 4, y: 7 } },
+    '19,6': { label: '書肆', to: 'pl_shop', tx: 4, ty: 5, dir: 'up', ret: { x: 19, y: 7 } },
     '11,7': { plate: 'hist', label: '夢中的檔案室', to: 'pl_gym', tx: 7, ty: 10, dir: 'up', ret: { x: 11, y: 8 },
-              needFlag: 'plOpen', flagText: '（書院的門被墨封著……先幫關裡的人解決麻煩吧。）' },
+              needFlag: 'plOpen', flagText: '（書院的門被墨封著……要先讓碑林場裡四塊倒下的石碑都歸位，門才會開。）' },
   },
   warps: [
     { x: 11, y: 17, to: 'pl_road', tx: 9,  ty: 1, dir: 'down' },
     { x: 12, y: 17, to: 'pl_road', tx: 10, ty: 1, dir: 'down' },
   ],
-  devices: {
-    '3,11':  { group: 'plstone', flag: 'ps1', cat: '文言', label: '古文石碑',
-      text: '碑上刻著一句古文，缺了一個虛詞，墨痕尚濕。\n（把缺的字補回去，石碑就會亮起來。）',
-      ok: '缺字回到了碑上，石碑亮了起來！', allText: '三座石碑都亮起來了！' },
-    '20,13': { group: 'plstone', flag: 'ps2', cat: '文言', label: '古文石碑',
-      text: '第二座碑被風雨磨得看不清楚，只剩半句。', ok: '字跡清楚了，石碑也亮了！', allText: '三座石碑都亮起來了！' },
-    '7,15':  { group: 'plstone', flag: 'ps3', cat: '文言', label: '古文石碑',
-      text: '碑林深處的最後一座碑，字被青苔蓋住了一半。', ok: '最後一座碑也亮了——整片碑林連成了一篇文章！',
-      allText: '三座碑都亮起來了——關門前的碑，再沒有缺字了！', onAll: 'psAll' },
+  /* 鎮上只放 1 個閃光點；拓片在驛站、書肆、古碑小徑 */
+  sparks: {
+    '6,9': { id: 'ps_t1', title: '一片枯葉', text: ['葉子上沾著墨，隱約像是半個「之」字，可是什麼也讀不出來。'] },
   },
   signs: { '9,9': 'pl_gate', '14,9': 'pl_board' },
 };
@@ -1229,20 +1230,28 @@ CAMPUS_MAPS.pl_road = {
     'TT.......,,.......TT',
     'TT.......,,.......TT',
     'TT.......,,S......TT',
-    'TT.......OO.......TT',
-    'TT.......OO.......TT',
-    'TTTTTTTTTTTTTTTTTTTT',
+    'TT.......,,.......TT',
+    'TT.......,,.......TT',
+    'TTTTTTTTT,,TTTTTTTTT',
   ],
   foes: { lv: [14, 17], scale: 3, pool: 'E', rate: .17, safe: 2 },
   warps: [
     { x: 9,  y: 0, to: 'pl_town', tx: 11, ty: 16, dir: 'up' },
     { x: 10, y: 0, to: 'pl_town', tx: 12, ty: 16, dir: 'up' },
+    { x: 9,  y: 21, to: 'pl_court', tx: 6, ty: 10, dir: 'up' },
+    { x: 10, y: 21, to: 'pl_court', tx: 7, ty: 10, dir: 'up' },
   ],
   chests: [
     { x: 3,  y: 2,  id: 'plb1', items: { hint: 1 } },
     { x: 16, y: 12, id: 'plb2', items: { heal: 1 } },
     { x: 3,  y: 17, id: 'plb3', items: { hint: 1 } },
   ],
+  /* 古碑小徑的閃光點：草叢裡一張拓片、兩個沒用的東西。南邊的路通到碑林場 */
+  sparks: {
+    '14,4': { id: 'ps_r1', frag: 'rb4', see: '（草叢裡，一張拓片被露水黏在草葉上，墨跡還清楚。）', title: '', text: [] },
+    '5,14': { id: 'ps_r2', title: '一支斷了的筆', text: ['筆尖乾得像一把枯草，不知道被丟在這裡多久了。'] },
+    '3,7':  { id: 'ps_r3', title: '一顆長了青苔的石子', text: ['青苔綠得很漂亮，可是上面沒有字。'] },
+  },
   signs: { '11,18': 'pl_road' },
 };
 CAMPUS_MAPS.pl_gym = {
@@ -1266,6 +1275,147 @@ CAMPUS_MAPS.pl_gym = {
     { x: 8, y: 11, to: 'pl_town', tx: 12, ty: 8, dir: 'down' },
   ],
   signs: {},
+};
+
+/* ---- 碑林關的驛站（兩層）、書肆、碑林場（2026-10-17）---- */
+/* 驛站 1F：周以恆、出題的童子。拓片①（溫故知新）在桌子下面 */
+CAMPUS_MAPS.pl_inn1 = {
+  music: 'town', theme: 't_home', chapter: 4, indoor: 1, dream: 'pl',
+  rows: [
+    'wwww/w/www',
+    'wttt____>w',
+    'w________w',
+    'w_qq__qq_w',
+    'w________w',
+    'wp_______w',
+    'w_rr___p_w',
+    'wwww__wwww',
+  ],
+  warps: [
+    { x: 8, y: 1, to: 'pl_inn2', tx: 7, ty: 6, dir: 'left' },
+    { x: 4, y: 7, to: '@ret' },
+    { x: 5, y: 7, to: '@ret' },
+  ],
+  sparks: {
+    '8,3': { id: 'ps_a1', frag: 'rb1', see: '（桌子底下，壓著一張薄薄的拓片，墨還有些濕。）', title: '', text: [] },
+    '1,2': { id: 'ps_a2', title: '一只舊行囊', text: ['打開來，裡面只有半塊乾掉的餅。'] },
+  },
+  npcs: [],
+};
+/* 驛站 2F：抄書童。拓片②（勿施於人）壓在書桌的硯台下 */
+CAMPUS_MAPS.pl_inn2 = {
+  music: 'town', theme: 't_home', chapter: 4, indoor: 1, dream: 'pl',
+  rows: [
+    'www/wwww/w',
+    'wb_____[_w',
+    'w________w',
+    'w_k___k__w',
+    'w________w',
+    'wp_______w',
+    'w_rr____<w',
+    'wwwwwwwwww',
+  ],
+  warps: [
+    { x: 8, y: 6, to: 'pl_inn1', tx: 8, ty: 2, dir: 'down' },
+  ],
+  sparks: {
+    '7,2': { id: 'ps_b1', frag: 'rb2', see: '（書桌上的硯台底下，壓著一張拓片。）', title: '', text: [] },
+    '3,4': { id: 'ps_b2', title: '一隻空茶碗', text: ['碗底還留著一圈茶漬。'] },
+  },
+  npcs: [],
+};
+/* 書肆：掌櫃。拓片③（知之為知之）插在書架的縫裡 */
+CAMPUS_MAPS.pl_shop = {
+  music: 'town', theme: 't_home', chapter: 4, indoor: 1, dream: 'pl',
+  rows: [
+    'wwww/w/www',
+    'wkk____kkw',
+    'w________w',
+    'w__rrrr__w',
+    'wp_rrrr_pw',
+    'w________w',
+    'wwww__wwww',
+  ],
+  warps: [
+    { x: 4, y: 6, to: '@ret' },
+    { x: 5, y: 6, to: '@ret' },
+  ],
+  sparks: {
+    '7,4': { id: 'ps_c1', frag: 'rb3', see: '（書架的縫裡，插著一張卷起來的拓片。）', title: '', text: [] },
+    '1,5': { id: 'ps_c2', title: '一冊被蟲蛀的書', text: ['翻開來，每一頁都被蛀成了蕾絲，一個字也讀不全。'] },
+  },
+  npcs: [],
+};
+/* 碑林場（推石碑）：四塊倒下的石碑、四道刻痕（y=2）。obstacles 是 'O'。
+   正解（test 用）：見 plates.solution。南邊 (6,11)(7,11) 通古碑小徑。 */
+CAMPUS_MAPS.pl_court = {
+  music: 'town', theme: 't_stele', chapter: 4, dream: 'pl',
+  rows: [
+    'TTTTTTTTTTTTTTTT',
+    'TTOOOOOOOOOOOOTT',
+    'TT............TT',
+    'TT............TT',
+    'TT..O......O..TT',
+    'TT............TT',
+    'TT............TT',
+    'TT.....O......TT',
+    'TT.......O....TT',
+    'TT............TT',
+    'TT............TT',
+    'TTTTTT,,TTTTTTTT',
+  ],
+  warps: [
+    { x: 6, y: 11, to: 'pl_road', tx: 9,  ty: 20, dir: 'up' },
+    { x: 7, y: 11, to: 'pl_road', tx: 10, ty: 20, dir: 'up' },
+  ],
+  plates: { flag: 'ptAll', anyFlag: 'ptAny', ask: 'push', anyName: '萬能拓片',
+    carry: '（拿去碑林場，讀讀刻痕上的句子——對得上的那一道。）', placed: '（這一句的石碑，已經歸位了。）',
+    items: [
+      { x: 3,  y: 2, key: 'g1', ch: '而', note: 262 },
+      { x: 6,  y: 2, key: 'g2', ch: '於', note: 330 },
+      { x: 9,  y: 2, key: 'g3', ch: '也', note: 392 },
+      { x: 12, y: 2, key: 'g4', ch: '其', note: 523 },
+    ],
+    blocks: [
+      { key: 'bk1', ch: '而', sx: 11, sy: 5 },
+      { key: 'bk2', ch: '於', sx: 8,  sy: 9 },
+      { key: 'bk3', ch: '也', sx: 4,  sy: 6 },
+      { key: 'bk4', ch: '其', sx: 5,  sy: 8 },
+    ],
+    pages: [
+      { key: 'rb1', groove: 'g1', ch: '而', title: '拓片（溫故知新）',
+        read: ['「溫故□知新，可以為師矣。」', '（譯：溫習舊的知識，進而領悟新的道理，就可以當老師了。）'],
+        hint: '缺的字要把「溫故」和「知新」兩件事接起來。（連詞）',
+        story: ['拓片上拓著一句話：', '「溫故□知新，可以為師矣。」', '（譯：溫習舊的知識，進而領悟新的道理，就可以當老師了。）', '（缺的字，是用來把前後兩件事接起來的。）'],
+        ok: ['「而」是連詞，連接兩個動作：先溫故，進而知新。'] },
+      { key: 'rb2', groove: 'g2', ch: '於', title: '拓片（勿施於人）',
+        read: ['「己所不欲，勿施□人。」', '（譯：自己不想要的，不要加在別人身上。）'],
+        hint: '缺的字要帶出動作的對象「人」。（介詞）',
+        story: ['拓片上拓著一句話：', '「己所不欲，勿施□人。」', '（譯：自己不想要的，不要加在別人身上。）', '（缺的字，是用來帶出對象「人」的。）'],
+        ok: ['「於」是介詞，引出動作的對象——施「給」人。'] },
+      { key: 'rb3', groove: 'g3', ch: '也', title: '拓片（知之為知之）',
+        read: ['「知之為知之，不知為不知，是知□。」', '（譯：知道就說知道，不知道就說不知道，這才是真正的知道。）'],
+        hint: '缺的字放在句子最後，表示肯定、判斷的語氣。（語氣詞）',
+        story: ['拓片上拓著一句話：', '「知之為知之，不知為不知，是知□。」', '（譯：知道就說知道，不知道就說不知道，這才是真正的知道。）', '（缺的字，放在句子最後，表示肯定的語氣。）'],
+        ok: ['「也」是語氣詞，放在句末，表示判斷：這才是「知」。'] },
+      { key: 'rb4', groove: 'g4', ch: '其', title: '拓片（擇其善者）',
+        read: ['「三人行，必有我師焉。擇□善者而從之，其不善者而改之。」', '（譯：三個人同行，其中一定有可以當我老師的。選取他們好的地方去學習，他們不好的地方就加以改正。）'],
+        hint: '缺的字指前面的「三人」，意思是「他們的」；後面一句有一個一樣的字。（代詞）',
+        story: ['拓片上拓著一句話：', '「三人行，必有我師焉。擇□善者而從之，其不善者而改之。」', '（譯：三個人同行，其中一定有可以當我老師的。選取他們好的地方去學習，他們不好的地方就加以改正。）', '（缺的字，指的是前面那「三個人」。）'],
+        ok: ['「其」是代詞，指「三人」，意思是「他們的」：擇他們好的地方來學。'] },
+    ],
+    moss: gr => ['（刻痕被青苔蓋住了，看不清上面刻的是哪一句。）', '（石碑也不肯入座。到驛站、書肆、古碑小徑找找，這一句的拓片在那裡。）'],
+    reject: (b, gr) => [`（「${b.ch}」字碑被刻痕輕輕推了回來——這一句讀不通。）`, '（再讀讀刻痕上的句子：缺的是哪一種字？）'],
+    done: ['（四塊石碑同時發出微光，碑上的字連成了一圈。）', '（遠處傳來石門緩緩推開的聲音——書院的方向。）'],
+    /* 測試用的正解：每項是「站在 from，面向 dir，連推 n 次」，照順序做就能把四塊都推進對的刻痕 */
+    solution: [
+      { from: [12, 5], dir: 'left', n: 8 }, { from: [3, 6], dir: 'up', n: 3 },
+      { from: [9, 9], dir: 'left', n: 2 }, { from: [6, 10], dir: 'up', n: 7 },
+      { from: [3, 6], dir: 'right', n: 5 }, { from: [9, 7], dir: 'up', n: 4 },
+      { from: [5, 7], dir: 'down', n: 1 }, { from: [4, 9], dir: 'right', n: 7 }, { from: [12, 10], dir: 'up', n: 7 },
+    ],
+  },
+  npcs: [],
 };
 
 /* ---- 注音坡的三間房子（2026-10-07）---- */
@@ -1678,21 +1828,31 @@ const CAMPUS_NPCS = {
   hn_gym: [
     { role: 'boss3', x: 7, y: 1, dir: 'down', key: 'yard:boss3' },   // 真正的助教。打倒的紀錄沿用 yard:boss3（舊存檔、測試都不用改）
   ],
+  /* 碑林關（2026-10-17 改探索式）：鎮上只留還鄉碑、守關老吏（說明）、驛站老卒（休息），其餘散在驛站、書肆、古碑小徑、碑林場 */
   pl_town: [
     { role: 'plWake',  x: 12, y: 9,  dir: 'down' },
     { role: 'plPost',  x: 4,  y: 10, dir: 'down' },
-    { role: 'plG1',    x: 8,  y: 10, dir: 'right' },
-    { role: 'plG2',    x: 19, y: 10, dir: 'down' },
-    { role: 'plG3',    x: 6,  y: 12, dir: 'down' },
-    { role: 'plG4',    x: 17, y: 12, dir: 'down' },
-    { role: 'plZhou',  x: 15, y: 10, dir: 'left' },
-    { role: 'plQuiz',  x: 17, y: 10, dir: 'down' },
+    { role: 'plG1',    x: 9,  y: 10, dir: 'down' },
+  ],
+  pl_inn1: [
+    { role: 'plZhou',  x: 3,  y: 5,  dir: 'right' },
+    { role: 'plQuiz',  x: 6,  y: 5,  dir: 'left' },
+  ],
+  pl_inn2: [
+    { role: 'plG2',    x: 3,  y: 2,  dir: 'down' },
+  ],
+  pl_shop: [
+    { role: 'plG3',    x: 2,  y: 2,  dir: 'right' },
   ],
   pl_road: [
     { role: 'plPedant', x: 12, y: 9,  dir: 'left',  sight: 3 },
     { role: 'plTwinA',  x: 8,  y: 16, dir: 'right', sight: 3 },
     { role: 'plTwinB',  x: 11, y: 16, dir: 'left',  sight: 3 },
     { role: 'plElder',  x: 10, y: 18, dir: 'left' },
+    { role: 'plTr1',    x: 4,  y: 12, dir: 'right', sight: 3 },
+  ],
+  pl_court: [
+    { role: 'plG4',    x: 13, y: 3,  dir: 'down' },
   ],
   pl_gym: [
     { role: 'boss4', x: 8, y: 2, dir: 'down', key: 'hist:boss4' },   // 真正的助教。打倒的紀錄沿用 hist:boss4（舊存檔、測試都不用改）
@@ -2057,7 +2217,7 @@ function CAMPUS_PATCH(S) {
                   '（助教站在窗邊，手裡捏著一片花瓣，花瓣上是一句很短的話。）',
                   '助教：「……給阿嬤的。這次，我想親口念給她聽。」'] },
     pl: { name: '碑林關', home: { map: 'hist', x: 7, y: 2, dir: 'down' }, town: { map: 'pl_town', x: 11, y: 9, dir: 'down' },
-      heal: { map: 'pl_town', x: 5, y: 10 }, need: 3, openFlag: 'plOpen', doneFlag: 'plDone', enteredFlag: 'plEntered', seenFlag: 'plSeen',
+      heal: { map: 'pl_town', x: 5, y: 10 }, need: 4, openFlag: 'plOpen', doneFlag: 'plDone', enteredFlag: 'plEntered', seenFlag: 'plSeen',
       legacyKey: 'hist:boss4', homeName: '校史室', fx: 'ink', tint: [200, 160, 90, .18], onlyCat: '文言',
       glyphs: ['之', '乎', '者', '也', '矣', '焉', '哉', '曰', '而', '其', '以', '於'],
       openText: ['（遠處傳來石門緩緩推開的聲音——書院的門，開了。）', '（你想起守碑老人說的話：「榜末空一格，非留與誰，乃未寫畢也。」）'],
@@ -2065,7 +2225,7 @@ function CAMPUS_PATCH(S) {
                '小墨：「別怕，這是「碑林關」——助教的碎片留下的夢。」',
                '小墨：「這裡的居民，都是刻在碑上、沒人再讀的古人話變出來的，所以大家都說文言文。」',
                '小墨：「別擔心，每句話下面，我都幫你譯成白話了。這座夢裡的題目，也全都是文言文喔。」',
-               '小墨：「真正的助教在書院的檔案室裡，但夢把門鎖上了。幫關裡的人解決三件麻煩，夢才會鬆口。」',
+               '小墨：「真正的助教在書院的檔案室裡，但夢把門鎖上了。守關老吏知道門怎麼開，去跟他聊聊。」',
                '小墨：「想回校史室的話，隨時可以從還鄉碑、或選單的「醒來」回去，進度都會留著。」'],
       finish: ['（助教身上的墨一滴一滴落下，整座碑林在月光下，一塊一塊亮了起來……）',
                '（老吏、書童、書生、師兄弟……每個人都朝你揮了揮手。）',
@@ -2110,6 +2270,17 @@ function CAMPUS_PATCH(S) {
       return out;
     } };
   S.dreams.hn.drop = { chance: 0.45, name: '萬能花瓣', use: '面對花時可以直接讓它開', text: '（對方掉下了一片閃著光的花瓣——是「萬能花瓣」，哪一朵花都能用！）' };
+  /* 碑林關（探索式＋推石碑）：找回四張拓片，到碑林場讀刻痕上的句子，把刻著對的虛詞的石碑推進去，四道都亮了書院才開門。打夢裡的人有機率掉「萬能拓片」。 */
+  S.dreams.pl.explore = { label: '碑林場的刻痕', hint: '到驛站、書肆、古碑小徑找拓片，再到碑林場讀刻痕上的句子，把刻著對的字的石碑推進去',
+    status() {
+      const P = platesOf('pl'), lit = platesLit(P), done = pg => !!G.flags['pl:' + pg.groove];
+      const have = P.pages.filter(pg => G.flags['spf:' + pg.key] && !done(pg)), none = P.pages.filter(pg => !G.flags['spf:' + pg.key] && !done(pg)), any = G.flags[P.anyFlag] || 0;
+      const out = [`碑林場的刻痕亮了 ${lit} / ${P.items.length} 道。`];
+      if (have.length) out.push(`你身上有 ${have.length} 張拓片，帶去碑林場（古碑小徑的南邊）讀刻痕，再把石碑推進去。`);
+      if (none.length) out.push(`還有 ${none.length} 張拓片沒找到。` + (any ? `（你有 ${any} 片萬能拓片，面對刻痕時可以讓石碑直接歸位。）` : '驛站（兩層）、書肆和古碑小徑的草叢裡找找看；打贏夢裡的人，也有機會掉出一片「萬能拓片」。'));
+      return out;
+    } };
+  S.dreams.pl.drop = { chance: 0.45, name: '萬能拓片', use: '面對刻痕時可以讓石碑直接歸位', text: '（對方掉下了一片閃著光的拓片——是「萬能拓片」，哪一道刻痕都能用！）' };
   S.stages[0].roles = ['avatar1', 'boss1'];
   S.stages[1].roles = ['rival1', 'avatar2', 'boss2'];
   S.stages[2].roles = ['m1', 'm2', 'm3', 'avatar3', 'boss3'];
@@ -2120,7 +2291,7 @@ function CAMPUS_PATCH(S) {
     ['居民樓', ['chenA1', 'chenA2', 'liB1', 'liB2', 'liB3', 'xfC1', 'xfC2', 'xfC3', 'xfC4', 'bkf']],
     ['校園', ['front', 'hall', 'corridor1', 'stair1', 'corridor2', 'yard2', 'field', 'audyard']],
     ['道館', ['c1a', 'lib', 'yard', 'hist', 'aud']],
-    ['夢中小鎮', ['zy_town', 'zy_slope', 'zy_bun1', 'zy_bun2', 'zy_home', 'zy_hut', 'zy_gym', 'dj_town', 'dj_hold1', 'dj_hold2', 'dj_hold3', 'dj_shop', 'dj_pier', 'dj_gym', 'hn_town', 'hn_shop1', 'hn_shop2', 'hn_roof', 'hn_house', 'hn_pavilion', 'hn_gym', 'pl_town', 'pl_road', 'pl_gym']],
+    ['夢中小鎮', ['zy_town', 'zy_slope', 'zy_bun1', 'zy_bun2', 'zy_home', 'zy_hut', 'zy_gym', 'dj_town', 'dj_hold1', 'dj_hold2', 'dj_hold3', 'dj_shop', 'dj_pier', 'dj_gym', 'hn_town', 'hn_shop1', 'hn_shop2', 'hn_roof', 'hn_house', 'hn_pavilion', 'hn_gym', 'pl_town', 'pl_inn1', 'pl_inn2', 'pl_shop', 'pl_road', 'pl_court', 'pl_gym']],
     ['教室．其他', ['c8', 'clinic_h', 'store_c', 'forge', 'inkpool']],
   ];
   Object.assign(S.mapNames, {
@@ -2135,7 +2306,7 @@ function CAMPUS_PATCH(S) {
     zy_town: '夢中小鎮．注音坡', zy_slope: '注音坡道', zy_gym: '夢中的一年甲班',
     dj_town: '夢中小鎮．書海港', dj_pier: '船埠', dj_gym: '夢中的圖書館', dj_hold1: '書倉（1F）', dj_hold2: '書倉（2F）', dj_hold3: '書倉（3F）', dj_shop: '鈴鐺鋪',
     hn_town: '夢中小鎮．花南街', hn_pavilion: '聽雨亭', hn_gym: '夢中的花室', hn_shop1: '花店（1F）', hn_shop2: '花店（2F）', hn_roof: '屋頂花園', hn_house: '風鈴小屋',
-    pl_town: '夢中小鎮．碑林關', pl_road: '古碑小徑', pl_gym: '夢中的檔案室',
+    pl_town: '夢中小鎮．碑林關', pl_road: '古碑小徑', pl_gym: '夢中的檔案室', pl_inn1: '驛站（1F）', pl_inn2: '驛站（2F）', pl_shop: '書肆', pl_court: '碑林場',
   });
 }
 

@@ -609,9 +609,9 @@ const Notebook = {
     const D = W.dreams[id], P = platesOf(id); if (!P) return '';
     if (P.ask) {                                                          // 成語石碑：每一頁殘頁現在在哪
       const any = G.flags[P.anyFlag] || 0;
-      const give = P.ask === 'give';
-      const rows = P.pages.map(pg => { const lit = P.items.some(it => G.flags['pl:' + it.key] === pg.key), have = G.flags['spf:' + pg.key];
-        return `<span class="${lit ? 'good' : have ? 'warn' : 'muted'}">${esc(pg.title)}：${lit ? (give ? `已讓「${esc(pg.kind)}」的花開了` : `已放上石碑（${esc(pg.idiom)}）`) : have ? (give ? '收著，拿去給花' : '收著，拿去成語石碑') : '還沒找到'}</span>`; });
+      const give = P.ask === 'give', push = P.ask === 'push';
+      const rows = P.pages.map(pg => { const lit = push ? !!G.flags['pl:' + pg.groove] : P.items.some(it => G.flags['pl:' + it.key] === pg.key), have = G.flags['spf:' + pg.key];
+        return `<span class="${lit ? 'good' : have ? 'warn' : 'muted'}">${esc(pg.title)}：${lit ? (push ? `「${esc(pg.ch)}」字碑已歸位` : give ? `已讓「${esc(pg.kind)}」的花開了` : `已放上石碑（${esc(pg.idiom)}）`) : have ? (push ? '收著，去碑林場讀刻痕' : give ? '收著，拿去給花' : '收著，拿去成語石碑') : '還沒找到'}</span>`; });
       return `<div class="qitem"><b>${esc(D.explore.label)}</b>（${platesLit(P)} / ${P.items.length}）<br><span class="small">${rows.join('<br>')}</span>${any ? `<br><span class="small good">${esc(D.drop.name)} ×${any}（${esc(D.drop.use)}）</span>` : ''}<br><span class="small muted">${esc(D.explore.hint)}</span></div>`;
     }
     const rows = P.items.map(it => { const lit = G.flags['pl:' + it.key], have = G.flags['spf:' + it.key];

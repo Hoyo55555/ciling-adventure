@@ -4,7 +4,7 @@ let G = null;   // 目前存檔
 let W = null;   // 目前世界觀
 
 const OW = {
-  L: null, id: null, npcs: [], busy: false, bubble: null, bumpCd: 0, idleT: 0, hud: null, hudKey: '',
+  L: null, id: null, npcs: [], blocks: [], pendingLock: null, busy: false, bubble: null, bumpCd: 0, idleT: 0, hud: null, hudKey: '',
   p: { x: 0, y: 0, dir: 'down', moving: false, t: 0, tx: 0, ty: 0, dur: 0.22, step: 0, turnWait: 0, cont: false },
 
   shake: 0, dark: 0, flash: 0, fx: [],
@@ -43,7 +43,7 @@ const OW = {
     if (G && G.defeated && W.dreams) for (const D of Object.values(W.dreams)) if (D.legacyKey && G.defeated[D.legacyKey] && !G.flags[D.enteredFlag]) { G.flags[D.enteredFlag] = G.flags[D.openFlag] = G.flags[D.doneFlag] = G.flags[D.seenFlag] = true; }   // 舊存檔：夢中小鎮出現之前就打過了
     Object.assign(this.p, { x, y, dir: dir || this.p.dir, moving: false, t: 0 });
     settleGyms();
-    this.npcs = this.spawnList(); this.plateNag = 0;
+    this.npcs = this.spawnList(); this.plateNag = 0; this.initBlocks();
     this.resetEncounter();
     if (id === 'inkpool') this.spawnSpirit();
     else this.spawnRoamer();
@@ -123,7 +123,38 @@ const OW = {
   tile(x, y) { const r = this.L.rows; if (y < 0 || y >= r.length || x < 0 || x >= r[0].length) return this.L.indoor ? 'X' : 'T'; const o = G && G.opened && G.opened[this.id + ':' + x + ',' + y]; return o || r[y][x]; },
   npcAt(x, y) { return this.npcs.find(n => n.x === x && n.y === y); },
   chestAt(x, y) { return (this.L.chests || []).find(c => c.x === x && c.y === y); },
-  solid(x, y) { return SOLID.has(this.tile(x, y)) || !!this.npcAt(x, y) || !!this.chestAt(x, y) || this.eave(x, y); },
+  solid(x, y) { return SOLID.has(this.tile(x, y)) || !!this.npcAt(x, y) || !!this.chestAt(x, y) || this.eave(x, y) || !!this.blockAt(x, y); },
+  /* 推得動的石碑（L.plates.blocks，碑林關）：每次進地圖都回到起點；已經嵌進刻痕的（pl:刻痕 有值）固定在刻痕上 */
+  initBlocks() {
+    const P = this.L.plates; this.blocks = []; this.pendingLock = null;
+    if (!P || !P.blocks) return;
+    for (const b of P.blocks) {
+      const gr = P.items.find(q => G.flags['pl:' + q.key] === b.key);
+      this.blocks.push({ key: b.key, ch: b.ch, sx: b.sx, sy: b.sy, x: gr ? gr.x : b.sx, y: gr ? gr.y : b.sy, ox: 0, oy: 0, locked: !!gr });
+    }
+  },
+  blockAt(x, y) { return this.blocks.find(b => b.x === x && b.y === y); },
+  /* 被提示說明擋下來時，兩秒內不重複說（按住方向鍵一直推的時候不要洗版） */
+  nag(fn) { const t = performance.now(); if (this.nagAt && t - this.nagAt < 2500) return; this.nagAt = t; Sound.sfx('bump'); this.run(fn); },
+  /* 往 d 推一格。回傳 true ＝ 推動了（玩家跟著往前走）。推不動的原因：後面是牆／東西／出口、已經嵌好了、
+     或前面是刻痕但「青苔蓋住（沒有這句的拓片）」或「字讀不通」——這兩種石碑根本不會進去，也就不會卡死。 */
+  pushBlock(b, d) {
+    const [dx, dy] = DIRS[d], nx = b.x + dx, ny = b.y + dy, P = this.L.plates;
+    if (b.locked) { this.nag(() => say('（這塊石碑已經嵌進刻痕裡了，推不動。）')); return false; }
+    const walk = (TILES[this.tile(nx, ny)] || {}).walk;
+    const exit = (this.L.warps || []).some(w => w.x === nx && w.y === ny) || !!(this.L.doorWarps && this.L.doorWarps[nx + ',' + ny]);
+    if (!walk || exit || this.solid(nx, ny) || (nx === this.p.x && ny === this.p.y)) return false;
+    const gr = P.items.find(q => q.x === nx && q.y === ny);
+    if (gr) {
+      const pg = P.pages.find(q => q.groove === gr.key);
+      if (G.flags['pl:' + gr.key]) return false;
+      if (!G.teacher && !(pg && G.flags['spf:' + pg.key])) { this.nag(() => sayEach(P.moss(gr))); return false; }
+      if (b.ch !== gr.ch) { this.nag(() => sayEach(P.reject(b, gr))); return false; }
+      this.pendingLock = { b, gr };
+    }
+    b.x = nx; b.y = ny; b.ox = -dx * 16; b.oy = -dy * 16; Sound.sfx('cursor');
+    return true;
+  },
   /* 屋簷底下走不過去（stampProps 記在 L.eaves） */
   eave(x, y) { const L = this.L; if (!L.eaves) return false; if (!L.eaveSet) L.eaveSet = new Set(L.eaves); return L.eaveSet.has(x + ',' + y); },
 
@@ -131,6 +162,7 @@ const OW = {
 
   update(dt) {
     const p = this.p; this.bumpCd -= dt; this.updateHud(); this.updateDoorTag();
+    for (const b of this.blocks) if (b.ox || b.oy) { const sp = 16 / (p.dur || 0.22) * dt; b.ox = Math.abs(b.ox) <= sp ? 0 : b.ox - Math.sign(b.ox) * sp; b.oy = Math.abs(b.oy) <= sp ? 0 : b.oy - Math.sign(b.oy) * sp; }
     if (this.busy) return;
     this.idleT += dt;
     if (this.idleT > 1.6) { this.idleT = 0; for (const n of this.npcs) if (n.wander && Math.random() < 0.35) n.dir = pick(['up', 'down', 'left', 'right']); }
@@ -154,12 +186,15 @@ const OW = {
     if (gate && !gateOpen(gate)) { p.cont = false; this.run(() => say(W.gates[gate])); return; }
     const dw = this.L.doorWarps && this.L.doorWarps[nx + ',' + ny];
     if (dw) { p.cont = false; this.run(() => enterDoor(dw)); return; }
-    if (this.solid(nx, ny)) { if (this.bumpCd <= 0) { Sound.sfx('bump'); this.bumpCd = 0.35; } p.cont = false; return; }
+    const bk = this.blockAt(nx, ny);
+    if (bk) { if (!this.pushBlock(bk, d)) { if (this.bumpCd <= 0) { Sound.sfx('bump'); this.bumpCd = 0.35; } p.cont = false; return; } }       // 推得動的石碑：推得動就一起往前走
+    else if (this.solid(nx, ny)) { if (this.bumpCd <= 0) { Sound.sfx('bump'); this.bumpCd = 0.35; } p.cont = false; return; }
     p.moving = true; p.tx = nx; p.ty = ny; p.t = 0; p.cont = true; p.step++;
     p.dur = Input.h('B') ? 0.12 : 0.22;
   },
   onStep() {
     const p = this.p;
+    if (this.pendingLock) { const { b, gr } = this.pendingLock; this.pendingLock = null; p.cont = false; this.run(() => lockBlock(b, gr)); return true; }       // 石碑推進對的刻痕
     /* 過場觸發格：踩上去播一次就不再播 */
     const cutName = this.L.cuts && this.L.cuts[p.x + ',' + p.y];
     if (cutName && !G.flags['cut:' + this.id + ':' + cutName] && CUTS[cutName]
@@ -187,6 +222,7 @@ const OW = {
     const p = this.p, [dx, dy] = DIRS[p.dir], tx = p.x + dx, ty = p.y + dy, key = tx + ',' + ty;
     const n = this.npcAt(tx, ty) || (this.tile(tx, ty) === 't' && this.npcAt(tx + dx, ty + dy)); if (n) { this.run(() => talkTo(n)); return; }
     const c = this.chestAt(tx, ty); if (c) { this.run(() => openChest(c)); return; }
+    const bl = this.blockAt(tx, ty); if (bl) { this.run(() => blockTalk(bl)); return; }
     const sp = this.L.sparks && this.L.sparks[key]; if (sp && !G.flags['sp:' + sp.id]) { this.run(() => collectSpark(sp)); return; }
     const st = this.L.plates && this.L.plates.ask && this.L.plates.items.find(q => q.x === tx && q.y === ty); if (st) { this.run(() => useStone(this.L.plates, st)); return; }       // 成語石碑
     if (this.L.signs && this.L.signs[key]) { this.run(() => say(W.signs[this.L.signs[key]])); return; }
@@ -317,6 +353,7 @@ const OW = {
       if (n.look.sprite) { const sp = GFX.anim(n.look.sprite, n.look.size || 'map', now) || GFX.special(n.look.sprite), sw = sp.width, sh = sp.height; const bob = Math.round(Math.sin(now / 300) * 1.5);
         g.drawImage(sp, n.x * 16 + n.ox - cx - (sw - 16) / 2, n.y * 16 + n.oy - cy - (sh - 16) - 3 + bob); }   // 依圖原尺寸畫，不拉伸；有動畫的（小墨）播四格
       else g.drawImage(GFX.person(n.look, n.dir, n.fr), n.x * 16 + n.ox - cx, n.y * 16 + n.oy - cy - 3); } }));
+    for (const b of this.blocks) actors.push({ y: b.y * 16 + b.oy, draw: () => drawBlock(g, b, cx, cy, now) });
     const fr = p.moving ? (k < 0.5 ? (p.step % 2 ? 1 : 2) : 0) : 0;
     if (!this.hidePlayer) actors.push({ y: py, draw: () => {
       g.drawImage(GFX.person(G.player.look, p.dir, fr), px - cx, py - cy - 3 - (p.hop || 0));   // hop：過場用的跳起高度
@@ -698,7 +735,7 @@ async function collectSpark(sp) {
     addNote({ id: 'sp:' + sp.id, kind: 'clue', dream: OW.L.dream, who: pg.title, place: W.mapNames[OW.id], text: pg.story.join('\n') });
     if (sp.see) await say(sp.see);
     await say(`（你撿起了「${pg.title}」！）`); await sayEach(pg.story);
-    if (P.items.some(q => G.flags['pl:' + q.key] === pg.key)) await say(P.placed || '（這一頁的故事，石碑上已經有了。）');
+    if (pg.groove ? G.flags['pl:' + pg.groove] : P.items.some(q => G.flags['pl:' + q.key] === pg.key)) await say(P.placed || '（這一頁的故事，石碑上已經有了。）');
     else await say(P.carry || '（拿去港口的成語石碑試試看。）');
   } else if (sp.frag) {
     const it = P && P.items.find(q => q.key === sp.frag);
@@ -741,6 +778,7 @@ async function stepPlate(P, it) {
    身上沒有殘頁但有「萬能書籤」，可以直接點亮一塊。亮著的石碑（'pl:石碑'）的值是放上去的那一頁的 key。 */
 async function useStone(P, st) {
   if (P.ask === 'give') return useFlower(P, st);
+  if (P.ask === 'push') return useGroove(P, st);
   const key = 'pl:' + st.key, byKey = k => P.pages.find(q => q.key === k), placed = () => P.items.map(q => G.flags['pl:' + q.key]).filter(v => typeof v === 'string');
   if (G.flags[P.flag] || G.flags[key]) {
     const pg = byKey(G.flags[key]); Sound.sfx('back');
@@ -826,6 +864,69 @@ async function useFlower(P, st) {
   G.flags[P.flag] = true; await sleep(250); Sound.sfx('badge'); await sayEach(P.done);
   await dreamProgress(OW.L.dream); autosave();
 }
+/* ---- 碑林關：推石碑（P.ask === 'push'）----
+   碑林場裡有幾塊倒下的石碑（每塊刻一個虛詞）和幾道刻痕（每道刻痕刻著一句缺了字的文言文）。
+   找到「這一句的拓片」才讀得到刻痕上的句子（青苔蓋住了）；把刻著對的字的石碑推進去，刻痕就亮。
+   推錯的石碑不會進去（不會卡死），推到動不了的時候，面對石碑按確認可以搬回原位。 */
+async function lockBlock(b, gr) {
+  const P = OW.L.plates; b.locked = true; b.ox = b.oy = 0; b.x = gr.x; b.y = gr.y;
+  G.flags['pl:' + gr.key] = b.key; Sound.note(gr.note || 440, .4);
+  const pg = P.pages.find(q => q.groove === gr.key);
+  addNote({ id: 'pl:' + gr.key, kind: 'clue', dream: OW.L.dream, who: `刻痕「${gr.ch}」`, place: W.mapNames[OW.id], text: pg ? pg.ok.join('\n') : '' });
+  await say(`（「${b.ch}」字碑嵌進了刻痕，碑面發出微光——讀通了！）`);
+  if (pg) await sayEach(pg.ok);
+  await plateFinish(P, '刻痕', P.anyName, '張');
+}
+/* 亮了一塊之後：報進度；全亮了就開門 */
+async function plateFinish(P, unit, anyName, anyUnit) {
+  const n = platesLit(P);
+  if (n < P.items.length) { await say(`（${unit} ${n} / ${P.items.length}${G.flags[P.anyFlag] ? `　${anyName}還有 ${G.flags[P.anyFlag]} ${anyUnit}` : ''}）`); autosave(); return; }
+  G.flags[P.flag] = true; await sleep(250); Sound.sfx('badge'); await sayEach(P.done);
+  await dreamProgress(OW.L.dream); autosave();
+}
+async function useGroove(P, gr) {
+  const key = 'pl:' + gr.key, pg = P.pages.find(q => q.groove === gr.key), any = G.flags[P.anyFlag] || 0;
+  if (G.flags[P.flag] || G.flags[key]) { Sound.sfx('back'); await say(`（刻痕裡嵌著「${gr.ch}」字碑，微微發光。）`); if (pg) await sayEach(pg.ok); return; }
+  if (G.teacher) {                                                                  // 教師版：直接讓全部石碑歸位
+    for (const q of P.items) { const b = OW.blocks.find(x => x.ch === q.ch); G.flags['pl:' + q.key] = b.key; b.x = q.x; b.y = q.y; b.locked = true; b.ox = b.oy = 0; }
+    await say('（教師版：四塊石碑一起歸位，四道刻痕都亮了。）'); G.flags[P.flag] = true; await sleep(250); Sound.sfx('badge'); await sayEach(P.done); await dreamProgress(OW.L.dream); autosave(); return;
+  }
+  if (pg && G.flags['spf:' + pg.key]) { Sound.sfx('ok'); await say('（你把拓片對著刻痕，上面的字一個一個浮了出來：）'); await sayEach(pg.read); await say(`（缺的那一格，要推進一塊刻著「？」的石碑。${pg.hint}）`); }
+  else { Sound.sfx('bump'); await sayEach(P.moss(gr)); }
+  if (!any) return;
+  if (!(await UI.yesno(`要用一片「${P.anyName}」讓石碑直接歸位嗎？（還有 ${any} 片）`))) return;
+  const b = OW.blocks.find(x => x.ch === gr.ch); G.flags[P.anyFlag] = any - 1; G.flags[key] = b.key; b.x = gr.x; b.y = gr.y; b.locked = true; b.ox = b.oy = 0;
+  Sound.note(gr.note || 440, .4);
+  addNote({ id: key, kind: 'clue', dream: OW.L.dream, who: `刻痕「${gr.ch}」`, place: W.mapNames[OW.id], text: pg ? pg.ok.join('\n') : '' });
+  await say(`（用了一片${P.anyName}。「${gr.ch}」字碑自己滑進了刻痕，發出微光——）`);
+  if (pg) await sayEach(pg.ok);
+  await plateFinish(P, '刻痕', P.anyName, '張');
+}
+async function blockTalk(b) {
+  if (b.locked) { Sound.sfx('back'); await say('（這塊石碑已經嵌進刻痕裡，微微發著光。）'); return; }
+  await say(`（一塊倒下的石碑，上面刻著「${b.ch}」。）`);
+  if (b.x === b.sx && b.y === b.sy) return;
+  if (!(await UI.yesno('要把它搬回原來的位置嗎？（推到動不了的時候用）'))) return;
+  if (OW.solid(b.sx, b.sy) || (OW.p.x === b.sx && OW.p.y === b.sy)) { await say('（原來的位置有東西擋著，先把擋路的搬開。）'); return; }
+  b.x = b.sx; b.y = b.sy; b.ox = b.oy = 0; Sound.sfx('back'); await say('（石碑回到了原來的位置。）');
+}
+function drawGroove(g, px, py, lit, now) {
+  g.fillStyle = lit ? '#b89c3c' : '#4a5656'; g.fillRect(px + 1, py + 1, 14, 14);
+  g.fillStyle = lit ? '#e8d890' : '#6a7777'; g.fillRect(px + 2, py + 2, 12, 12);
+  g.fillStyle = lit ? '#fff4b8' : '#8a9696'; g.fillRect(px + 2, py + 2, 12, 1); g.fillRect(px + 2, py + 2, 1, 12);
+  if (!lit) { g.fillStyle = '#3a4646'; g.fillRect(px + 5, py + 5, 6, 6); g.fillStyle = '#566464'; g.fillRect(px + 6, py + 6, 4, 4); }
+  else { g.fillStyle = `rgba(255,240,160,${.22 + .12 * Math.sin(now / 220)})`; g.fillRect(px - 1, py - 1, 18, 18); }
+}
+function drawBlock(g, b, cx, cy, now) {
+  const px = b.x * 16 + b.ox - cx, py = b.y * 16 + b.oy - cy; if (px < -16 || px > 240 || py < -20 || py > 160) return;
+  const C = b.locked ? ['#e8d890', '#fff4b8', '#b89c3c', '#6a4a10'] : ['#a8b6b7', '#c9d4d5', '#757f7f', '#3a4a5a'];
+  g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(px + 2, py + 13, 12, 2);
+  g.fillStyle = C[0]; g.fillRect(px + 2, py + 1, 12, 13);
+  g.fillStyle = C[1]; g.fillRect(px + 3, py, 10, 1); g.fillRect(px + 2, py + 1, 1, 12);
+  g.fillStyle = C[2]; g.fillRect(px + 13, py + 2, 1, 12); g.fillRect(px + 3, py + 13, 11, 1);
+  g.fillStyle = C[3]; g.font = 'bold 9px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillText(b.ch, px + 8, py + 10);
+  if (b.locked) { g.fillStyle = `rgba(255,240,160,${.2 + .1 * Math.sin(now / 220)})`; g.fillRect(px, py - 1, 16, 16); }
+}
 const TONE_PTS = { 'ˉ': [[4, 7, 11, 7]], 'ˊ': [[4, 10, 11, 4]], 'ˇ': [[4, 5, 7, 10], [7, 10, 11, 5]], 'ˋ': [[4, 4, 11, 10]] };
 function pixLine(g, x0, y0, x1, y1) {
   const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
@@ -835,6 +936,7 @@ function drawPlates(g, L, cx, cy, now) {
   const P = L.plates; if (!P) return;
   P.items.forEach(it => {
     const px = it.x * 16 - cx, py = it.y * 16 - cy; if (px < -16 || px > 240 || py < -16 || py > 160) return;
+    if (P.ask === 'push') { drawGroove(g, px, py, !!G.flags['pl:' + it.key], now); return; }
     const lit = !!G.flags['pl:' + it.key], ready = !lit && (P.ask ? P.pages.some(q => haveFrag(q) && !P.items.some(z => G.flags['pl:' + z.key] === q.key)) : haveFrag(it)) || (!lit && (G.flags[P.anyFlag] || 0) > 0);
     if (P.ask) {                                                    // 成語石碑：石碑本身是 'O' 這一格畫的，這裡只加發光與提示星
       if (lit) { g.fillStyle = `rgba(255,236,150,${.26 + .14 * Math.sin(now / 220)})`; g.fillRect(px, py, 16, 16); g.fillStyle = '#fff4b8'; g.fillRect(px + 7, py + 3, 2, 2); }
